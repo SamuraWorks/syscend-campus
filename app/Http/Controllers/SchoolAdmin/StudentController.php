@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\StudentDocument;
 use App\Models\User;
 use App\Services\NotificationDispatchService;
+use App\Services\UserCreationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -119,16 +120,16 @@ class StudentController extends Controller
                 ));
 
                 if (!empty($data['guardian']['email']) && !$guardian->user_id) {
-                    $email = $data['guardian']['email'];
-                    $user = User::create([
-                        'school_id' => $schoolId,
-                        'name'      => $data['guardian']['name'],
-                        'email'     => $email,
-                        'password'  => Hash::make('password'),
-                        'status'    => 'active',
-                    ]);
-                    $user->assignRole('parent');
-                    $guardian->update(['user_id' => $user->id]);
+                    $service = new UserCreationService($schoolId, auth()->id());
+                    $result = $service->createUser(
+                        [
+                            'name'  => $data['guardian']['name'],
+                            'email' => $data['guardian']['email'],
+                            'phone' => $data['guardian']['phone'] ?? null,
+                        ],
+                        ['parent']
+                    );
+                    $guardian->update(['user_id' => $result['user']->id]);
                 }
             });
 

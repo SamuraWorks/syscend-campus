@@ -540,3 +540,61 @@ export type PaginatedResponse<T> = {
         next: string | null;
     };
 };
+
+export interface UserAuditLog {
+    id: number;
+    school_id: number;
+    user_id: number;
+    performed_by: number | null;
+    action: string;
+    subject_type: string | null;
+    subject_id: number | null;
+    description: string | null;
+    metadata: Record<string, unknown> | null;
+    ip_address: string | null;
+    user_agent: string | null;
+    created_at: string;
+    performer?: User;
+}
+
+export interface SchoolTimeSetting {
+    id: number;
+    school_id: number;
+    academic_year_id: number | null;
+    opening_time: string;
+    closing_time: string;
+    working_days: string;
+    timezone: string | null;
+    clock_format: '12h' | '24h';
+    day_start: string;
+    day_end: string;
+}
+
+export interface ScheduleEventType {
+    id: number;
+    school_id: number;
+    name: string;
+    slug: string;
+    color: string | null;
+    icon: string | null;
+    is_instructional: boolean;
+    attendance_required: boolean;
+    is_active: boolean;
+    sort_order: number;
+}
+
+export interface SchedulePeriod {
+    id: number;
+    school_id: number;
+    academic_year_id: number | null;
+    event_type_id: number | null;
+    name: string;
+    period_number: number | null;
+    start_time: string;
+    end_time: string;
+    duration_minutes: number | null;
+    is_break: boolean;
+    is_active: boolean;
+    sort_order: number;
+    event_type?: ScheduleEventType;
+}

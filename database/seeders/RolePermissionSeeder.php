@@ -86,14 +86,31 @@ class RolePermissionSeeder extends Seeder
         'ministry.reports.view', 'ministry.reports.export',
         'ministry.downloads.view', 'ministry.downloads.manage',
         'ministry.users.manage', 'ministry.settings.manage',
+
+        // Unified User Management (IAM)
+        'users.view', 'users.create', 'users.edit', 'users.delete',
+        'users.reset-password', 'users.send-welcome',
+        'users.generate-password', 'users.toggle-status', 'users.audit-log',
+
+        // School Time & Schedule Configuration
+        'school-time.view', 'school-time.manage',
+        'schedule-periods.view', 'schedule-periods.manage',
+        'schedule-event-types.view', 'schedule-event-types.manage',
+
+        // Assessment Configuration
+        'assessment-config.view', 'assessment-config.manage', 'assessment-config.default',
+        'assessment-components.view', 'assessment-components.manage',
+
+        // Result Approvals & Imports
+        'result-approvals.view', 'result-approvals.approve', 'result-approvals.reject',
+        'result-imports.view', 'result-imports.create', 'result-imports.process',
     ];
 
     private array $rolePermissions = [
         'super-admin' => '*',
 
         'school-admin' => [
-            'academic-years.*', 'users.view', 'users.create', 'users.edit',
-            'students.*', 'staff.*',
+            'academic-years.*', 'users.*', 'students.*', 'staff.*',
             'attendance.*', 'timetable.*',
             'exams.*', 'marks.*', 'results.*', 'reportcard.*',
             'fees.*', 'expenses.*',
@@ -102,6 +119,9 @@ class RolePermissionSeeder extends Seeder
             'homework.*', 'lessons.*', 'syllabus.*',
             'announcements.*', 'messages.*', 'sms.*', 'email.*',
             'reports.*', 'settings.*',
+            'assessment-config.*', 'assessment-components.*',
+            'result-approvals.*', 'result-imports.*',
+            'school-time.*', 'schedule-periods.*', 'schedule-event-types.*',
         ],
 
         'principal' => [
@@ -121,7 +141,7 @@ class RolePermissionSeeder extends Seeder
         'teacher' => [
             'students.view',
             'attendance.view', 'attendance.mark',
-            'timetable.view',
+            'timetable.view', 'school-time.view', 'schedule-periods.view',
             'exams.view', 'marks.view', 'marks.entry',
             'results.view', 'reportcard.generate',
             'homework.view', 'homework.create', 'homework.grade',

@@ -7,6 +7,8 @@ use App\Http\Controllers\SchoolAdmin\ExamController;
 use App\Http\Controllers\SchoolAdmin\AssessmentConfigController;
 use App\Http\Controllers\SchoolAdmin\ResultApprovalController;
 use App\Http\Controllers\SchoolAdmin\ResultImportController;
+use App\Http\Controllers\SchoolAdmin\UserManagementController as SchoolUserManagementController;
+use App\Http\Controllers\SchoolAdmin\SchoolTimeSettingsController;
 use App\Http\Controllers\SchoolAdmin\FeeCategoryController;
 use App\Http\Controllers\SchoolAdmin\FeePaymentController;
 use App\Http\Controllers\SchoolAdmin\FeeStructureController;
@@ -207,6 +209,30 @@ Route::middleware('auth')->group(function () {
             Route::post('grade-scales',                      [ExamController::class, 'saveGradeScale'])->name('grade-scales.store');
             Route::put('grade-scales/{gradeScale}',          [ExamController::class, 'updateGradeScale'])->name('grade-scales.update');
             Route::delete('grade-scales/{gradeScale}',       [ExamController::class, 'deleteGradeScale'])->name('grade-scales.destroy');
+
+            // ── Unified User Management (IAM) ──
+            Route::get('users',                              [SchoolUserManagementController::class, 'index'])->name('users.index');
+            Route::get('users/create',                       [SchoolUserManagementController::class, 'create'])->name('users.create');
+            Route::post('users',                             [SchoolUserManagementController::class, 'store'])->name('users.store');
+            Route::get('users/{user}',                       [SchoolUserManagementController::class, 'show'])->name('users.show');
+            Route::put('users/{user}/roles',                 [SchoolUserManagementController::class, 'updateRoles'])->name('users.roles.update');
+            Route::post('users/{user}/reset-password',       [SchoolUserManagementController::class, 'resetPassword'])->name('users.reset-password');
+            Route::post('users/{user}/send-welcome',         [SchoolUserManagementController::class, 'sendWelcomeEmail'])->name('users.send-welcome');
+            Route::post('users/{user}/toggle-status',        [SchoolUserManagementController::class, 'toggleStatus'])->name('users.toggle-status');
+            Route::get('users/{user}/audit-logs',            [SchoolUserManagementController::class, 'auditLogs'])->name('users.audit-logs');
+            Route::post('users/generate-password',           [SchoolUserManagementController::class, 'generatePassword'])->name('users.generate-password');
+
+            // ── School Time Settings ──
+            Route::get('settings/school-time',               [SchoolTimeSettingsController::class, 'index'])->name('settings.school-time');
+            Route::post('settings/school-time',              [SchoolTimeSettingsController::class, 'saveSettings'])->name('settings.school-time.save');
+            Route::post('settings/school-time/event-types',  [SchoolTimeSettingsController::class, 'storeEventType'])->name('settings.school-time.event-types.store');
+            Route::put('settings/school-time/event-types/{eventType}', [SchoolTimeSettingsController::class, 'updateEventType'])->name('settings.school-time.event-types.update');
+            Route::delete('settings/school-time/event-types/{eventType}', [SchoolTimeSettingsController::class, 'destroyEventType'])->name('settings.school-time.event-types.destroy');
+            Route::post('settings/school-time/periods',      [SchoolTimeSettingsController::class, 'storePeriod'])->name('settings.school-time.periods.store');
+            Route::put('settings/school-time/periods/{period}', [SchoolTimeSettingsController::class, 'updatePeriod'])->name('settings.school-time.periods.update');
+            Route::delete('settings/school-time/periods/{period}', [SchoolTimeSettingsController::class, 'destroyPeriod'])->name('settings.school-time.periods.destroy');
+            Route::post('settings/school-time/reorder',      [SchoolTimeSettingsController::class, 'reorderPeriods'])->name('settings.school-time.reorder');
+            Route::post('settings/school-time/copy',         [SchoolTimeSettingsController::class, 'copySchedule'])->name('settings.school-time.copy');
 
             // Assessment Configuration
             Route::get('assessment-config',                  [AssessmentConfigController::class, 'index'])->name('assessment-config.index');

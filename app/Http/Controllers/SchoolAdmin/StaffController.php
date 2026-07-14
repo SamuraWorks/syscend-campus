@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Staff;
 use App\Models\StaffDocument;
+use App\Services\UserCreationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -89,9 +90,18 @@ class StaffController extends Controller
             'notes'          => 'nullable|string|max:1000',
         ]);
 
-        Staff::create($data);
+        try {
+            $service = new UserCreationService($this->getSchoolId(), auth()->id());
+            $result = $service->createStaff($data, ['teacher']);
 
-        return redirect()->route('school.staff.index')->with('success', 'Staff registered successfully.');
+            return redirect()->route('school.staff.index')
+                ->with('success', 'Staff registered and user account created.')
+                ->with('temp_password', $result['temp_password'] ?? null);
+        } catch (\Throwable $e) {
+            Staff::create($data);
+            return redirect()->route('school.staff.index')
+                ->with('success', 'Staff registered (no user account created).');
+        }
     }
 
     public function show(Staff $staff): Response

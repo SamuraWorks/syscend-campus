@@ -13,7 +13,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, CalendarDays, User } from 'lucide-react';
 import { Link } from '@inertiajs/react';
-import type { SchoolClass, Section, Subject, Staff, Timetable, TimeSlot, DayOfWeek, PageProps } from '@/Types';
+import type { SchoolClass, Section, Subject, Staff, Timetable, SchedulePeriod, DayOfWeek, PageProps } from '@/Types';
 
 interface Props {
     classes: SchoolClass[];
@@ -21,10 +21,11 @@ interface Props {
     subjects: Subject[];
     teachers: Staff[];
     periods: Timetable[];
+    schedulePeriods: Array<{ id: number; name: string; start_time: string; end_time: string; duration_minutes: number; is_break: boolean; event_type?: { name: string; color: string | null } | null }>;
     grid: Record<string, Record<string, Timetable>>;
     days: DayOfWeek[];
-    defaultSlots: TimeSlot[];
     filters: { class_id?: string; section_id?: string };
+    hasConfiguredPeriods: boolean;
 }
 
 const DAY_LABELS: Record<string, string> = {
@@ -49,7 +50,7 @@ function fmt12(time: string) {
     return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-export default function TimetableIndex({ classes, sections, subjects, teachers, grid, days, defaultSlots, filters }: Props) {
+export default function TimetableIndex({ classes, sections, subjects, teachers, grid, days, schedulePeriods, filters, hasConfiguredPeriods }: Props) {
     const { flash } = usePage<PageProps>().props;
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<{ day: DayOfWeek; start: string; end: string } | null>(null);
@@ -71,18 +72,19 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
         router.get('/school/timetable', { ...filters, [key]: value || undefined }, { preserveScroll: true });
     }
 
-    function openSlot(day: DayOfWeek, slot: TimeSlot) {
-        const existing = grid[day]?.[slot.start + ':00'] ?? grid[day]?.[slot.start];
+    function openSlot(day: DayOfWeek, slot: { start_time: string; end_time: string }) {
+        const startTime = slot.start_time.length === 5 ? slot.start_time + ':00' : slot.start_time;
+        const existing = grid[day]?.[slot.start_time] ?? grid[day]?.[startTime];
         setExistingPeriod(existing ?? null);
-        setSelectedSlot({ day, start: slot.start, end: slot.end });
+        setSelectedSlot({ day, start: slot.start_time, end: slot.end_time });
         setData({
             class_id:    filters.class_id ?? '',
             section_id:  filters.section_id ?? '',
             subject_id:  existing ? String(existing.subject_id) : '',
             teacher_id:  existing?.teacher_id ? String(existing.teacher_id) : '',
             day_of_week: day,
-            start_time:  slot.start,
-            end_time:    slot.end,
+            start_time:  slot.start_time,
+            end_time:    slot.end_time,
             room:        existing?.room ?? '',
             notes:       existing?.notes ?? '',
         });
@@ -110,9 +112,9 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
     subjects.forEach((s, i) => { subjectColorMap[s.id] = SUBJECT_COLORS[i % SUBJECT_COLORS.length]; });
 
     // Normalize grid keys (backend sends "HH:MM:SS", normalize to "HH:MM")
-    function getPeriod(day: DayOfWeek, slot: TimeSlot): Timetable | undefined {
+    function getPeriod(day: DayOfWeek, slot: { start_time: string }): Timetable | undefined {
         const dayGrid = grid[day] ?? {};
-        return dayGrid[slot.start] ?? dayGrid[slot.start + ':00'];
+        return dayGrid[slot.start_time] ?? dayGrid[slot.start_time + ':00'];
     }
 
     return (
@@ -190,12 +192,18 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                                 </tr>
                             </thead>
                             <tbody>
-                                {defaultSlots.map((slot, slotIdx) => (
-                                    <tr key={slot.start} className="border-b border-slate-100 dark:border-slate-800/50 last:border-0">
+                                {schedulePeriods.map((slot) => (
+                                    <tr key={slot.id || slot.start_time} className={`border-b border-slate-100 dark:border-slate-800/50 last:border-0 ${slot.is_break ? 'bg-slate-50/50 dark:bg-slate-900/30' : ''}`}>
                                         <td className="px-4 py-2 text-xs text-slate-400 whitespace-nowrap">
-                                            <span className="font-medium text-slate-600 dark:text-slate-300">{fmt12(slot.start)}</span>
-                                            <br />
-                                            <span className="text-[11px]">{fmt12(slot.end)}</span>
+                                            {slot.is_break ? (
+                                                <span className="font-medium text-amber-600 dark:text-amber-400 text-[11px] uppercase tracking-wide">{slot.name}</span>
+                                            ) : (
+                                                <>
+                                                    <span className="font-medium text-slate-600 dark:text-slate-300">{fmt12(slot.start_time)}</span>
+                                                    <br />
+                                                    <span className="text-[11px]">{fmt12(slot.end_time)}</span>
+                                                </>
+                                            )}
                                         </td>
                                         {days.map(day => {
                                             const period = getPeriod(day, slot);
@@ -203,7 +211,11 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
 
                                             return (
                                                 <td key={day} className="px-1 py-1 border-l border-slate-100 dark:border-slate-800/50 align-top">
-                                                    {period ? (
+                                                    {slot.is_break ? (
+                                                        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-2 text-center">
+                                                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">{slot.name}</span>
+                                                        </div>
+                                                    ) : period ? (
                                                         <div
                                                             className={`rounded-lg border p-2 cursor-pointer hover:opacity-80 transition-opacity group relative ${colorClass}`}
                                                             onClick={() => openSlot(day, slot)}
@@ -226,7 +238,7 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                                                     ) : (
                                                         <button
                                                             type="button"
-                                                            onClick={() => openSlot(day, slot)}
+                                                            onClick={() => openSlot(day, { start_time: slot.start_time, end_time: slot.end_time })}
                                                             className="w-full h-14 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-300 dark:text-slate-700 hover:border-indigo-300 hover:text-indigo-400 transition-colors"
                                                         >
                                                             <Plus className="w-4 h-4" />
@@ -250,6 +262,13 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                                 {s.name}
                             </span>
                         ))}
+                    </div>
+                )}
+
+                {/* Configurable periods link */}
+                {!hasConfiguredPeriods && (
+                    <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-4 py-3 text-sm text-blue-700 dark:text-blue-300">
+                        Using default schedule periods. <a href="/school/settings/school-time" className="underline font-medium">Configure custom periods</a> in School Time Settings.
                     </div>
                 )}
             </div>
