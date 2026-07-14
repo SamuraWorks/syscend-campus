@@ -60,7 +60,7 @@ export default function AppLayout({ children, title, breadcrumbs }: AppLayoutPro
             )}
 
             {/* Sidebar — Desktop */}
-            <div className={cn('hidden md:flex', !sidebarOpen && 'md:hidden')}>
+            <div className="hidden md:flex">
                 <Sidebar />
             </div>
 
