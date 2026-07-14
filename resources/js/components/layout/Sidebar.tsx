@@ -284,6 +284,7 @@ const navGroups: NavGroup[] = [
             { label: 'Timetable',    href: '/school/timetable',   icon: CalendarDays,  roles: ['school-admin','teacher'] },
             { label: 'Attendance',   href: '/school/attendance',  icon: ClipboardList, roles: ['school-admin','teacher'] },
             { label: 'Examinations', href: '/school/exams',       icon: BookOpen,      roles: ['school-admin','teacher'] },
+            { label: 'Report Cards', href: '/school/report-cards', icon: FileText,     roles: ['school-admin','accountant'] },
         ],
     },
     {
@@ -385,6 +386,7 @@ const navGroups: NavGroup[] = [
             { label: 'My Timetable',  href: '/school/student/timetable',  icon: CalendarDays,  roles: ['student'] },
             { label: 'My Attendance', href: '/school/student/attendance', icon: ClipboardList, roles: ['student'] },
             { label: 'My Results',    href: '/school/student/results',    icon: BarChart3,     roles: ['student'] },
+            { label: 'Report Cards',  href: '/school/student/report-cards', icon: FileText,   roles: ['student'] },
             { label: 'My Homework',   href: '/school/student/homework',   icon: NotebookPen,   roles: ['student'] },
         ],
     },
@@ -423,6 +425,7 @@ const navGroups: NavGroup[] = [
         items: [
             { label: 'Attendance', href: '/school/parent/attendance', icon: ClipboardList, roles: ['parent'] },
             { label: 'Results',    href: '/school/parent/results',    icon: BarChart3,     roles: ['parent'] },
+            { label: 'Report Cards', href: '/school/parent/report-cards', icon: FileText, roles: ['parent'] },
             { label: 'Fee Status', href: '/school/parent/fees',       icon: DollarSign,    roles: ['parent'] },
         ],
     },
@@ -455,7 +458,7 @@ const navGroups: NavGroup[] = [
             { label: 'Timetable',       href: '/school/teacher/timetable',   icon: CalendarDays,  roles: ['teacher'] },
             { label: 'Students',        href: '/school/teacher/students',    icon: GraduationCap, roles: ['teacher'] },
             { label: 'Lesson Plans',    href: '/school/teacher/lesson-plans',icon: ClipboardList, roles: ['teacher'] },
-            { label: 'Syllabus',        href: '/school/teacher/syllabi',     icon: NotebookPen,   roles: ['teacher'] },
+            { label: 'Syllabus',        href: '/school/teacher/syllabus',    icon: NotebookPen,   roles: ['teacher'] },
             { label: 'Homework',        href: '/school/teacher/homework',    icon: FileText,      roles: ['teacher'] },
             { label: 'Online Learning', href: '/school/teacher/online-classes', icon: Video,      roles: ['teacher'] },
         ],

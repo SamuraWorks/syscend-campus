@@ -21,7 +21,7 @@ class DemoResetSeeder extends Seeder
         foreach ($tables as $table) {
             if (Schema::hasTable($table)) {
                 DB::table($table)->delete();
-                $this->command->line("  ✓ Cleared: {$table}");
+                $this->command->line("  Cleared: {$table}");
             }
         }
 
@@ -37,81 +37,67 @@ class DemoResetSeeder extends Seeder
     private function getCleanupTables(): array
     {
         return [
-            // Activity & audit
-            'activity_log', 'user_audit_logs',
+            'activity_log', 'user_audit_logs', 'audit_logs',
 
-            // Reports & results
             'report_cards', 'result_approval_logs', 'result_change_requests',
             'assessment_components', 'school_assessment_configs',
             'exam_assessment_links', 'assessment_types',
 
-            // Examination
             'marks', 'exams', 'national_examinations',
 
-            // Attendance
-            'attendance_corrections', 'attendances',
+            'attendance_corrections', 'attendances', 'attendance_sessions',
 
-            // Academic
             'timetables', 'lessons', 'homework_submissions', 'homework',
-            'syllabi', 'online_classes',
+            'syllabi', 'online_classes', 'lesson_plans',
 
-            // Fees & finance
             'fee_payments', 'fee_structures', 'fee_categories',
             'payrolls', 'salary_structures',
 
-            // Students & staff
             'student_documents', 'staff_documents',
             'students', 'staff', 'guardians',
 
-            // Users (non-super-admin)
             'users',
 
-            // Academic structure
             'subjects', 'sections', 'classes', 'academic_terms', 'academic_years',
 
-            // Departments & designations
             'designations', 'departments',
 
-            // Communication
-            'announcements', 'messages', 'notifications',
+            'announcements', 'messages', 'school_notifications',
             'email_templates', 'notification_templates',
 
-            // Library
-            'book_issues', 'library_books',
+            'book_reservations', 'book_issues', 'books',
 
-            // Transport
             'student_routes', 'transport_routes', 'vehicles',
 
-            // Hostel
             'hostel_allocations', 'hostel_rooms', 'hostels',
 
-            // Inventory
-            'maintenance_logs', 'assets', 'inventory_purchases', 'inventory_items', 'inventory_categories',
+            'inventory_issues', 'maintenance_logs', 'assets', 'inventory_purchases', 'inventory_items', 'inventory_categories',
 
-            // Visitors & inquiries
-            'visitor_logs', 'admission_inquiries',
+            'visitor_logs', 'admission_inquiries', 'inquiry_followups',
 
-            // Documents
             'document_imports',
 
-            // Schedule
             'schedule_periods', 'schedule_event_types', 'school_time_settings',
             'holidays', 'shifts',
 
-            // School settings
             'school_settings',
 
-            // Subscriptions & packages
-            'school_subscriptions', 'coupons', 'package_modules', 'packages',
+            'leave_requests', 'leave_types',
 
-            // Demo requests
+            'student_behaviors', 'success_scores', 'interventions', 'intervention_notes',
+            'student_alerts', 'student_goals', 'student_achievements', 'student_performance_snapshots',
+
+            'school_inspections', 'ministry_announcements',
+            'national_student_registry', 'national_teacher_registry',
+            'school_data_syncs', 'ministry_downloads',
+
+            'school_subscriptions', 'school_modules', 'coupons', 'package_modules', 'packages',
+
             'demo_requests',
 
-            // Schools (will recreate one)
-            'schools',
+            'districts',
 
-            // Reset sequences
-            'platform_settings',
+            'schools',
         ];
     }
 }

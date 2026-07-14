@@ -108,7 +108,6 @@ class AttendanceController extends Controller
                     }
 
                     $isSubmitted = !empty($data['submit_immediately']);
-                    $statusDraft = $isSubmitted ? $record['status'] : null;
 
                     Attendance::updateOrCreate(
                         [
@@ -118,8 +117,8 @@ class AttendanceController extends Controller
                             'attendable_id'   => $record['student_id'],
                         ],
                         [
-                            'status'          => $isSubmitted ? null : $record['status'],
-                            'status_draft'    => $statusDraft,
+                            'status'          => $record['status'],
+                            'status_draft'    => $isSubmitted ? 'submitted' : 'draft',
                             'session_id'      => $data['session_id'] ?? null,
                             'remarks'         => $record['remarks'] ?? null,
                             'submitted_by'    => $isSubmitted ? auth()->id() : null,
@@ -174,7 +173,7 @@ class AttendanceController extends Controller
             ->whereNotNull('status_draft')
             ->whereNull('submitted_at')
             ->update([
-                'status'       => null,
+                'status_draft' => 'submitted',
                 'submitted_by' => auth()->id(),
                 'submitted_at' => now(),
             ]);
@@ -212,9 +211,9 @@ class AttendanceController extends Controller
         }
 
         $updated = $query->update([
-            'status'      => DB::raw('status_draft'),
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
+            'status_draft' => 'approved',
+            'approved_by'  => auth()->id(),
+            'approved_at'  => now(),
         ]);
 
         return back()->with('success', "{$updated} attendance records approved.");

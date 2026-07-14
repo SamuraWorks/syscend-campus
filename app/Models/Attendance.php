@@ -57,12 +57,12 @@ class Attendance extends Model
 
     public function isSubmitted(): bool
     {
-        return $this->status_draft === 'submitted' || $this->status_draft === 'approved';
+        return in_array($this->status_draft, ['submitted', 'approved'], true);
     }
 
     public function isApproved(): bool
     {
-        return $this->approved_at !== null;
+        return $this->status_draft === 'approved' || $this->approved_at !== null;
     }
 
     public function isEditable(): bool
