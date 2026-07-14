@@ -9,9 +9,12 @@ trait HasAuditLog
     public static function bootHasAuditLog(): void
     {
         static::created(function ($model) {
+            $userId = auth()->id();
+            if (!$userId) return;
+
             AuditLog::create([
                 'school_id'      => $model->school_id ?? auth()->user()?->school_id,
-                'user_id'        => auth()->id(),
+                'user_id'        => $userId,
                 'event'          => 'created',
                 'auditable_type' => get_class($model),
                 'auditable_id'   => $model->id,
@@ -25,6 +28,9 @@ trait HasAuditLog
             if (method_exists($model, 'isAuditEnabled') && !$model->isAuditEnabled()) {
                 return;
             }
+
+            $userId = auth()->id();
+            if (!$userId) return;
 
             $dirty    = $model->getDirty();
             $original = $model->getOriginal();
@@ -40,7 +46,7 @@ trait HasAuditLog
 
             AuditLog::create([
                 'school_id'      => $model->school_id ?? auth()->user()?->school_id,
-                'user_id'        => auth()->id(),
+                'user_id'        => $userId,
                 'event'          => 'updated',
                 'auditable_type' => get_class($model),
                 'auditable_id'   => $model->id,
@@ -51,9 +57,12 @@ trait HasAuditLog
         });
 
         static::deleted(function ($model) {
+            $userId = auth()->id();
+            if (!$userId) return;
+
             AuditLog::create([
                 'school_id'      => $model->school_id ?? auth()->user()?->school_id,
-                'user_id'        => auth()->id(),
+                'user_id'        => $userId,
                 'event'          => 'deleted',
                 'auditable_type' => get_class($model),
                 'auditable_id'   => $model->id,

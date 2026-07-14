@@ -57,6 +57,7 @@ use App\Http\Controllers\SuperAdmin\ModuleManagerController;
 use App\Http\Controllers\SuperAdmin\PackageController;
 use App\Http\Controllers\SuperAdmin\SchoolController;
 use App\Http\Controllers\SuperAdmin\DemoManagementController;
+use App\Http\Controllers\SuperAdmin\DemoResetController;
 use App\Http\Controllers\DemoRequestController;
 use App\Http\Controllers\SuperAdmin\SubscriptionController;
 use App\Http\Controllers\SuperAdmin\UserManagementController;
@@ -857,6 +858,10 @@ Route::middleware('auth')->group(function () {
 
             // Performance Intelligence
             Route::get('performance',                    [SuperAdminPerformanceController::class, 'dashboard'])->name('performance');
+
+            // Demo Reset
+            Route::get('demo-reset', [DemoResetController::class, 'index'])->name('demo-reset.index');
+            Route::post('demo-reset', [DemoResetController::class, 'execute'])->name('demo-reset.execute');
         });
 
     /*
