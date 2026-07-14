@@ -223,7 +223,7 @@ export default function StudentProfile({ linked, profile }: Props) {
                                                 <td className="py-2 text-center text-slate-600 dark:text-slate-400">{sub.average_obtained.toFixed(1)}</td>
                                                 <td className="py-2 text-center text-slate-500">{sub.full_marks}</td>
                                                 <td className="py-2 text-center">
-                                                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">{sub.percentage.toFixed(1)}%</span>
+                                                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">{Number(sub.percentage).toFixed(1)}%</span>
                                                 </td>
                                                 <td className="py-2 text-center">
                                                     {sub.grade

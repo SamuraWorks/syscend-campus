@@ -86,7 +86,7 @@ export default function ReportCardsShow({ reportCard, gradeScale }: Props) {
                 <div className="grid grid-cols-5 gap-4">
                     <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                         <CardContent className="p-4 text-center">
-                            <p className="text-3xl font-bold text-indigo-600">{rc.percentage.toFixed(1)}%</p>
+                            <p className="text-3xl font-bold text-indigo-600">{Number(rc.percentage).toFixed(1)}%</p>
                             <p className="text-xs text-slate-500">Overall Score</p>
                         </CardContent>
                     </Card>
@@ -140,9 +140,9 @@ export default function ReportCardsShow({ reportCard, gradeScale }: Props) {
                                         <TableCell className="text-center">{sub.ca_score}</TableCell>
                                         <TableCell className="text-center">{sub.exam_score}</TableCell>
                                         <TableCell className="text-center">{sub.total_score}</TableCell>
-                                        <TableCell className="text-center font-medium">{sub.weighted_score.toFixed(1)}</TableCell>
+                                        <TableCell className="text-center font-medium">{Number(sub.weighted_score).toFixed(1)}</TableCell>
                                         <TableCell className="text-center"><Badge>{sub.grade}</Badge></TableCell>
-                                        <TableCell className="text-center">{sub.gpa.toFixed(2)}</TableCell>
+                                        <TableCell className="text-center">{Number(sub.gpa).toFixed(2)}</TableCell>
                                         <TableCell className="text-sm text-slate-500">{sub.remarks ?? '—'}</TableCell>
                                     </TableRow>
                                 ))}

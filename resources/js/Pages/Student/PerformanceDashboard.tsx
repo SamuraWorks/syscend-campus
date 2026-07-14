@@ -269,7 +269,7 @@ export default function PerformanceDashboard({ linked, profile }: Props) {
                                                 <td className="py-2 text-center text-slate-600 dark:text-slate-400">{sub.average_obtained.toFixed(1)}</td>
                                                 <td className="py-2 text-center text-slate-500">{sub.full_marks}</td>
                                                 <td className="py-2 text-center">
-                                                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">{sub.percentage.toFixed(1)}%</span>
+                                                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">{Number(sub.percentage).toFixed(1)}%</span>
                                                 </td>
                                                 <td className="py-2 text-center">
                                                     {sub.grade
@@ -296,7 +296,7 @@ export default function PerformanceDashboard({ linked, profile }: Props) {
                             <div className="flex flex-wrap gap-2">
                                 {strengths.map((sub, i) => (
                                     <Badge key={i} className="flex items-center gap-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                        <Star className="w-3 h-3" /> {sub.subject_name} ({sub.percentage.toFixed(0)}%)
+                                        <Star className="w-3 h-3" /> {sub.subject_name} ({Number(sub.percentage).toFixed(0)}%)
                                     </Badge>
                                 ))}
                             </div>
@@ -315,7 +315,7 @@ export default function PerformanceDashboard({ linked, profile }: Props) {
                             <div className="flex flex-wrap gap-2">
                                 {improvements.map((sub, i) => (
                                     <Badge key={i} className="flex items-center gap-1 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-                                        {sub.subject_name} ({sub.percentage.toFixed(0)}%)
+                                        {sub.subject_name} ({Number(sub.percentage).toFixed(0)}%)
                                     </Badge>
                                 ))}
                             </div>

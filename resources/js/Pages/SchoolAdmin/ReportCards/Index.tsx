@@ -168,7 +168,7 @@ export default function ReportCardsIndex({ reportCards, classes, terms, academic
                                     <TableCell className="font-medium">{rc.student?.first_name} {rc.student?.last_name}</TableCell>
                                     <TableCell>{rc.schoolClass?.name}</TableCell>
                                     <TableCell>{rc.term?.name}</TableCell>
-                                    <TableCell>{rc.percentage.toFixed(1)}%</TableCell>
+                                    <TableCell>{Number(rc.percentage).toFixed(1)}%</TableCell>
                                     <TableCell>{rc.gpa?.toFixed(2) ?? '—'}</TableCell>
                                     <TableCell><Badge>{rc.grade}</Badge></TableCell>
                                     <TableCell>{rc.total_school_days > 0 ? `${rc.days_present}/${rc.total_school_days}` : '—'}</TableCell>

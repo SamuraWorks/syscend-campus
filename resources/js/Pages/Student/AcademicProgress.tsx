@@ -122,7 +122,7 @@ export default function AcademicProgress({ linked, student, reportCards, marksBy
                                             </div>
                                             <div>
                                                 <p className="text-xs text-slate-500 mb-1">GPA</p>
-                                                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{rc.gpa != null ? rc.gpa.toFixed(2) : '—'}</p>
+                                                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{rc.gpa != null ? Number(rc.gpa).toFixed(2) : '—'}</p>
                                             </div>
                                             <div className="flex items-center gap-3 pt-4">
                                                 <span className="flex items-center gap-1 text-xs text-green-600">

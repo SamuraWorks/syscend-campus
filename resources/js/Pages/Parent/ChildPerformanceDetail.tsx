@@ -76,7 +76,7 @@ function ProgressBar({ label, value, icon: Icon }: { label: string; value: numbe
                 <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400">
                     <Icon className="w-3.5 h-3.5" /> {label}
                 </span>
-                <span className="text-xs font-bold text-slate-900 dark:text-white">{value.toFixed(1)}%</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white">{Number(value).toFixed(1)}%</span>
             </div>
             <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${Math.min(value, 100)}%` }} />
@@ -176,7 +176,7 @@ export default function ChildPerformanceDetail({ linked, profile }: Props) {
                                         style={{ stroke: 'currentColor' }} />
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-2xl font-bold text-slate-900 dark:text-white">{totalScore.toFixed(1)}</span>
+                                    <span className="text-2xl font-bold text-slate-900 dark:text-white">{Number(totalScore).toFixed(1)}</span>
                                     <span className="text-[10px] text-slate-500 dark:text-slate-400">/ 100</span>
                                 </div>
                             </div>
@@ -240,10 +240,10 @@ export default function ChildPerformanceDetail({ linked, profile }: Props) {
                                             {subjectEntries.map((sub, i) => (
                                                 <tr key={i} className="border-b border-slate-50 dark:border-slate-800/50">
                                                     <td className="py-2 text-slate-700 dark:text-slate-300 font-medium">{sub.subject_name}</td>
-                                                    <td className="py-2 text-center text-slate-600 dark:text-slate-400">{sub.average_obtained.toFixed(1)}</td>
+                                                    <td className="py-2 text-center text-slate-600 dark:text-slate-400">{Number(sub.average_obtained).toFixed(1)}</td>
                                                     <td className="py-2 text-center text-slate-500">{sub.full_marks}</td>
                                                     <td className="py-2 text-center">
-                                                        <span className="font-semibold text-purple-600 dark:text-purple-400">{sub.percentage.toFixed(1)}%</span>
+                                                        <span className="font-semibold text-purple-600 dark:text-purple-400">{Number(sub.percentage).toFixed(1)}%</span>
                                                     </td>
                                                     <td className="py-2 text-center">
                                                         {sub.grade
@@ -271,7 +271,7 @@ export default function ChildPerformanceDetail({ linked, profile }: Props) {
                                             {strengths.map((s, i) => (
                                                 <li key={i} className="flex items-center justify-between">
                                                     <span className="text-sm text-slate-700 dark:text-slate-300">{s.subject_name}</span>
-                                                    <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{s.percentage.toFixed(1)}%</Badge>
+                                                    <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{Number(s.percentage).toFixed(1)}%</Badge>
                                                 </li>
                                             ))}
                                         </ul>
@@ -291,7 +291,7 @@ export default function ChildPerformanceDetail({ linked, profile }: Props) {
                                             {improvements.map((s, i) => (
                                                 <li key={i} className="flex items-center justify-between">
                                                     <span className="text-sm text-slate-700 dark:text-slate-300">{s.subject_name}</span>
-                                                    <Badge className="text-[10px] bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">{s.percentage.toFixed(1)}%</Badge>
+                                                    <Badge className="text-[10px] bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">{Number(s.percentage).toFixed(1)}%</Badge>
                                                 </li>
                                             ))}
                                         </ul>

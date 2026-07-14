@@ -156,7 +156,7 @@ export default function StudentPerformanceDetail({ linked, profile }: Props) {
                                 {teacherSubjects.map((ts) => (
                                     <div key={ts.subject_name} className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 text-center">
                                         <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{ts.subject_name}</p>
-                                        <p className="text-lg font-bold text-slate-900 dark:text-white mt-1">{ts.percentage.toFixed(1)}%</p>
+                                        <p className="text-lg font-bold text-slate-900 dark:text-white mt-1">{Number(ts.percentage).toFixed(1)}%</p>
                                     </div>
                                 ))}
                             </div>
@@ -251,7 +251,7 @@ export default function StudentPerformanceDetail({ linked, profile }: Props) {
                                                     <td className="py-2 text-center text-slate-500">{sub.full_marks}</td>
                                                     <td className="py-2 text-center">
                                                         <span className={`font-semibold ${isTeacherSubject ? 'text-blue-600 dark:text-blue-400' : 'text-indigo-600 dark:text-indigo-400'}`}>
-                                                            {sub.percentage.toFixed(1)}%
+                                                            {Number(sub.percentage).toFixed(1)}%
                                                         </span>
                                                     </td>
                                                     <td className="py-2 text-center">

@@ -119,7 +119,7 @@ export default function ReportCards({ linked, student, reportCards }: Props) {
                                                     </div>
                                                     <div>
                                                         <p className="text-xs text-slate-500 mb-1">GPA</p>
-                                                        <p className="text-lg font-bold text-slate-800 dark:text-white">{rc.gpa != null ? rc.gpa.toFixed(2) : '—'}</p>
+                                                        <p className="text-lg font-bold text-slate-800 dark:text-white">{rc.gpa != null ? Number(rc.gpa).toFixed(2) : '—'}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">

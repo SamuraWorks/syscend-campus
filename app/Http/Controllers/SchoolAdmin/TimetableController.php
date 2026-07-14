@@ -140,13 +140,29 @@ class TimetableController extends Controller
             $grid[$p->day_of_week][$p->start_time] = $p;
         }
 
+        $defaultSlots = $schedulePeriods->map(fn ($p) => [
+            'start' => substr($p->start_time, 0, 5),
+            'end'   => substr($p->end_time, 0, 5),
+        ])->values()->toArray();
+
+        if (empty($defaultSlots)) {
+            $defaultSlots = [
+                ['start' => '07:30', 'end' => '08:15'],
+                ['start' => '08:15', 'end' => '09:00'],
+                ['start' => '09:00', 'end' => '09:45'],
+                ['start' => '10:00', 'end' => '10:45'],
+                ['start' => '10:45', 'end' => '11:30'],
+                ['start' => '11:30', 'end' => '12:15'],
+            ];
+        }
+
         return Inertia::render('SchoolAdmin/Timetable/TeacherSchedule', [
-            'teachers'        => Staff::where('status', 'active')->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'emp_id']),
-            'periods'         => $periods,
-            'schedulePeriods' => $schedulePeriods,
-            'grid'            => $grid,
-            'days'            => ['monday','tuesday','wednesday','thursday','friday','saturday'],
-            'filters'         => ['teacher_id' => $teacherId],
+            'teachers'      => Staff::where('status', 'active')->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'emp_id']),
+            'periods'       => $periods,
+            'defaultSlots'  => $defaultSlots,
+            'grid'          => $grid,
+            'days'          => ['monday','tuesday','wednesday','thursday','friday','saturday'],
+            'filters'       => ['teacher_id' => $teacherId],
         ]);
     }
 }
