@@ -8,7 +8,7 @@ import {
     PieChart, FileText, TrendingUp, Wrench, ShieldCheck, Plug,
     CreditCard, Tag, Wallet, Receipt, FileSpreadsheet, AlertTriangle, Landmark,
     Brain, Trophy, AlertCircle, Target, Eye, Sparkles, Crown, Stethoscope,
-    Fingerprint, CalendarClock,
+    Fingerprint, CalendarClock, RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/Stores/useUIStore';
@@ -65,6 +65,7 @@ const navGroups: NavGroup[] = [
         items: [
             { label: 'Platform Settings', href: '/super-admin/settings',         icon: Settings, roles: ['super-admin'] },
             { label: 'Integrations',      href: '/school/settings/integrations', icon: Plug,     roles: ['super-admin'] },
+            { label: 'Demo Reset',        href: '/super-admin/demo-reset',       icon: RotateCcw, roles: ['super-admin'] },
         ],
     },
     {
