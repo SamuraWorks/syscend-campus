@@ -115,7 +115,7 @@ export default function AtRiskStudents({ linked, students }: Props) {
 
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{s.total_score.toFixed(1)}%</p>
+                                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{Number(s.total_score).toFixed(1)}%</p>
                                             <p className="text-[10px] text-slate-500 dark:text-slate-400">Overall Score</p>
                                         </div>
                                         {isCritical && (

@@ -133,7 +133,7 @@ export default function TopStudents({ linked, students, groupBy }: Props) {
                                                 {classificationLabels[s.classification] || s.classification}
                                             </Badge>
                                             <span className="text-sm font-bold text-slate-900 dark:text-white w-14 text-right">
-                                                {s.total_score.toFixed(1)}%
+                                                {Number(s.total_score).toFixed(1)}%
                                             </span>
                                         </div>
                                     </div>

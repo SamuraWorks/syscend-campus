@@ -261,11 +261,11 @@ export default function PerformanceDashboard({ linked, summary, subjectStudents,
                                                     .map((entry) => (
                                                         <tr key={entry.student.id} className="border-b border-slate-50 dark:border-slate-800/50">
                                                             <td className="py-2 text-slate-700 dark:text-slate-300 font-medium">{entry.student.full_name}</td>
-                                                            <td className="py-2 text-center text-slate-600 dark:text-slate-400">{entry.score.academic_score.toFixed(1)}</td>
-                                                            <td className="py-2 text-center text-slate-600 dark:text-slate-400">{entry.score.attendance_score.toFixed(1)}</td>
-                                                            <td className="py-2 text-center text-slate-600 dark:text-slate-400">{entry.score.homework_score.toFixed(1)}</td>
-                                                            <td className="py-2 text-center text-slate-600 dark:text-slate-400">{entry.score.behavior_score.toFixed(1)}</td>
-                                                            <td className="py-2 text-center font-semibold text-indigo-600 dark:text-indigo-400">{entry.score.total_score.toFixed(1)}%</td>
+<td className="py-2 text-center text-slate-600 dark:text-slate-400">{Number(entry.score.academic_score).toFixed(1)}</td>
+                                                             <td className="py-2 text-center text-slate-600 dark:text-slate-400">{Number(entry.score.attendance_score).toFixed(1)}</td>
+                                                             <td className="py-2 text-center text-slate-600 dark:text-slate-400">{Number(entry.score.homework_score).toFixed(1)}</td>
+                                                             <td className="py-2 text-center text-slate-600 dark:text-slate-400">{Number(entry.score.behavior_score).toFixed(1)}</td>
+                                                             <td className="py-2 text-center font-semibold text-indigo-600 dark:text-indigo-400">{Number(entry.score.total_score).toFixed(1)}%</td>
                                                         </tr>
                                                     ))
                                                 }

@@ -75,7 +75,7 @@ function ProgressBar({ label, value, icon: Icon }: { label: string; value: numbe
                 <span className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400">
                     <Icon className="w-3.5 h-3.5" /> {label}
                 </span>
-                <span className="text-xs font-bold text-slate-900 dark:text-white">{value.toFixed(1)}%</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white">{Number(value).toFixed(1)}%</span>
             </div>
             <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${Math.min(value, 100)}%` }} />
@@ -157,7 +157,7 @@ export default function StudentPerformanceDetail({ linked, profile }: Props) {
                                         style={{ stroke: 'currentColor' }} />
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-2xl font-bold text-slate-900 dark:text-white">{totalScore.toFixed(1)}</span>
+                                    <span className="text-2xl font-bold text-slate-900 dark:text-white">{Number(totalScore).toFixed(1)}</span>
                                     <span className="text-[10px] text-slate-500 dark:text-slate-400">/ 100</span>
                                 </div>
                             </div>
@@ -220,7 +220,7 @@ export default function StudentPerformanceDetail({ linked, profile }: Props) {
                                         {subjectEntries.map((sub, i) => (
                                             <tr key={i} className="border-b border-slate-50 dark:border-slate-800/50">
                                                 <td className="py-2 text-slate-700 dark:text-slate-300 font-medium">{sub.subject_name}</td>
-                                                <td className="py-2 text-center text-slate-600 dark:text-slate-400">{sub.average_obtained.toFixed(1)}</td>
+                                                <td className="py-2 text-center text-slate-600 dark:text-slate-400">{Number(sub.average_obtained).toFixed(1)}</td>
                                                 <td className="py-2 text-center text-slate-500">{sub.full_marks}</td>
                                                 <td className="py-2 text-center">
                                                     <span className="font-semibold text-indigo-600 dark:text-indigo-400">{Number(sub.percentage).toFixed(1)}%</span>

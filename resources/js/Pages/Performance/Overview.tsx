@@ -231,7 +231,7 @@ export default function PerformanceOverview({ linked, summary, topStudents, atRi
                                         {improvedStudents.slice(0, 5).map((s: any) => (
                                             <div key={s.student_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50">
                                                 <span className="text-sm text-slate-700 dark:text-slate-300">Student #{s.student_id}</span>
-                                                <span className="text-sm font-bold text-green-600">+{s.improvement.toFixed(1)}%</span>
+                                                <span className="text-sm font-bold text-green-600">+{Number(s.improvement).toFixed(1)}%</span>
                                             </div>
                                         ))}
                                     </div>

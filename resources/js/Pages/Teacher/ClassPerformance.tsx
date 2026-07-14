@@ -144,7 +144,7 @@ export default function ClassPerformance({ linked, students, studentModels, beha
                                         <item.icon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                                     </div>
                                     <div>
-                                        <p className="text-lg font-bold text-slate-900 dark:text-white">{item.value.toFixed(1)}%</p>
+                                        <p className="text-lg font-bold text-slate-900 dark:text-white">{Number(item.value).toFixed(1)}%</p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{item.label}</p>
                                     </div>
                                 </div>
@@ -190,11 +190,11 @@ export default function ClassPerformance({ linked, students, studentModels, beha
                                                     <td className="py-2.5">
                                                         <p className="font-medium text-slate-900 dark:text-white">{entry.model?.full_name || `Student #${entry.student_id}`}</p>
                                                     </td>
-                                                    <td className="py-2.5 text-center text-slate-600 dark:text-slate-400">{entry.academic_score.toFixed(1)}</td>
-                                                    <td className="py-2.5 text-center text-slate-600 dark:text-slate-400">{entry.attendance_score.toFixed(1)}</td>
-                                                    <td className="py-2.5 text-center text-slate-600 dark:text-slate-400">{entry.homework_score.toFixed(1)}</td>
-                                                    <td className="py-2.5 text-center text-slate-600 dark:text-slate-400">{entry.behavior_score.toFixed(1)}</td>
-                                                    <td className="py-2.5 text-center font-semibold text-indigo-600 dark:text-indigo-400">{entry.total_score.toFixed(1)}%</td>
+<td className="py-2.5 text-center text-slate-600 dark:text-slate-400">{Number(entry.academic_score).toFixed(1)}</td>
+                                                     <td className="py-2.5 text-center text-slate-600 dark:text-slate-400">{Number(entry.attendance_score).toFixed(1)}</td>
+                                                     <td className="py-2.5 text-center text-slate-600 dark:text-slate-400">{Number(entry.homework_score).toFixed(1)}</td>
+                                                     <td className="py-2.5 text-center text-slate-600 dark:text-slate-400">{Number(entry.behavior_score).toFixed(1)}</td>
+                                                     <td className="py-2.5 text-center font-semibold text-indigo-600 dark:text-indigo-400">{Number(entry.total_score).toFixed(1)}%</td>
                                                     <td className="py-2.5 text-center">
                                                         <Badge className={`text-[10px] ${classificationColors[entry.classification] || ''}`}>
                                                             {classificationLabels[entry.classification] || entry.classification}
@@ -231,7 +231,7 @@ export default function ClassPerformance({ linked, students, studentModels, beha
                                                 </span>
                                                 <p className="text-sm font-medium text-slate-900 dark:text-white">{entry.model?.full_name || `Student #${entry.student_id}`}</p>
                                             </div>
-                                            <p className="text-sm font-bold text-green-600 dark:text-green-400">{entry.total_score.toFixed(1)}%</p>
+                                            <p className="text-sm font-bold text-green-600 dark:text-green-400">{Number(entry.total_score).toFixed(1)}%</p>
                                         </div>
                                     ))}
                                     {rankedStudents.length === 0 && <p className="text-sm text-slate-500 text-center py-4">No data.</p>}

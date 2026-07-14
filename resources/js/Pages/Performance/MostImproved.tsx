@@ -104,7 +104,7 @@ export default function MostImproved({ linked, students }: Props) {
                                             <p className="text-sm font-medium text-slate-900 dark:text-white">{s.student.full_name}</p>
                                             <p className="text-xs text-slate-500 dark:text-slate-400">
                                                 {s.student.schoolClass?.name}{s.student.section?.name ? ` — ${s.student.section.name}` : ''}
-                                                {s.previous_score != null ? ` · Was ${s.previous_score.toFixed(1)}%` : ''}
+                                                {s.previous_score != null ? ` · Was ${Number(s.previous_score).toFixed(1)}%` : ''}
                                             </p>
                                         </div>
                                     </div>
@@ -116,11 +116,11 @@ export default function MostImproved({ linked, students }: Props) {
                                             <div className="flex items-center gap-1 justify-end">
                                                 <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
                                                 <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                                                    +{s.improvement.toFixed(1)}%
+                                                    +{Number(s.improvement).toFixed(1)}%
                                                 </span>
                                             </div>
                                             <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                Now: {s.total_score.toFixed(1)}%
+                                                Now: {Number(s.total_score).toFixed(1)}%
                                             </p>
                                         </div>
                                     </div>

@@ -77,7 +77,7 @@ export default function ReportCardsIndex({ reportCards, classes, terms, academic
 
     const publishedCount = reportCards.data.filter((r) => r.status === 'published').length;
     const approvedCount = reportCards.data.filter((r) => r.status === 'approved').length;
-    const avgGpa = reportCards.data.length > 0 ? (reportCards.data.reduce((s, r) => s + (r.gpa ?? 0), 0) / reportCards.data.length).toFixed(2) : '—';
+    const avgGpa = reportCards.data.length > 0 ? (reportCards.data.reduce((s, r) => s + Number(r.gpa ?? 0), 0) / reportCards.data.length).toFixed(2) : '—';
 
     return (
         <AppLayout breadcrumbs={[{ label: 'Report Cards' }]}>
@@ -169,7 +169,7 @@ export default function ReportCardsIndex({ reportCards, classes, terms, academic
                                     <TableCell>{rc.schoolClass?.name}</TableCell>
                                     <TableCell>{rc.term?.name}</TableCell>
                                     <TableCell>{Number(rc.percentage).toFixed(1)}%</TableCell>
-                                    <TableCell>{rc.gpa?.toFixed(2) ?? '—'}</TableCell>
+                                    <TableCell>{rc.gpa != null ? Number(rc.gpa).toFixed(2) : '—'}</TableCell>
                                     <TableCell><Badge>{rc.grade}</Badge></TableCell>
                                     <TableCell>{rc.total_school_days > 0 ? `${rc.days_present}/${rc.total_school_days}` : '—'}</TableCell>
                                     <TableCell><Badge className={STATUS_STYLE[rc.status] ?? ''}>{rc.status}</Badge></TableCell>

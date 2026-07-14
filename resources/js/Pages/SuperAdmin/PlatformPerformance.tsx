@@ -103,7 +103,7 @@ export default function PlatformPerformance({
                             </div>
                             <div>
                                 <p className="text-xs text-slate-500 uppercase tracking-wide">Platform Average</p>
-                                <p className="text-3xl font-bold text-slate-900 dark:text-white">{platformAverage.toFixed(1)}%</p>
+                                <p className="text-3xl font-bold text-slate-900 dark:text-white">{Number(platformAverage).toFixed(1)}%</p>
                             </div>
                         </CardContent>
                     </Card>

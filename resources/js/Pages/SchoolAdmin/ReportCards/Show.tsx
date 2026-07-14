@@ -92,7 +92,7 @@ export default function ReportCardsShow({ reportCard, gradeScale }: Props) {
                     </Card>
                     <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                         <CardContent className="p-4 text-center">
-                            <p className="text-3xl font-bold text-purple-600">{rc.gpa?.toFixed(2) ?? '—'}</p>
+                            <p className="text-3xl font-bold text-purple-600">{rc.gpa != null ? Number(rc.gpa).toFixed(2) : '—'}</p>
                             <p className="text-xs text-slate-500">GPA</p>
                         </CardContent>
                     </Card>

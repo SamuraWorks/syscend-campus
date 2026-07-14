@@ -69,7 +69,7 @@ export default function SubjectPerformance({ linked, performance }: Props) {
                     <div>
                         <h1 className="text-2xl font-bold">Subject Performance</h1>
                         <p className="text-white/80 text-sm mt-1">
-                            Average performance across {performance.length} subject{performance.length !== 1 ? 's' : ''} · Overall average: {overallAvg.toFixed(1)}%
+                            Average performance across {performance.length} subject{performance.length !== 1 ? 's' : ''} · Overall average: {Number(overallAvg).toFixed(1)}%
                         </p>
                     </div>
                 </div>
@@ -93,7 +93,7 @@ export default function SubjectPerformance({ linked, performance }: Props) {
                                 <BarChart3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                             </div>
                             <div>
-                                <p className="text-lg font-bold text-slate-900 dark:text-white">{overallAvg.toFixed(1)}%</p>
+                                <p className="text-lg font-bold text-slate-900 dark:text-white">{Number(overallAvg).toFixed(1)}%</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">Overall Average</p>
                             </div>
                         </CardContent>
@@ -141,11 +141,11 @@ export default function SubjectPerformance({ linked, performance }: Props) {
                                             <tr key={s.subject_name} className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                                                 <td className="py-3 text-slate-700 dark:text-slate-300 font-medium">{s.subject_name}</td>
                                                 <td className="py-3 text-center text-slate-600 dark:text-slate-400">
-                                                    {s.average_marks.toFixed(1)} / {s.full_marks}
+                                                    {Number(s.average_marks).toFixed(1)} / {s.full_marks}
                                                 </td>
                                                 <td className="py-3 text-center">
                                                     <Badge className={`text-[10px] ${getPerformanceBadge(s.average_percentage)}`}>
-                                                        {s.average_percentage.toFixed(1)}%
+                                                        {Number(s.average_percentage).toFixed(1)}%
                                                     </Badge>
                                                 </td>
                                                 <td className="py-3">
@@ -165,7 +165,7 @@ export default function SubjectPerformance({ linked, performance }: Props) {
                                                         : passRate >= 50 ? 'text-yellow-600 dark:text-yellow-400'
                                                         : 'text-red-600 dark:text-red-400'
                                                     }`}>
-                                                        {passRate.toFixed(0)}%
+                                                        {Number(passRate).toFixed(0)}%
                                                     </span>
                                                     <span className="text-[10px] text-slate-400 block">({s.pass_count}/{s.student_count})</span>
                                                 </td>
@@ -190,7 +190,7 @@ export default function SubjectPerformance({ linked, performance }: Props) {
                                         <div className="flex items-center justify-between">
                                             <p className="text-sm font-semibold text-slate-900 dark:text-white">{s.subject_name}</p>
                                             <Badge className={`text-[10px] ${getPerformanceBadge(s.average_percentage)}`}>
-                                                {s.average_percentage.toFixed(1)}%
+                                                {Number(s.average_percentage).toFixed(1)}%
                                             </Badge>
                                         </div>
                                         <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -198,8 +198,8 @@ export default function SubjectPerformance({ linked, performance }: Props) {
                                                 style={{ width: `${Math.min(s.average_percentage, 100)}%` }} />
                                         </div>
                                         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                                            <span>Avg: {s.average_marks.toFixed(1)} / {s.full_marks}</span>
-                                            <span>Pass: {passRate.toFixed(0)}% ({s.pass_count}/{s.student_count})</span>
+                                            <span>Avg: {Number(s.average_marks).toFixed(1)} / {s.full_marks}</span>
+                                            <span>Pass: {Number(passRate).toFixed(0)}% ({s.pass_count}/{s.student_count})</span>
                                         </div>
                                     </div>
                                 );

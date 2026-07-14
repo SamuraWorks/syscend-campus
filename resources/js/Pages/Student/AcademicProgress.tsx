@@ -81,7 +81,7 @@ export default function AcademicProgress({ linked, student, reportCards, marksBy
                                 <CardContent className="p-4 text-center">
                                     <p className="text-xs text-slate-500 mb-1">Average %</p>
                                     <p className={cn('text-xl font-bold', avgPercentage >= 75 ? 'text-green-600' : avgPercentage >= 50 ? 'text-amber-600' : 'text-red-600')}>
-                                        {avgPercentage.toFixed(1)}%
+                                        {Number(avgPercentage).toFixed(1)}%
                                     </p>
                                 </CardContent>
                             </Card>

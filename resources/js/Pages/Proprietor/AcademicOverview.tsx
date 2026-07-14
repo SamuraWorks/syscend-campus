@@ -96,7 +96,7 @@ export default function AcademicOverview({
                             <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-2">
                                 <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                             </div>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{summary.average_score.toFixed(1)}%</p>
+                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{Number(summary.average_score).toFixed(1)}%</p>
                             <p className="text-xs text-slate-500 mt-0.5">Average Score</p>
                         </CardContent>
                     </Card>
@@ -105,7 +105,7 @@ export default function AcademicOverview({
                             <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-2">
                                 <School className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                             </div>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{promotionData.promotion_rate.toFixed(1)}%</p>
+                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{Number(promotionData.promotion_rate).toFixed(1)}%</p>
                             <p className="text-xs text-slate-500 mt-0.5">Promotion Rate</p>
                         </CardContent>
                     </Card>
@@ -165,7 +165,7 @@ export default function AcademicOverview({
                                                 <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold">{i + 1}</span>
                                                 <span className="text-sm text-slate-700 dark:text-slate-300">{s.student.full_name}</span>
                                             </div>
-                                            <Badge className={`text-[10px] ${classificationColors[s.classification] || ''}`}>{s.total_score.toFixed(1)}%</Badge>
+                                            <Badge className={`text-[10px] ${classificationColors[s.classification] || ''}`}>{Number(s.total_score).toFixed(1)}%</Badge>
                                         </li>
                                     ))}
                                 </ul>
@@ -187,7 +187,7 @@ export default function AcademicOverview({
                                     {atRiskStudents.map((s) => (
                                         <li key={s.student_id} className="flex items-center justify-between">
                                             <span className="text-sm text-slate-700 dark:text-slate-300">{s.student.full_name}</span>
-                                            <Badge className={`text-[10px] ${classificationColors[s.classification] || ''}`}>{s.total_score.toFixed(1)}%</Badge>
+                                            <Badge className={`text-[10px] ${classificationColors[s.classification] || ''}`}>{Number(s.total_score).toFixed(1)}%</Badge>
                                         </li>
                                     ))}
                                 </ul>
@@ -220,7 +220,7 @@ export default function AcademicOverview({
                                             <tr key={name} className="border-b border-slate-100 dark:border-slate-800">
                                                 <td className="py-2.5 font-medium text-slate-800 dark:text-slate-200 capitalize">{name}</td>
                                                 <td className="py-2.5 text-right text-slate-600 dark:text-slate-400">{dept.student_count}</td>
-                                                <td className="py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">{dept.average_score.toFixed(1)}%</td>
+                                                <td className="py-2.5 text-right font-semibold text-slate-700 dark:text-slate-300">{Number(dept.average_score).toFixed(1)}%</td>
                                                 <td className="py-2.5 text-right text-green-600">{dept.excellent_count}</td>
                                                 <td className="py-2.5 text-right text-red-600">{dept.critical_count}</td>
                                             </tr>
@@ -258,7 +258,7 @@ export default function AcademicOverview({
                                                     <span className={`font-semibold ${
                                                         sub.average_percentage >= 70 ? 'text-green-600' :
                                                         sub.average_percentage >= 50 ? 'text-yellow-600' : 'text-red-600'
-                                                    }`}>{sub.average_percentage.toFixed(1)}%</span>
+                                                    }`}>{Number(sub.average_percentage).toFixed(1)}%</span>
                                                 </td>
                                             </tr>
                                         ))}

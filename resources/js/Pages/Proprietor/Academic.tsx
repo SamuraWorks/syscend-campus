@@ -103,7 +103,7 @@ export default function ProprietorAcademic({
                                             {classPerformance.map((cp, i) => (
                                                 <tr key={i} className="border-b border-slate-100 dark:border-slate-800">
                                                     <td className="py-2.5 font-medium text-slate-800 dark:text-slate-200">{cp.class_name}</td>
-                                                    <td className="py-2.5 text-right text-slate-700 dark:text-slate-300">{cp.avg_marks.toFixed(1)}%</td>
+                                                    <td className="py-2.5 text-right text-slate-700 dark:text-slate-300">{Number(cp.avg_marks).toFixed(1)}%</td>
                                                     <td className="py-2.5 text-right">
                                                         <Badge className={cn(
                                                             'text-[10px]',
