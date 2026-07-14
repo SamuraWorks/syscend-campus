@@ -260,6 +260,7 @@ Route::middleware('auth')->group(function () {
             Route::post('imports/{import}/extract',          [ResultImportController::class, 'extract'])->name('imports.extract');
             Route::put('imports/{import}/data',              [ResultImportController::class, 'updateData'])->name('imports.update-data');
             Route::post('imports/{import}/import',           [ResultImportController::class, 'import'])->name('imports.import');
+            Route::post('imports/csv-import',                [ResultImportController::class, 'csvImport'])->name('imports.csv-import');
             Route::delete('imports/{import}',                [ResultImportController::class, 'destroy'])->name('imports.destroy');
 
             // Timetable

@@ -77,6 +77,7 @@ export interface PageProps {
     };
     faviconUrl: string | null;
     errors: Record<string, string>;
+    import_errors?: string[];
 }
 
 export interface Guardian {
