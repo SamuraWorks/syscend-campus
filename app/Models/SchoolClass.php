@@ -15,8 +15,13 @@ class SchoolClass extends Model
     protected $table = 'classes';
 
     protected $fillable = [
-        'school_id', 'name', 'numeric_name', 'capacity', 'class_teacher_id',
-        'school_level', 'level_order', 'department_id',
+        'school_id', 'name', 'short_name', 'numeric_name', 'capacity',
+        'class_teacher_id', 'school_level', 'level_order', 'department_id',
+        'description', 'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     public function sections(): HasMany
@@ -29,9 +34,19 @@ class SchoolClass extends Model
         return $this->hasMany(Subject::class, 'class_id');
     }
 
+    public function students(): HasMany
+    {
+        return $this->hasMany(Student::class, 'class_id');
+    }
+
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function classTeacher(): BelongsTo
+    {
+        return $this->belongsTo(Staff::class, 'class_teacher_id');
     }
 
     public function levelLabel(): string
@@ -43,5 +58,10 @@ class SchoolClass extends Model
             'senior_secondary'  => 'Senior Secondary School',
             default             => '',
         };
+    }
+
+    public function activeSections(): HasMany
+    {
+        return $this->sections()->where('is_active', true);
     }
 }

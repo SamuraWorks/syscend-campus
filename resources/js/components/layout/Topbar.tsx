@@ -1,16 +1,15 @@
 import { router, usePage } from '@inertiajs/react';
 import { Moon, Sun, LogOut, User, Menu, KeyRound } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
     DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/Stores/useAuthStore';
 import { useUIStore } from '@/Stores/useUIStore';
 import { useEffect } from 'react';
 import type { PageProps } from '@/Types';
+import ProfileAvatar from '@/components/ProfileAvatar';
 
 const roleColors: Record<string, string> = {
     'super-admin':   'bg-primary/10 text-primary',
@@ -34,7 +33,6 @@ export default function Topbar({ title, breadcrumbs }: TopbarProps) {
     const { toggleSidebar } = useUIStore();
 
     const user = auth.user;
-    const initials = user?.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() ?? 'U';
     const roleLabel = user?.role?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) ?? '';
     const roleClass = roleColors[user?.role ?? ''] ?? 'bg-secondary text-secondary-foreground';
 
@@ -92,12 +90,11 @@ export default function Topbar({ title, breadcrumbs }: TopbarProps) {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-accent transition-colors">
-                            <Avatar className="w-7 h-7">
-                                <AvatarImage src={user?.avatar ?? undefined} />
-                                <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                                    {initials}
-                                </AvatarFallback>
-                            </Avatar>
+                            <ProfileAvatar
+                                src={user?.avatar_url}
+                                name={user?.name ?? 'User'}
+                                size="sm"
+                            />
                             <div className="hidden sm:flex flex-col items-start">
                                 <span className="text-xs font-medium text-foreground leading-none">{user?.name}</span>
                                 <span className={`text-[10px] mt-0.5 px-1 rounded font-medium ${roleClass}`}>{roleLabel}</span>

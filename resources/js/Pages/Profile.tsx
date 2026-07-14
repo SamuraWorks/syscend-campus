@@ -4,11 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, CheckCircle } from 'lucide-react';
+import { User, CheckCircle, Shield, Mail, Phone } from 'lucide-react';
+import ProfileAvatar from '@/components/ProfileAvatar';
+import ProfilePhotoUpload from '@/components/ProfilePhotoUpload';
+import { useState } from 'react';
 
 interface AuthUser {
     id: number; name: string; email: string; phone: string | null;
-    role: string; avatar: string | null; created_at: string;
+    role: string; avatar: string | null; avatar_url: string | null; created_at: string;
 }
 interface Props { user: AuthUser; }
 
@@ -19,12 +22,13 @@ export default function Profile({ user }: Props) {
         phone: user.phone ?? '',
     });
 
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatar_url);
+
     function submitProfile(e: React.FormEvent) {
         e.preventDefault();
         profileForm.put('/profile');
     }
 
-    const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
     const roleLabel = (user.role ?? '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
     return (
@@ -32,22 +36,34 @@ export default function Profile({ user }: Props) {
             <div className="max-w-2xl space-y-6">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Profile</h1>
-                    <p className="text-sm text-slate-500 mt-0.5">Manage your account information</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Manage your account information and photo</p>
                 </div>
 
-                {/* Avatar + role banner */}
+                {/* Photo upload + role banner */}
                 <Card>
                     <CardContent className="pt-5">
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-2xl font-bold shrink-0">
-                                {initials}
-                            </div>
-                            <div>
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                            <ProfilePhotoUpload
+                                currentAvatarUrl={avatarUrl}
+                                userName={user.name}
+                                onPhotoUpdated={setAvatarUrl}
+                            />
+                            <div className="flex-1 text-center sm:text-left">
                                 <p className="text-lg font-semibold text-slate-900 dark:text-white">{user.name}</p>
-                                <p className="text-sm text-slate-500">{user.email}</p>
-                                <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-medium">
-                                    {roleLabel}
+                                <p className="text-sm text-slate-500 flex items-center gap-1.5 justify-center sm:justify-start mt-0.5">
+                                    <Mail className="w-3.5 h-3.5" /> {user.email}
+                                </p>
+                                {user.phone && (
+                                    <p className="text-sm text-slate-500 flex items-center gap-1.5 justify-center sm:justify-start mt-0.5">
+                                        <Phone className="w-3.5 h-3.5" /> {user.phone}
+                                    </p>
+                                )}
+                                <span className="inline-flex items-center gap-1 mt-2 text-xs px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-medium">
+                                    <Shield className="w-3 h-3" /> {roleLabel}
                                 </span>
+                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                                    Member since {new Date(user.created_at).toLocaleDateString()}
+                                </p>
                             </div>
                         </div>
                     </CardContent>
@@ -91,7 +107,7 @@ export default function Profile({ user }: Props) {
                                 <Input
                                     value={profileForm.data.phone}
                                     onChange={e => profileForm.setData('phone', e.target.value)}
-                                    placeholder="+1234567890"
+                                    placeholder="+232 XX XXX XXXX"
                                 />
                                 {profileForm.errors.phone && (
                                     <p className="text-xs text-red-500 mt-1">{profileForm.errors.phone}</p>

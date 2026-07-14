@@ -6,12 +6,23 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Save, Send, CheckCircle2, Lock } from 'lucide-react';
 import type { Subject, Section, PageProps } from '@/Types';
 
 interface Student { id: number; first_name: string; last_name: string | null; roll_no: string | null; section?: Section; }
-interface ExistingMark { marks_obtained: string | null; grade: string | null; is_absent: boolean; remarks: string | null; }
-interface Exam { id: number; name: string; type: string; class_id: number; status: string; school_class?: { name: string }; }
+interface ExistingMark {
+    marks_obtained: string | null; grade: string | null; is_absent: boolean; remarks: string | null;
+    raw_score: number | null; weighted_score: number | null; assessment_type: string | null;
+    assessment_type_slug: string | null; component_marks: number | null; component_max: number | null;
+}
+interface Exam {
+    id: number; name: string; type: string; class_id: number; status: string;
+    ca_weight: number; exam_weight: number; max_score: number;
+    submitted_at: string | null; approved_at: string | null;
+    school_class?: { name: string };
+}
+interface AssessmentLink { id: number; assessment_type_id: number; max_marks: number; weight: number; assessment_type?: { name: string; slug: string; category: string; } }
 
 interface Props {
     exam: Exam;
@@ -20,16 +31,17 @@ interface Props {
     existingMarks: Record<number, Record<number, ExistingMark>>;
     sections: Section[];
     filters: { section_id?: string };
+    assessmentLinks: AssessmentLink[];
 }
 
-type MarksBuffer = Record<number, Record<number, { marks_obtained: string; is_absent: boolean; remarks: string }>>;
+type MarksBuffer = Record<number, Record<number, { marks_obtained: string; is_absent: boolean; remarks: string; component_marks?: string; component_max?: string }>>;
 
-export default function MarksEntry({ exam, subjects, students, existingMarks, sections, filters }: Props) {
+export default function MarksEntry({ exam, subjects, students, existingMarks, sections, filters, assessmentLinks }: Props) {
     const { flash } = usePage<PageProps>().props;
     const [buffer, setBuffer] = useState<MarksBuffer>({});
     const [saving, setSaving] = useState(false);
+    const [activeTab, setActiveTab] = useState<string>('final');
 
-    // Init buffer from existing marks
     useEffect(() => {
         const init: MarksBuffer = {};
         students.forEach(s => {
@@ -38,8 +50,10 @@ export default function MarksEntry({ exam, subjects, students, existingMarks, se
                 const existing = existingMarks[s.id]?.[sub.id];
                 init[s.id][sub.id] = {
                     marks_obtained: existing?.marks_obtained ?? '',
-                    is_absent:      existing?.is_absent ?? false,
-                    remarks:        existing?.remarks ?? '',
+                    is_absent: existing?.is_absent ?? false,
+                    remarks: existing?.remarks ?? '',
+                    component_marks: existing?.component_marks?.toString() ?? '',
+                    component_max: existing?.component_max?.toString() ?? '',
                 };
             });
         });
@@ -64,7 +78,11 @@ export default function MarksEntry({ exam, subjects, students, existingMarks, se
             subjects.forEach(sub => {
                 const rec = buffer[s.id]?.[sub.id];
                 if (rec) {
-                    records.push({ student_id: s.id, subject_id: sub.id, marks_obtained: rec.marks_obtained, is_absent: rec.is_absent, remarks: rec.remarks });
+                    records.push({
+                        student_id: s.id, subject_id: sub.id,
+                        marks_obtained: rec.marks_obtained, is_absent: rec.is_absent,
+                        remarks: rec.remarks,
+                    });
                 }
             });
         });
@@ -73,6 +91,29 @@ export default function MarksEntry({ exam, subjects, students, existingMarks, se
             onFinish: () => setSaving(false),
         });
     }
+
+    function handleSubmitExam() {
+        if (confirm('Submit this exam for approval? Marks will be locked from editing.')) {
+            router.post(`/school/exams/${exam.id}/submit`);
+        }
+    }
+
+    function handleApproveExam() {
+        if (confirm('Approve this exam? Results will be published.')) {
+            router.post(`/school/exams/${exam.id}/approve`);
+        }
+    }
+
+    const isLocked = !!exam.approved_at;
+    const isSubmitted = !!exam.submitted_at && !exam.approved_at;
+
+    const tabs = [
+        { value: 'final', label: `Final Exam (${exam.exam_weight}%)` },
+        { value: 'ca', label: `Continuous Assessment (${exam.ca_weight}%)` },
+        ...assessmentLinks.filter(l => l.assessment_type).map(link => ({
+            value: `link_${link.id}`, label: `${link.assessment_type!.name} (/${link.max_marks})`,
+        })),
+    ];
 
     return (
         <AppLayout title={`Marks — ${exam.name}`}>
@@ -101,14 +142,42 @@ export default function MarksEntry({ exam, subjects, students, existingMarks, se
                         <Link href={`/school/exams/${exam.id}/results`}>
                             <Button variant="outline">View Results</Button>
                         </Link>
-                        <Button onClick={handleSave} disabled={saving || students.length === 0} className="bg-indigo-600 hover:bg-indigo-700 text-white inline-flex items-center gap-2">
-                            <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Marks'}
-                        </Button>
+                        {isLocked && (
+                            <Badge className="bg-emerald-100 text-emerald-700 flex items-center gap-1"><Lock className="w-3 h-3" /> Locked</Badge>
+                        )}
+                        {isSubmitted && (
+                            <Button onClick={handleApproveExam} className="bg-emerald-600 hover:bg-emerald-700 text-white inline-flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4" /> Approve
+                            </Button>
+                        )}
+                        {exam.status === 'published' && !exam.submitted_at && (
+                            <Button onClick={handleSubmitExam} className="bg-amber-600 hover:bg-amber-700 text-white inline-flex items-center gap-2">
+                                <Send className="w-4 h-4" /> Submit for Approval
+                            </Button>
+                        )}
+                        {!isLocked && (
+                            <Button onClick={handleSave} disabled={saving || students.length === 0} className="bg-indigo-600 hover:bg-indigo-700 text-white inline-flex items-center gap-2">
+                                <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Marks'}
+                            </Button>
+                        )}
                     </div>
                 </div>
 
                 {flash?.success && (
                     <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">{flash.success}</div>
+                )}
+
+                {/* Assessment Type Tabs */}
+                {assessmentLinks.length > 0 && (
+                    <Tabs value={activeTab} onValueChange={setActiveTab}>
+                        <TabsList className="bg-slate-100 dark:bg-slate-800 p-1">
+                            {tabs.map(tab => (
+                                <TabsTrigger key={tab.value} value={tab.value} className="text-xs data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
+                                    {tab.label}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </Tabs>
                 )}
 
                 {students.length === 0 ? (
@@ -150,7 +219,7 @@ export default function MarksEntry({ exam, subjects, students, existingMarks, se
                                                             max={sub.full_marks}
                                                             className={`w-20 h-8 text-center text-sm ${isAbsent ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' : ''}`}
                                                             value={isAbsent ? '' : (rec?.marks_obtained ?? '')}
-                                                            disabled={isAbsent}
+                                                            disabled={isAbsent || isLocked}
                                                             onChange={e => setMark(student.id, sub.id, 'marks_obtained', e.target.value)}
                                                             placeholder="—"
                                                         />
@@ -158,6 +227,7 @@ export default function MarksEntry({ exam, subjects, students, existingMarks, se
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isAbsent}
+                                                                disabled={isLocked}
                                                                 onChange={e => setMark(student.id, sub.id, 'is_absent', e.target.checked)}
                                                                 className="w-3 h-3"
                                                             />
@@ -174,7 +244,7 @@ export default function MarksEntry({ exam, subjects, students, existingMarks, se
                     </div>
                 )}
 
-                {students.length > 0 && (
+                {students.length > 0 && !isLocked && (
                     <div className="flex justify-end">
                         <Button onClick={handleSave} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 text-white inline-flex items-center gap-2">
                             <Save className="w-4 h-4" /> {saving ? 'Saving...' : `Save Marks (${students.length} students × ${subjects.length} subjects)`}

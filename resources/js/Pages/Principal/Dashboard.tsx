@@ -6,8 +6,9 @@ import { Link } from '@inertiajs/react';
 import {
     GraduationCap, Users, ClipboardCheck, BookOpen, BarChart3, Bell,
     Calendar, CheckCircle, FileText, Megaphone, TrendingUp, Wallet,
-    User, AlertTriangle, Clock, ChevronRight,
+    AlertTriangle, Clock, ChevronRight,
 } from 'lucide-react';
+import ProfileAvatar from '@/components/ProfileAvatar';
 
 interface Staff {
     id: number; full_name: string; emp_id: string; photo_url: string | null;
@@ -65,11 +66,12 @@ export default function PrincipalDashboard({
                 </div>
 
                 <div className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white flex items-center gap-5">
-                    <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
-                        {staff.photo_url
-                            ? <img src={staff.photo_url} alt={staff.full_name} className="w-full h-full object-cover" />
-                            : <User className="w-8 h-8 text-white/80" />}
-                    </div>
+                    <ProfileAvatar
+                        src={staff.photo_url}
+                        name={staff.full_name}
+                        size="xl"
+                        showRing
+                    />
                     <div className="flex-1 min-w-0">
                         <h1 className="text-xl font-bold">{staff.full_name}</h1>
                         <p className="text-white/80 text-sm">{staff.emp_id} · {staff.designation ?? 'Principal'} · {staff.department ?? '—'}</p>

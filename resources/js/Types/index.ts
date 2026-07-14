@@ -4,6 +4,7 @@ export interface User {
     email: string;
     phone: string | null;
     avatar: string | null;
+    avatar_url: string | null;
     role: string | null;
     school_id: number | null;
     status: string;
@@ -37,6 +38,18 @@ export interface AcademicYear {
     name: string;
     start_date: string;
     end_date: string;
+    is_current: boolean;
+}
+
+export interface AcademicTerm {
+    id: number;
+    school_id: number;
+    academic_year_id: number;
+    name: string;
+    start_date: string;
+    end_date: string;
+    mid_term_start_date: string | null;
+    mid_term_end_date: string | null;
     is_current: boolean;
 }
 
@@ -126,11 +139,18 @@ export interface SchoolClass {
     id: number;
     school_id: number;
     name: string;
+    short_name: string | null;
     numeric_name: number | null;
     capacity: number;
     class_teacher_id: number | null;
+    school_level: string | null;
+    level_order: number | null;
+    department_id: number | null;
+    description: string | null;
+    is_active: boolean;
     sections_count?: number;
     subjects_count?: number;
+    students_count?: number;
     sections?: Section[];
     subjects?: Subject[];
 }
@@ -140,8 +160,14 @@ export interface Section {
     school_id: number;
     class_id: number;
     name: string;
+    section_code: string | null;
     capacity: number;
+    form_master_id: number | null;
+    classroom: string | null;
+    is_active: boolean;
+    students_count?: number;
     school_class?: SchoolClass;
+    form_master?: Staff;
 }
 
 export interface Subject {
@@ -204,7 +230,14 @@ export interface Attendance {
     attendable_type: string;
     attendable_id: number;
     status: 'present' | 'absent' | 'late' | 'half_day';
+    status_draft: string | null;
     remarks: string | null;
+    session_id: number | null;
+    submitted_by: number | null;
+    submitted_at: string | null;
+    approved_at: string | null;
+    approved_by: number | null;
+    session?: AttendanceSession;
 }
 
 export interface Department {
@@ -266,6 +299,228 @@ export interface Staff {
     department?: Department;
     designation?: Designation;
     documents?: StaffDocument[];
+}
+
+export interface Exam {
+    id: number;
+    school_id: number;
+    class_id: number;
+    name: string;
+    type: 'unit_test' | 'mid_term' | 'final' | 'custom';
+    start_date: string | null;
+    end_date: string | null;
+    status: 'draft' | 'published' | 'completed';
+    description: string | null;
+    academic_year_id: number | null;
+    term_id: number | null;
+    assessment_category: string | null;
+    ca_weight: number;
+    exam_weight: number;
+    max_score: number;
+    assessment_model: string | null;
+    submitted_by: number | null;
+    submitted_at: string | null;
+    approved_by: number | null;
+    approved_at: string | null;
+    school_class?: SchoolClass;
+    term?: AcademicTerm;
+    marks?: Mark[];
+    assessment_links?: ExamAssessmentLink[];
+}
+
+export interface ExamAssessmentLink {
+    id: number;
+    exam_id: number;
+    assessment_type_id: number;
+    max_marks: number;
+    weight: number;
+    sort_order: number;
+    assessment_type?: AssessmentType;
+}
+
+export interface AssessmentType {
+    id: number;
+    school_id: number;
+    name: string;
+    slug: string;
+    category: 'continuous_assessment' | 'summative';
+    is_active: boolean;
+    sort_order: number;
+}
+
+export interface Mark {
+    id: number;
+    exam_id: number;
+    student_id: number;
+    subject_id: number;
+    school_id: number;
+    marks_obtained: number | null;
+    grade: string | null;
+    gpa: number | null;
+    is_absent: boolean;
+    remarks: string | null;
+    raw_score: number | null;
+    weighted_score: number | null;
+    assessment_type: string | null;
+    assessment_type_slug: string | null;
+    component_marks: number | null;
+    component_max: number | null;
+}
+
+export interface AttendanceSession {
+    id: number;
+    school_id: number;
+    name: string;
+    slug: string;
+    start_time: string | null;
+    end_time: string | null;
+    is_active: boolean;
+    sort_order: number;
+}
+
+export interface AttendanceCorrection {
+    id: number;
+    school_id: number;
+    attendance_id: number;
+    requested_by: number;
+    original_status: string;
+    new_status: string;
+    reason: string;
+    status: 'pending' | 'approved' | 'rejected';
+    reviewed_by: number | null;
+    reviewer_notes: string | null;
+    reviewed_at: string | null;
+    attendance?: Attendance;
+    requester?: User;
+    reviewer?: User;
+}
+
+export interface AssessmentComponent {
+    id: number;
+    school_id: number;
+    academic_year_id: number;
+    name: string;
+    slug: string;
+    category: 'coursework' | 'examination';
+    description: string | null;
+    max_marks: number;
+    weight_percentage: number;
+    sort_order: number;
+    is_active: boolean;
+    include_in_final_result: boolean;
+    include_in_promotion: boolean;
+    require_approval: boolean;
+}
+
+export interface SchoolAssessmentConfig {
+    id: number;
+    school_id: number;
+    academic_year_id: number;
+    name: string;
+    description: string | null;
+    is_default: boolean;
+    is_active: boolean;
+    config_data: Record<string, unknown> | null;
+    total_coursework_weight: number;
+    total_examination_weight: number;
+    require_approval_before_publishing: boolean;
+    academic_year?: AcademicYear;
+}
+
+export interface DocumentImport {
+    id: number;
+    school_id: number;
+    user_id: number;
+    document_type: string;
+    file_path: string;
+    file_name: string;
+    file_type: string | null;
+    file_size: number | null;
+    status: 'uploaded' | 'processing' | 'extracted' | 'reviewed' | 'imported' | 'failed';
+    extracted_data: Record<string, unknown> | null;
+    extraction_metadata: Record<string, unknown> | null;
+    import_results: Record<string, unknown> | null;
+    admin_notes: string | null;
+    records_imported: number;
+    records_skipped: number;
+    records_updated: number;
+    processed_at: string | null;
+    imported_at: string | null;
+    user?: User;
+}
+
+export interface ResultApprovalLog {
+    id: number;
+    school_id: number;
+    approvable_type: string;
+    approvable_id: number;
+    user_id: number;
+    action: string;
+    notes: string | null;
+    previous_state: Record<string, unknown> | null;
+    new_state: Record<string, unknown> | null;
+    user?: User;
+}
+
+export interface ReportCard {
+    id: number;
+    school_id: number;
+    student_id: number;
+    academic_year_id: number;
+    term_id: number | null;
+    class_id: number;
+    section_id: number | null;
+    total_marks: number | null;
+    obtained_marks: number | null;
+    percentage: number | null;
+    grade: string | null;
+    gpa: number | null;
+    rank: number | null;
+    total_school_days: number;
+    days_present: number;
+    days_absent: number;
+    days_late: number;
+    promotion_status: string | null;
+    teacher_comment: string | null;
+    form_master_comment: string | null;
+    principal_comment: string | null;
+    subject_data: SubjectResult[] | null;
+    extra_data: Record<string, unknown> | null;
+    pdf_path: string | null;
+    status: 'draft' | 'submitted' | 'approved' | 'published';
+    submitted_by: number | null;
+    submitted_at: string | null;
+    approved_by: number | null;
+    approved_at: string | null;
+    published_at: string | null;
+    assessment_config_id: number | null;
+    student?: Student;
+    school_class?: SchoolClass;
+    term?: AcademicTerm;
+}
+
+export interface SubjectResult {
+    subject_id: number;
+    subject_name: string;
+    total_marks: number;
+    max_marks: number;
+    percentage: number;
+    grade: string;
+    gpa: number;
+    remarks: string;
+    components: ComponentScore[];
+    is_absent: boolean;
+}
+
+export interface ComponentScore {
+    exam_id: number;
+    exam_name: string;
+    marks_obtained: number | null;
+    max_score: number;
+    grade: string | null;
+    gpa: number | null;
+    is_absent: boolean;
+    remarks: string | null;
 }
 
 export type PaginatedResponse<T> = {

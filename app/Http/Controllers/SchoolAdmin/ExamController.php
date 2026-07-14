@@ -4,6 +4,8 @@ namespace App\Http\Controllers\SchoolAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
+use App\Models\ExamAssessmentLink;
+use App\Models\AssessmentType;
 use App\Models\GradeScale;
 use App\Models\Mark;
 use App\Models\SchoolClass;
@@ -21,9 +23,10 @@ class ExamController extends Controller
 {
     public function index(Request $request): Response
     {
-        $exams = Exam::with('schoolClass:id,name')
+        $exams = Exam::with(['schoolClass:id,name', 'term:id,name'])
             ->when($request->class_id, fn ($q) => $q->where('class_id', $request->class_id))
             ->when($request->status,   fn ($q) => $q->where('status', $request->status))
+            ->when($request->term_id,  fn ($q) => $q->where('term_id', $request->term_id))
             ->latest()
             ->paginate(20)
             ->withQueryString();
@@ -38,13 +41,17 @@ class ExamController extends Controller
                 ],
                 'links' => ['prev' => $exams->previousPageUrl(), 'next' => $exams->nextPageUrl()],
             ],
-            'classes' => SchoolClass::orderBy('numeric_name')->get(['id', 'name']),
-            'filters' => $request->only('class_id', 'status'),
+            'classes'        => SchoolClass::orderBy('numeric_name')->get(['id', 'name']),
+            'allSections'    => Section::orderBy('name')->get(['id', 'name', 'class_id']),
+            'allSubjects'    => Subject::orderBy('name')->get(['id', 'name', 'class_id']),
+            'filters'        => $request->only('class_id', 'status', 'term_id'),
+            'assessmentTypes'=> AssessmentType::where('school_id', $this->getSchoolId())->active()->orderBy('sort_order')->get(),
             'stats'   => [
                 'total'     => Exam::count(),
                 'draft'     => Exam::where('status', 'draft')->count(),
                 'published' => Exam::where('status', 'published')->count(),
                 'completed' => Exam::where('status', 'completed')->count(),
+                'submitted' => Exam::whereNotNull('submitted_at')->whereNull('approved_at')->count(),
             ],
         ]);
     }
@@ -52,17 +59,57 @@ class ExamController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name'        => 'required|string|max:150',
-            'type'        => 'required|in:unit_test,mid_term,final,custom',
-            'class_id'    => 'required|exists:classes,id',
-            'start_date'  => 'nullable|date',
-            'end_date'    => 'nullable|date|after_or_equal:start_date',
-            'status'      => 'required|in:draft,published,completed',
-            'description' => 'nullable|string|max:500',
+            'name'              => 'required|string|max:150',
+            'type'              => 'required|in:unit_test,mid_term,final,custom',
+            'class_id'          => 'required|exists:classes,id',
+            'start_date'        => 'nullable|date',
+            'end_date'          => 'nullable|date|after_or_equal:start_date',
+            'status'            => 'required|in:draft,published,completed',
+            'description'       => 'nullable|string|max:500',
+            'term_id'           => 'nullable|exists:academic_terms,id',
+            'academic_year_id'  => 'nullable|exists:academic_years,id',
+            'assessment_category' => 'nullable|string|in:continuous_assessment,summative',
+            'ca_weight'         => 'nullable|numeric|min:0|max:100',
+            'exam_weight'       => 'nullable|numeric|min:0|max:100',
+            'max_score'         => 'nullable|numeric|min:1',
+            'assessment_model'  => 'nullable|string|in:ca_test_final,ca_final,test_final,final_only,custom',
+            'assessment_links'  => 'nullable|array',
+            'assessment_links.*.assessment_type_id' => 'required_with:assessment_links|exists:assessment_types,id',
+            'assessment_links.*.max_marks'  => 'required_with:assessment_links|numeric|min:1',
+            'assessment_links.*.weight'     => 'required_with:assessment_links|numeric|min:0|max:100',
+            'publication_date'  => 'nullable|date',
+            'eligible_section_ids' => 'nullable|array',
+            'eligible_section_ids.*' => 'exists:sections,id',
+            'eligible_subject_ids'  => 'nullable|array',
+            'eligible_subject_ids.*' => 'exists:subjects,id',
         ]);
 
         try {
-            Exam::create(array_merge($data, ['school_id' => $this->getSchoolId()]));
+            DB::transaction(function () use ($data) {
+                $exam = Exam::create(array_merge($data, [
+                    'school_id'    => $this->getSchoolId(),
+                    'max_score'    => $data['max_score'] ?? 100,
+                    'ca_weight'    => $data['ca_weight'] ?? 40,
+                    'exam_weight'  => $data['exam_weight'] ?? 60,
+                ]));
+
+                if (!empty($data['assessment_links'])) {
+                    foreach ($data['assessment_links'] as $link) {
+                        ExamAssessmentLink::create(array_merge($link, [
+                            'school_id' => $this->getSchoolId(),
+                            'exam_id'   => $exam->id,
+                        ]));
+                    }
+                }
+
+                if (!empty($data['eligible_section_ids'])) {
+                    $exam->sections()->sync($data['eligible_section_ids']);
+                }
+                if (!empty($data['eligible_subject_ids'])) {
+                    $exam->subjects()->sync($data['eligible_subject_ids']);
+                }
+            });
+
             return back()->with('success', 'Exam created.');
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', 'Failed to create exam: ' . $e->getMessage());
@@ -71,18 +118,58 @@ class ExamController extends Controller
 
     public function update(Request $request, Exam $exam): RedirectResponse
     {
+        if ($exam->isLocked()) {
+            return back()->with('error', 'Cannot edit an approved exam.');
+        }
+
         $data = $request->validate([
-            'name'        => 'required|string|max:150',
-            'type'        => 'required|in:unit_test,mid_term,final,custom',
-            'class_id'    => 'required|exists:classes,id',
-            'start_date'  => 'nullable|date',
-            'end_date'    => 'nullable|date|after_or_equal:start_date',
-            'status'      => 'required|in:draft,published,completed',
-            'description' => 'nullable|string|max:500',
+            'name'              => 'required|string|max:150',
+            'type'              => 'required|in:unit_test,mid_term,final,custom',
+            'class_id'          => 'required|exists:classes,id',
+            'start_date'        => 'nullable|date',
+            'end_date'          => 'nullable|date|after_or_equal:start_date',
+            'status'            => 'required|in:draft,published,completed',
+            'description'       => 'nullable|string|max:500',
+            'term_id'           => 'nullable|exists:academic_terms,id',
+            'academic_year_id'  => 'nullable|exists:academic_years,id',
+            'assessment_category' => 'nullable|string|in:continuous_assessment,summative',
+            'ca_weight'         => 'nullable|numeric|min:0|max:100',
+            'exam_weight'       => 'nullable|numeric|min:0|max:100',
+            'max_score'         => 'nullable|numeric|min:1',
+            'assessment_model'  => 'nullable|string|in:ca_test_final,ca_final,test_final,final_only,custom',
+            'assessment_links'  => 'nullable|array',
+            'assessment_links.*.assessment_type_id' => 'required_with:assessment_links|exists:assessment_types,id',
+            'assessment_links.*.max_marks'  => 'required_with:assessment_links|numeric|min:1',
+            'assessment_links.*.weight'     => 'required_with:assessment_links|numeric|min:0|max:100',
+            'publication_date'  => 'nullable|date',
+            'eligible_section_ids' => 'nullable|array',
+            'eligible_section_ids.*' => 'exists:sections,id',
+            'eligible_subject_ids'  => 'nullable|array',
+            'eligible_subject_ids.*' => 'exists:subjects,id',
         ]);
 
         try {
-            $exam->update($data);
+            DB::transaction(function () use ($data, $exam) {
+                $exam->update($data);
+
+                if (isset($data['assessment_links'])) {
+                    $exam->assessmentLinks()->delete();
+                    foreach ($data['assessment_links'] as $link) {
+                        ExamAssessmentLink::create(array_merge($link, [
+                            'school_id' => $this->getSchoolId(),
+                            'exam_id'   => $exam->id,
+                        ]));
+                    }
+                }
+
+                if (array_key_exists('eligible_section_ids', $data)) {
+                    $exam->sections()->sync($data['eligible_section_ids'] ?? []);
+                }
+                if (array_key_exists('eligible_subject_ids', $data)) {
+                    $exam->subjects()->sync($data['eligible_subject_ids'] ?? []);
+                }
+            });
+
             return back()->with('success', 'Exam updated.');
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', 'Failed to update exam: ' . $e->getMessage());
@@ -100,10 +187,62 @@ class ExamController extends Controller
     }
 
     /**
+     * Submit exam marks for approval (locks marks from teacher editing).
+     */
+    public function submit(Exam $exam): RedirectResponse
+    {
+        if (!$exam->isSubmittable()) {
+            return back()->with('error', 'This exam cannot be submitted.');
+        }
+
+        $exam->update([
+            'submitted_by' => auth()->id(),
+            'submitted_at' => now(),
+        ]);
+
+        return back()->with('success', 'Exam submitted for approval. Marks are now locked.');
+    }
+
+    /**
+     * Approve an exam after review.
+     */
+    public function approve(Exam $exam): RedirectResponse
+    {
+        if (!$exam->isApprovable()) {
+            return back()->with('error', 'This exam cannot be approved.');
+        }
+
+        $exam->update([
+            'approved_by' => auth()->id(),
+            'approved_at' => now(),
+            'status'      => 'completed',
+        ]);
+
+        return back()->with('success', 'Exam approved. Results are now published.');
+    }
+
+    /**
+     * Get assessment types for configuration.
+     */
+    public function assessmentTypes(): Response
+    {
+        $types = AssessmentType::where('school_id', $this->getSchoolId())
+            ->active()
+            ->orderBy('sort_order')
+            ->get();
+
+        return response()->json($types);
+    }
+
+    /**
      * Marks entry page for an exam — shows students × subjects grid.
      */
     public function marks(Request $request, Exam $exam): Response
     {
+        if ($exam->isLocked()) {
+            return back()->with('error', 'This exam is locked. Marks cannot be edited.');
+        }
+
         $sectionId = $request->section_id;
 
         $subjects = Subject::where('class_id', $exam->class_id)->orderBy('name')->get();
@@ -115,20 +254,22 @@ class ExamController extends Controller
             ->orderBy('roll_no')
             ->get(['id', 'first_name', 'last_name', 'roll_no', 'section_id']);
 
-        // Existing marks keyed by student_id → subject_id
         $existingMarks = Mark::where('exam_id', $exam->id)
             ->whereIn('student_id', $students->pluck('id'))
             ->get()
             ->groupBy('student_id')
             ->map(fn ($marks) => $marks->keyBy('subject_id'));
 
+        $assessmentLinks = $exam->assessmentLinks()->with('assessmentType')->orderBy('sort_order')->get();
+
         return Inertia::render('SchoolAdmin/Exams/Marks', [
-            'exam'          => $exam->load('schoolClass:id,name'),
-            'subjects'      => $subjects,
-            'students'      => $students,
-            'existingMarks' => $existingMarks,
-            'sections'      => Section::where('class_id', $exam->class_id)->orderBy('name')->get(['id', 'name']),
-            'filters'       => ['section_id' => $sectionId],
+            'exam'             => $exam->load('schoolClass:id,name'),
+            'subjects'         => $subjects,
+            'students'         => $students,
+            'existingMarks'    => $existingMarks,
+            'sections'         => Section::where('class_id', $exam->class_id)->orderBy('name')->get(['id', 'name']),
+            'filters'          => ['section_id' => $sectionId],
+            'assessmentLinks'  => $assessmentLinks,
         ]);
     }
 
@@ -137,12 +278,16 @@ class ExamController extends Controller
      */
     public function saveMarks(Request $request, Exam $exam): RedirectResponse
     {
+        if ($exam->isLocked()) {
+            return back()->with('error', 'This exam is locked. Marks cannot be edited.');
+        }
+
         $data = $request->validate([
             'section_id'              => 'nullable|exists:sections,id',
             'marks'                   => 'required|array',
             'marks.*.student_id'      => 'required|exists:students,id',
             'marks.*.subject_id'      => 'required|exists:subjects,id',
-            'marks.*.marks_obtained'  => 'nullable|numeric|min:0|max:100',
+            'marks.*.marks_obtained'  => 'nullable|numeric|min:0',
             'marks.*.is_absent'       => 'boolean',
             'marks.*.remarks'         => 'nullable|string|max:200',
         ]);
@@ -154,7 +299,8 @@ class ExamController extends Controller
             DB::transaction(function () use ($data, $exam, $schoolId, $grading) {
                 foreach ($data['marks'] as $row) {
                     $marksObtained = $row['is_absent'] ? null : ($row['marks_obtained'] ?? null);
-                    $graded        = $marksObtained !== null ? $grading->calculate((float) $marksObtained, 100) : ['grade' => null, 'gpa' => null];
+                    $maxScore = $exam->max_score ?: 100;
+                    $graded = $marksObtained !== null ? $grading->calculate((float) $marksObtained, $maxScore) : ['grade' => null, 'gpa' => null];
 
                     Mark::updateOrCreate(
                         [
@@ -165,6 +311,7 @@ class ExamController extends Controller
                         [
                             'school_id'      => $schoolId,
                             'marks_obtained' => $marksObtained,
+                            'raw_score'      => $marksObtained,
                             'grade'          => $graded['grade'],
                             'gpa'            => $graded['gpa'],
                             'is_absent'      => $row['is_absent'] ?? false,
@@ -201,7 +348,6 @@ class ExamController extends Controller
             ->groupBy('student_id')
             ->map(fn ($marks) => $marks->keyBy('subject_id'));
 
-        // Build result rows
         $results = $students->map(function ($student) use ($subjects, $allMarks) {
             $studentMarks = $allMarks[$student->id] ?? collect();
             $total        = 0;
@@ -236,11 +382,10 @@ class ExamController extends Controller
                 'percentage' => $percentage,
                 'avg_gpa'    => $avgGpa ? round($avgGpa, 2) : null,
                 'failed'     => $failed,
-                'rank'       => 0, // set after sort
+                'rank'       => 0,
             ];
         })->sortByDesc('obtained')->values();
 
-        // Assign rank
         $results = $results->map(function ($row, $idx) {
             $row['rank'] = $idx + 1;
             return $row;
@@ -316,6 +461,10 @@ class ExamController extends Controller
 
     public function bulkImportMarks(Request $request, Exam $exam): RedirectResponse
     {
+        if ($exam->isLocked()) {
+            return back()->with('error', 'This exam is locked. Marks cannot be imported.');
+        }
+
         $request->validate([
             'csv_file' => 'required|file|mimes:csv,txt|max:5120',
         ]);
@@ -352,13 +501,15 @@ class ExamController extends Controller
 
                     $isAbsent = strtolower(trim($data['is_absent'] ?? '')) === 'yes' || strtolower(trim($data['is_absent'] ?? '')) === 'true' || ($marksObtained === '' || $marksObtained === null);
                     $marks = $isAbsent ? null : (float) $marksObtained;
-                    $graded = $marks !== null ? $grading->calculate($marks, 100) : ['grade' => null, 'gpa' => null];
+                    $maxScore = $exam->max_score ?: 100;
+                    $graded = $marks !== null ? $grading->calculate($marks, $maxScore) : ['grade' => null, 'gpa' => null];
 
                     Mark::updateOrCreate(
                         ['exam_id' => $exam->id, 'student_id' => $student->id, 'subject_id' => $subject->id],
                         [
                             'school_id'      => $schoolId,
                             'marks_obtained' => $marks,
+                            'raw_score'      => $marks,
                             'grade'          => $graded['grade'],
                             'gpa'            => $graded['gpa'],
                             'is_absent'      => $isAbsent,

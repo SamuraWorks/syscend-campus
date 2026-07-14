@@ -2,7 +2,8 @@ import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { GraduationCap, DollarSign, Bell, TrendingUp, Users, User, CheckCircle, AlertTriangle } from 'lucide-react';
+import { GraduationCap, DollarSign, Bell, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
+import ProfileAvatar from '@/components/ProfileAvatar';
 
 interface Guardian { id: number; name: string; phone: string; email: string | null; }
 interface ChildAttendance { total: number; present: number; absent: number; percentage: number; }
@@ -44,11 +45,11 @@ function ChildCard({ child }: { child: Child }) {
             <CardContent className="p-5 space-y-4">
                 {/* Child header */}
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center overflow-hidden shrink-0">
-                        {child.photo_url
-                            ? <img src={child.photo_url} alt={child.full_name} className="w-full h-full object-cover" />
-                            : <User className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />}
-                    </div>
+                    <ProfileAvatar
+                        src={child.photo_url}
+                        name={child.full_name}
+                        size="lg"
+                    />
                     <div className="flex-1 min-w-0">
                         <p className="font-semibold text-slate-900 dark:text-white">{child.full_name}</p>
                         <p className="text-xs text-slate-500">{child.class} — {child.section} · {child.admission_no}</p>

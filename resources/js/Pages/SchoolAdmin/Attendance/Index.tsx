@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { router, usePage, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -11,20 +11,26 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { ClipboardList, CheckCircle2, XCircle, Clock, MinusCircle } from 'lucide-react';
-import type { SchoolClass, Section, Student, PageProps } from '@/Types';
+import { ClipboardList, CheckCircle2, XCircle, Clock, MinusCircle, Send, Lock, FileEdit } from 'lucide-react';
+import type { SchoolClass, Section, Student, PageProps, AttendanceSession } from '@/Types';
 import { useAttendanceStore } from '@/Stores/useAttendanceStore';
 
 type AttendanceStatus = 'present' | 'absent' | 'late' | 'half_day';
 
-interface ExistingRecord { status: AttendanceStatus; remarks: string | null; }
+interface ExistingRecord {
+    status: AttendanceStatus | null;
+    status_draft: string | null;
+    remarks: string | null;
+    session_id: number | null;
+}
 
 interface Props {
     classes: SchoolClass[];
     sections: Section[];
     students: Student[];
+    sessions: AttendanceSession[];
     existing: Record<number, ExistingRecord>;
-    filters: { date: string; class_id?: string; section_id?: string };
+    filters: { date: string; class_id?: string; section_id?: string; session_id?: string };
 }
 
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string; color: string; icon: React.ElementType }[] = [
@@ -34,16 +40,17 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string; color: string; i
     { value: 'half_day', label: 'Half Day', color: 'bg-blue-100 text-blue-700 border-blue-300',    icon: MinusCircle  },
 ];
 
-export default function AttendanceIndex({ classes, sections, students, existing, filters }: Props) {
+export default function AttendanceIndex({ classes, sections, students, sessions, existing, filters }: Props) {
     const { flash } = usePage<PageProps>().props;
     const { records, currentDate, currentClassId, currentSectionId,
             setDate, setClassId, setSectionId, markStudent, markAll, initRecords } = useAttendanceStore();
+    const [currentSessionId, setCurrentSessionId] = useState(filters.session_id ?? '');
 
-    // Sync store with page data
     useEffect(() => {
         setDate(filters.date);
         if (filters.class_id)   setClassId(filters.class_id);
         if (filters.section_id) setSectionId(filters.section_id ?? '');
+        if (filters.session_id) setCurrentSessionId(filters.session_id);
     }, []);
 
     useEffect(() => {
@@ -53,7 +60,14 @@ export default function AttendanceIndex({ classes, sections, students, existing,
     }, [students.length]);
 
     function applyFilter(key: string, value: string) {
-        router.get('/school/attendance', { ...filters, [key]: value || undefined }, { preserveScroll: true });
+        const params = { ...filters, [key]: value || undefined };
+        if (key !== 'session_id') params.session_id = currentSessionId || undefined;
+        router.get('/school/attendance', params, { preserveScroll: true });
+    }
+
+    function handleSessionChange(value: string) {
+        setCurrentSessionId(value);
+        router.get('/school/attendance', { ...filters, session_id: value || undefined }, { preserveScroll: true });
     }
 
     const filteredSections = filters.class_id
@@ -75,9 +89,44 @@ export default function AttendanceIndex({ classes, sections, students, existing,
         }));
 
         router.post('/school/attendance', {
+            date:              filters.date,
+            class_id:          filters.class_id,
+            session_id:        currentSessionId || undefined,
+            submit_immediately: true,
+            records:           recordsPayload,
+        }, { preserveScroll: true });
+    }
+
+    function handleSaveDraft() {
+        if (students.length === 0) return;
+
+        const recordsPayload = students.map(s => ({
+            student_id: s.id,
+            status:     records[s.id]?.status  ?? 'present',
+            remarks:    records[s.id]?.remarks ?? '',
+        }));
+
+        router.post('/school/attendance', {
             date:     filters.date,
             class_id: filters.class_id,
+            session_id: currentSessionId || undefined,
             records:  recordsPayload,
+        }, { preserveScroll: true });
+    }
+
+    function handleSubmitForApproval() {
+        router.post('/school/attendance/submit', {
+            date:       filters.date,
+            class_id:   filters.class_id,
+            session_id: currentSessionId || undefined,
+        }, { preserveScroll: true });
+    }
+
+    function handleBulkApprove() {
+        router.post('/school/attendance/bulk-approve', {
+            date:       filters.date,
+            class_id:   filters.class_id,
+            session_id: currentSessionId || undefined,
         }, { preserveScroll: true });
     }
 
@@ -90,11 +139,18 @@ export default function AttendanceIndex({ classes, sections, students, existing,
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Student Attendance</h1>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Mark daily class-wise attendance</p>
                     </div>
-                    <a href="/school/attendance/staff">
-                        <Button variant="outline" className="inline-flex items-center gap-2">
-                            <ClipboardList className="w-4 h-4" /> Staff Attendance
-                        </Button>
-                    </a>
+                    <div className="flex gap-2">
+                        <a href="/school/attendance/corrections">
+                            <Button variant="outline" className="inline-flex items-center gap-2">
+                                <FileEdit className="w-4 h-4" /> Corrections
+                            </Button>
+                        </a>
+                        <a href="/school/attendance/staff">
+                            <Button variant="outline" className="inline-flex items-center gap-2">
+                                <ClipboardList className="w-4 h-4" /> Staff Attendance
+                            </Button>
+                        </a>
+                    </div>
                 </div>
 
                 {flash?.success && (
@@ -137,11 +193,23 @@ export default function AttendanceIndex({ classes, sections, students, existing,
                                     </Select>
                                 </div>
                             )}
+                            {sessions.length > 0 && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Session</label>
+                                    <Select value={currentSessionId} onValueChange={handleSessionChange}>
+                                        <SelectTrigger className="w-40"><SelectValue placeholder="All sessions" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="">All Sessions</SelectItem>
+                                            {sessions.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Stats + bulk actions (only shown when students loaded) */}
+                {/* Stats + bulk actions */}
                 {students.length > 0 && (
                     <div className="flex flex-wrap items-center gap-4">
                         <div className="flex gap-3 flex-wrap">
@@ -247,9 +315,12 @@ export default function AttendanceIndex({ classes, sections, students, existing,
                             </Table>
                         </div>
 
-                        <div className="flex justify-end">
-                            <Button onClick={handleSubmit} className="bg-indigo-600 hover:bg-indigo-700 text-white px-8">
-                                Save Attendance ({students.length} students)
+                        <div className="flex justify-end gap-2">
+                            <Button onClick={handleSaveDraft} variant="outline" className="px-6">
+                                Save Draft
+                            </Button>
+                            <Button onClick={handleSubmit} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 inline-flex items-center gap-2">
+                                <Send className="w-4 h-4" /> Save & Submit ({students.length} students)
                             </Button>
                         </div>
                     </>

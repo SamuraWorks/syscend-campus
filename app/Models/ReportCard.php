@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\{BelongsToSchool, HasAuditLog};
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ReportCard extends Model
@@ -20,6 +21,8 @@ class ReportCard extends Model
         'teacher_comment', 'form_master_comment', 'principal_comment',
         'subject_data', 'extra_data',
         'pdf_path', 'status',
+        'submitted_by', 'submitted_at', 'approved_by', 'approved_at',
+        'published_at', 'assessment_config_id',
     ];
 
     protected $casts = [
@@ -33,6 +36,9 @@ class ReportCard extends Model
         'days_present'     => 'integer',
         'days_absent'      => 'integer',
         'days_late'        => 'integer',
+        'submitted_at'     => 'datetime',
+        'approved_at'      => 'datetime',
+        'published_at'     => 'datetime',
     ];
 
     public function student(): BelongsTo
@@ -60,9 +66,25 @@ class ReportCard extends Model
         return $this->belongsTo(Section::class);
     }
 
+    public function assessmentConfig(): BelongsTo
+    {
+        return $this->belongsTo(SchoolAssessmentConfig::class, 'assessment_config_id');
+    }
+
+    public function approvalLogs(): HasMany
+    {
+        return $this->hasMany(ResultApprovalLog::class, 'approvable_id')
+            ->where('approvable_type', self::class);
+    }
+
     public function getAttendancePercentageAttribute(): float
     {
         if ($this->total_school_days === 0) return 0;
         return round(($this->days_present / $this->total_school_days) * 100, 1);
     }
+
+    public function isDraft(): bool { return $this->status === 'draft'; }
+    public function isSubmitted(): bool { return $this->status === 'submitted'; }
+    public function isApproved(): bool { return $this->status === 'approved'; }
+    public function isPublished(): bool { return $this->status === 'published'; }
 }

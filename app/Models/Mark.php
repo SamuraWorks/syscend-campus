@@ -14,6 +14,7 @@ class Mark extends Model
         'school_id', 'exam_id', 'student_id', 'subject_id',
         'marks_obtained', 'grade', 'gpa', 'is_absent', 'remarks',
         'raw_score', 'weighted_score', 'assessment_type',
+        'assessment_type_slug', 'component_marks', 'component_max',
     ];
 
     protected $casts = [
@@ -22,6 +23,8 @@ class Mark extends Model
         'is_absent'       => 'boolean',
         'raw_score'       => 'decimal:2',
         'weighted_score'  => 'decimal:2',
+        'component_marks' => 'decimal:2',
+        'component_max'   => 'decimal:2',
     ];
 
     public function exam(): BelongsTo    { return $this->belongsTo(Exam::class); }

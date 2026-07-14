@@ -6,6 +6,7 @@ use App\Traits\{BelongsToSchool, HasAuditLog};
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Attendance extends Model
 {
@@ -15,10 +16,13 @@ class Attendance extends Model
         'school_id', 'academic_year_id', 'date',
         'attendable_type', 'attendable_id', 'status', 'remarks',
         'approved_at', 'approved_by',
+        'session_id', 'status_draft', 'submitted_by', 'submitted_at',
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date'         => 'date',
+        'submitted_at' => 'datetime',
+        'approved_at'  => 'datetime',
     ];
 
     public function attendable(): MorphTo
@@ -29,5 +33,40 @@ class Attendance extends Model
     public function academicYear(): BelongsTo
     {
         return $this->belongsTo(AcademicYear::class);
+    }
+
+    public function session(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceSession::class, 'session_id');
+    }
+
+    public function submittedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    public function approvedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function corrections(): HasMany
+    {
+        return $this->hasMany(AttendanceCorrection::class, 'attendance_id');
+    }
+
+    public function isSubmitted(): bool
+    {
+        return $this->status_draft === 'submitted' || $this->status_draft === 'approved';
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->approved_at !== null;
+    }
+
+    public function isEditable(): bool
+    {
+        return !$this->isSubmitted();
     }
 }

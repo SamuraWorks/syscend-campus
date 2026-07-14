@@ -112,6 +112,46 @@ class SierraLeoneEducation
     public const DEFAULT_CA_WEIGHT = 40.00;
     public const DEFAULT_EXAM_WEIGHT = 60.00;
 
+    public const CA_COMPONENTS = [
+        ['slug' => 'assignment',  'label' => 'Assignment',    'category' => 'continuous_assessment', 'default_max' => 20, 'default_weight' => 10.00],
+        ['slug' => 'class_test',  'label' => 'Class Test',    'category' => 'continuous_assessment', 'default_max' => 30, 'default_weight' => 15.00],
+        ['slug' => 'practical',   'label' => 'Practical',     'category' => 'continuous_assessment', 'default_max' => 20, 'default_weight' => 10.00],
+        ['slug' => 'project',     'label' => 'Project',       'category' => 'continuous_assessment', 'default_max' => 30, 'default_weight' => 5.00],
+    ];
+
+    public const ATTENDANCE_SESSIONS = [
+        ['name' => 'Morning Session',  'slug' => 'morning',   'start_time' => '08:00', 'end_time' => '12:00', 'sort_order' => 1],
+        ['name' => 'Afternoon Session', 'slug' => 'afternoon', 'start_time' => '13:00', 'end_time' => '16:00', 'sort_order' => 2],
+    ];
+
+    public const ASSESSMENT_MODELS = [
+        'ca_test_final' => [
+            'label'       => 'CA + Test + Final Exam',
+            'description' => 'Continuous Assessment + Class Test + Final Examination',
+            'components'  => ['ca', 'class_test', 'final_exam'],
+        ],
+        'ca_final' => [
+            'label'       => 'CA + Final Exam',
+            'description' => 'Continuous Assessment + Final Examination',
+            'components'  => ['ca', 'final_exam'],
+        ],
+        'test_final' => [
+            'label'       => 'Test + Final Exam',
+            'description' => 'Class Test + Final Examination',
+            'components'  => ['class_test', 'final_exam'],
+        ],
+        'final_only' => [
+            'label'       => 'Final Exam Only',
+            'description' => 'Final Examination only',
+            'components'  => ['final_exam'],
+        ],
+        'custom' => [
+            'label'       => 'Custom',
+            'description' => 'Custom assessment model',
+            'components'  => [],
+        ],
+    ];
+
     public const SCHOOL_TERMS = [
         ['name' => 'Term 1', 'order' => 1],
         ['name' => 'Term 2', 'order' => 2],

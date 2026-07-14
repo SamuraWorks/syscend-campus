@@ -6,8 +6,9 @@ import { Link } from '@inertiajs/react';
 import {
     GraduationCap, Users, ClipboardCheck, BookOpen, ClipboardList, Bell,
     Calendar, CheckCircle, FileText, MessageSquare, PenTool, Clock,
-    Megaphone, User, ChevronRight,
+    Megaphone, ChevronRight,
 } from 'lucide-react';
+import ProfileAvatar from '@/components/ProfileAvatar';
 
 interface Teacher {
     id: number; full_name: string; emp_id: string; photo_url: string | null;
@@ -90,11 +91,12 @@ export default function TeacherDashboard({
                 </div>
 
                 <div className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white flex items-center gap-5">
-                    <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
-                        {teacher.photo_url
-                            ? <img src={teacher.photo_url} alt={teacher.full_name} className="w-full h-full object-cover" />
-                            : <User className="w-8 h-8 text-white/80" />}
-                    </div>
+                    <ProfileAvatar
+                        src={teacher.photo_url}
+                        name={teacher.full_name}
+                        size="xl"
+                        showRing
+                    />
                     <div className="flex-1 min-w-0">
                         <h1 className="text-xl font-bold">{teacher.full_name}</h1>
                         <p className="text-white/80 text-sm">{teacher.emp_id} · {teacher.designation ?? '—'} · {teacher.department ?? '—'}</p>

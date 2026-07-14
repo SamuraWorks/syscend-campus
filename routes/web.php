@@ -4,6 +4,9 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\SchoolAdmin\AttendanceController;
 use App\Http\Controllers\SchoolAdmin\ExamController;
+use App\Http\Controllers\SchoolAdmin\AssessmentConfigController;
+use App\Http\Controllers\SchoolAdmin\ResultApprovalController;
+use App\Http\Controllers\SchoolAdmin\ResultImportController;
 use App\Http\Controllers\SchoolAdmin\FeeCategoryController;
 use App\Http\Controllers\SchoolAdmin\FeePaymentController;
 use App\Http\Controllers\SchoolAdmin\FeeStructureController;
@@ -137,6 +140,8 @@ Route::middleware('auth')->group(function () {
     // Profile
     Route::get('/profile',                   [ProfileController::class, 'show'])->name('profile');
     Route::put('/profile',                   [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/photo',            [ProfileController::class, 'uploadPhoto'])->name('profile.photo');
+    Route::delete('/profile/photo',          [ProfileController::class, 'deletePhoto'])->name('profile.photo.delete');
     Route::get('/password/change',           [ProfileController::class, 'changePasswordPage'])->name('password.change');
     Route::put('/profile/password',          [ProfileController::class, 'updatePassword'])->name('profile.password');
 
@@ -182,19 +187,53 @@ Route::middleware('auth')->group(function () {
             Route::post('students/{student}/documents',        [StudentController::class, 'uploadDocument'])->name('students.documents.upload');
             Route::delete('students/documents/{document}',     [StudentController::class, 'deleteDocument'])->name('students.documents.delete');
 
-            // Exams
+            // Exams — core
             Route::get('exams',                              [ExamController::class, 'index'])->name('exams.index');
             Route::post('exams',                             [ExamController::class, 'store'])->name('exams.store');
             Route::put('exams/{exam}',                       [ExamController::class, 'update'])->name('exams.update');
             Route::delete('exams/{exam}',                    [ExamController::class, 'destroy'])->name('exams.destroy');
+            // Exams — workflow
+            Route::post('exams/{exam}/submit',               [ExamController::class, 'submit'])->name('exams.submit');
+            Route::post('exams/{exam}/approve',              [ExamController::class, 'approve'])->name('exams.approve');
+            // Exams — marks & results
             Route::get('exams/{exam}/marks',                 [ExamController::class, 'marks'])->name('exams.marks');
             Route::post('exams/{exam}/marks',                [ExamController::class, 'saveMarks'])->name('exams.marks.save');
             Route::post('exams/{exam}/marks/import',         [ExamController::class, 'bulkImportMarks'])->name('exams.marks.import');
             Route::get('exams/{exam}/results',               [ExamController::class, 'results'])->name('exams.results');
+            // Exams — assessment types
+            Route::get('exams/assessment-types',             [ExamController::class, 'assessmentTypes'])->name('exams.assessment-types');
+            // Exams — grade scales
             Route::get('grade-scales',                       [ExamController::class, 'gradeScales'])->name('grade-scales.index');
             Route::post('grade-scales',                      [ExamController::class, 'saveGradeScale'])->name('grade-scales.store');
             Route::put('grade-scales/{gradeScale}',          [ExamController::class, 'updateGradeScale'])->name('grade-scales.update');
             Route::delete('grade-scales/{gradeScale}',       [ExamController::class, 'deleteGradeScale'])->name('grade-scales.destroy');
+
+            // Assessment Configuration
+            Route::get('assessment-config',                  [AssessmentConfigController::class, 'index'])->name('assessment-config.index');
+            Route::post('assessment-config',                 [AssessmentConfigController::class, 'store'])->name('assessment-config.store');
+            Route::put('assessment-config/{config}',         [AssessmentConfigController::class, 'update'])->name('assessment-config.update');
+            Route::delete('assessment-config/{config}',      [AssessmentConfigController::class, 'destroy'])->name('assessment-config.destroy');
+            Route::post('assessment-config/{config}/default',[AssessmentConfigController::class, 'setDefault'])->name('assessment-config.default');
+            Route::post('assessment-components',             [AssessmentConfigController::class, 'storeComponent'])->name('assessment-components.store');
+            Route::put('assessment-components/{component}',  [AssessmentConfigController::class, 'updateComponent'])->name('assessment-components.update');
+            Route::delete('assessment-components/{component}', [AssessmentConfigController::class, 'destroyComponent'])->name('assessment-components.destroy');
+
+            // Result Approval Workflow
+            Route::get('approvals',                          [ResultApprovalController::class, 'index'])->name('approvals.index');
+            Route::post('approvals/exams/{exam}/approve',    [ResultApprovalController::class, 'approveExam'])->name('approvals.exam.approve');
+            Route::post('approvals/exams/{exam}/reject',     [ResultApprovalController::class, 'rejectExam'])->name('approvals.exam.reject');
+            Route::post('approvals/report-cards/{reportCard}/approve', [ResultApprovalController::class, 'approveReportCard'])->name('approvals.report-card.approve');
+            Route::post('approvals/report-cards/{reportCard}/publish', [ResultApprovalController::class, 'publishReportCard'])->name('approvals.report-card.publish');
+            Route::post('approvals/report-cards/bulk-approve', [ResultApprovalController::class, 'bulkApprove'])->name('approvals.report-card.bulk-approve');
+
+            // AI Result Import
+            Route::get('imports',                            [ResultImportController::class, 'index'])->name('imports.index');
+            Route::post('imports/upload',                    [ResultImportController::class, 'upload'])->name('imports.upload');
+            Route::get('imports/{import}',                   [ResultImportController::class, 'show'])->name('imports.show');
+            Route::post('imports/{import}/extract',          [ResultImportController::class, 'extract'])->name('imports.extract');
+            Route::put('imports/{import}/data',              [ResultImportController::class, 'updateData'])->name('imports.update-data');
+            Route::post('imports/{import}/import',           [ResultImportController::class, 'import'])->name('imports.import');
+            Route::delete('imports/{import}',                [ResultImportController::class, 'destroy'])->name('imports.destroy');
 
             // Timetable
             Route::get('timetable',                      [TimetableController::class, 'index'])->name('timetable.index');
@@ -205,14 +244,19 @@ Route::middleware('auth')->group(function () {
             // Attendance — student
             Route::get('attendance',                          [AttendanceController::class, 'index'])->name('attendance.index');
             Route::post('attendance',                         [AttendanceController::class, 'store'])->name('attendance.store');
+            Route::post('attendance/submit',                  [AttendanceController::class, 'submit'])->name('attendance.submit');
+            Route::post('attendance/bulk-approve',            [AttendanceController::class, 'bulkApprove'])->name('attendance.bulk-approve');
             Route::get('attendance/students/{student}/calendar', [AttendanceController::class, 'studentCalendar'])->name('attendance.student.calendar');
+            // Attendance — corrections
+            Route::get('attendance/corrections',              [AttendanceController::class, 'correctionIndex'])->name('attendance.corrections.index');
+            Route::post('attendance/{attendance}/correction', [AttendanceController::class, 'correctionRequest'])->name('attendance.correction.request');
+            Route::put('attendance/corrections/{correction}', [AttendanceController::class, 'correctionReview'])->name('attendance.correction.review');
             // Attendance — staff
             Route::get('attendance/staff',                    [AttendanceController::class, 'staffIndex'])->name('attendance.staff.index');
             Route::post('attendance/staff',                   [AttendanceController::class, 'staffStore'])->name('attendance.staff.store');
 
-            // Attendance Approval
+            // Attendance Approval (legacy)
             Route::post('attendance/approve/{date}/{classId}', [AttendanceApprovalController::class, 'approve'])->name('attendance.approve');
-            Route::post('attendance/bulk-approve', [AttendanceApprovalController::class, 'bulkApprove'])->name('attendance.bulk-approve');
 
             // HR — Leave Management
             Route::get('hr/leave-types',                       [LeaveController::class, 'types'])->name('hr.leave-types.index');

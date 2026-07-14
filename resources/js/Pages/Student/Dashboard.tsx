@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import {
     GraduationCap, ClipboardList, BookOpen, DollarSign,
     Bell, Calendar, CheckCircle, XCircle, Clock,
-    TrendingUp, User, FileText,
+    TrendingUp, FileText,
 } from 'lucide-react';
+import ProfileAvatar from '@/components/ProfileAvatar';
 
 interface Student {
     id: number; full_name: string; admission_no: string;
@@ -94,11 +95,12 @@ export default function StudentDashboard({ linked, student, attendance, exams, h
 
                 {/* Profile Banner */}
                 <div className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white flex items-center gap-5">
-                    <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
-                        {student.photo_url
-                            ? <img src={student.photo_url} alt={student.full_name} className="w-full h-full object-cover" />
-                            : <User className="w-8 h-8 text-white/80" />}
-                    </div>
+                    <ProfileAvatar
+                        src={student.photo_url}
+                        name={student.full_name}
+                        size="xl"
+                        showRing
+                    />
                     <div className="flex-1 min-w-0">
                         <h2 className="text-xl font-bold">{student.full_name}</h2>
                         <p className="text-white/80 text-sm">{student.class} &mdash; {student.section} &middot; Adm# {student.admission_no}</p>
