@@ -552,6 +552,11 @@ Route::middleware('auth')->group(function () {
             Route::post('settings/sierra-leone/education',                  [SierraLeoneSettingsController::class, 'saveEducationSystem'])->name('settings.sierra-leone.education');
             Route::post('settings/sierra-leone/levels',                     [SierraLeoneSettingsController::class, 'saveSchoolLevels'])->name('settings.sierra-leone.levels');
 
+            // School Setup Hub
+            Route::get('school-setup', function () {
+                return inertia('SchoolAdmin/SchoolSetup/Index');
+            })->name('school-setup');
+
             // School Identity & Branding
             Route::get('school-identity',                              [SchoolIdentityController::class, 'index'])->name('school-identity.index');
             Route::post('school-identity/basic',                       [SchoolIdentityController::class, 'saveBasic'])->name('school-identity.basic');

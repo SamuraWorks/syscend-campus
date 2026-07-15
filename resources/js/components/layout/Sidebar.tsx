@@ -254,37 +254,16 @@ const navGroups: NavGroup[] = [
     // ═══════════════════════════════════════════════════════════════
     // SCHOOL ADMIN PORTAL — Command Center
     // ═══════════════════════════════════════════════════════════════
-
-    // ── School Setup ──────────────────────────────────────────────
-    // Everything that defines how the school operates.
-    // Configured once → automatically used everywhere.
-    {
-        title: '🏫 School Setup',
-        items: [
-            { label: 'School Identity',     href: '/school/school-identity',       icon: Fingerprint,   roles: ['school-admin'] },
-            { label: 'Academic Years',      href: '/school/academic-terms',        icon: CalendarDays,  roles: ['school-admin'] },
-            { label: 'Classes',             href: '/school/classes',               icon: GraduationCap, roles: ['school-admin'] },
-            { label: 'Sections',            href: '/school/sections',              icon: Layers,        roles: ['school-admin'] },
-            { label: 'Subjects',            href: '/school/subjects',              icon: BookOpen,      roles: ['school-admin'] },
-            { label: 'Departments',         href: '/school/departments',           icon: Building2,     roles: ['school-admin'] },
-            { label: 'Designations',        href: '/school/designations',          icon: BadgeCheck,    roles: ['school-admin'] },
-            { label: 'Shifts',              href: '/school/shifts',                icon: Clock,         roles: ['school-admin'] },
-            { label: 'Holidays',            href: '/school/holidays',              icon: CalendarOff,   roles: ['school-admin'] },
-            { label: 'Timetable Settings',  href: '/school/settings/school-time',  icon: CalendarClock, roles: ['school-admin'] },
-            { label: 'Assessment Config',   href: '/school/assessment-config',     icon: Settings,      roles: ['school-admin'] },
-            { label: 'Grade Scales',        href: '/school/grade-scales',          icon: BarChart3,     roles: ['school-admin'] },
-            { label: 'School Preferences',  href: '/school/settings',              icon: Settings,      roles: ['school-admin'] },
-            { label: 'Sierra Leone Config', href: '/school/settings/sierra-leone', icon: Landmark,      roles: ['school-admin'] },
-            { label: 'Integrations',        href: '/school/settings/integrations', icon: Plug,          roles: ['school-admin'] },
-        ],
-    },
-
-    // ── Daily Operations ──────────────────────────────────────────
-    // Everything staff use every day.
     {
         title: 'Dashboard',
         items: [
             { label: 'Dashboard', href: '/school/reports/dashboard', icon: LayoutDashboard, roles: ['school-admin'] },
+        ],
+    },
+    {
+        title: 'School Setup',
+        items: [
+            { label: 'School Setup', href: '/school/school-setup', icon: School, roles: ['school-admin'] },
         ],
     },
     {
