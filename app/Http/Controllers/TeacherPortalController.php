@@ -687,12 +687,12 @@ class TeacherPortalController extends Controller
             if (isset($m['is_absent']) && $m['is_absent']) {
                 Mark::updateOrCreate(
                     ['school_id' => $schoolId, 'exam_id' => $examId, 'student_id' => $m['student_id'], 'subject_id' => $request->subject_id],
-                    ['is_absent' => true, 'marks_obtained' => 0]
+                    ['is_absent' => true, 'marks_obtained' => 0, 'status' => 'draft']
                 );
             } elseif (isset($m['marks_obtained']) && $m['marks_obtained'] !== null) {
                 Mark::updateOrCreate(
                     ['school_id' => $schoolId, 'exam_id' => $examId, 'student_id' => $m['student_id'], 'subject_id' => $request->subject_id],
-                    ['marks_obtained' => $m['marks_obtained'], 'is_absent' => false]
+                    ['marks_obtained' => $m['marks_obtained'], 'is_absent' => false, 'status' => 'draft']
                 );
             }
         }

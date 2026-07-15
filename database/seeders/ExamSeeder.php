@@ -63,6 +63,7 @@ class ExamSeeder extends Seeder
                                 'grade'          => $graded['grade'],
                                 'gpa'            => $graded['gpa'],
                                 'is_absent'      => false,
+                                'status'         => 'approved',
                             ]
                         );
                         $markCount++;

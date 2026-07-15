@@ -651,6 +651,7 @@ class DemoSeeder extends Seeder
                     'gpa' => $this->calcGpa($marks),
                     'is_absent' => false,
                     'remarks' => $marks >= 75 ? 'Excellent' : ($marks >= 50 ? 'Good' : 'Needs improvement'),
+                    'status' => 'approved',
                 ]);
                 $count++;
             }

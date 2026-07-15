@@ -10,6 +10,7 @@ use App\Models\Exam;
 use App\Models\GradeScale;
 use App\Models\Mark;
 use App\Models\ReportCard;
+use App\Models\ResultApprovalLog;
 use App\Models\SchoolClass;
 use App\Models\SchoolSetting;
 use App\Models\Section;
@@ -172,6 +173,17 @@ class ReportCardController extends Controller
                         ]
                     );
                 }
+
+                $reportCards = ReportCard::where('school_id', $schoolId)
+                    ->where('class_id', $data['class_id'])
+                    ->where('academic_year_id', $data['academic_year_id'])
+                    ->where('term_id', $data['term_id'])
+                    ->orderByDesc('obtained_marks')
+                    ->get();
+
+                foreach ($reportCards as $rank => $rc) {
+                    $rc->update(['rank' => $rank + 1]);
+                }
             });
 
             return back()->with('success', 'Report cards generated for ' . $students->count() . ' students.');
@@ -207,10 +219,45 @@ class ReportCardController extends Controller
         }
     }
 
+    public function submit(ReportCard $reportCard): RedirectResponse
+    {
+        if ($reportCard->status !== 'draft') {
+            return back()->with('error', 'Only draft report cards can be submitted.');
+        }
+
+        try {
+            $reportCard->update([
+                'status'       => 'submitted',
+                'submitted_by' => auth()->id(),
+                'submitted_at' => now(),
+            ]);
+
+            return back()->with('success', 'Report card submitted for approval.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Failed to submit report card: ' . $e->getMessage());
+        }
+    }
+
     public function approve(ReportCard $reportCard): RedirectResponse
     {
         try {
-            $reportCard->update(['status' => 'approved']);
+            $previousState = ['status' => $reportCard->status];
+            $reportCard->update([
+                'status'      => 'approved',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+
+            ResultApprovalLog::log(
+                $this->getSchoolId(),
+                $reportCard,
+                auth()->id(),
+                'approved',
+                null,
+                $previousState,
+                ['status' => 'approved']
+            );
+
             return back()->with('success', 'Report card approved and ready to publish.');
         } catch (\Throwable $e) {
             return back()->with('error', 'Failed to approve report card: ' . $e->getMessage());
@@ -220,7 +267,21 @@ class ReportCardController extends Controller
     public function publish(ReportCard $reportCard): RedirectResponse
     {
         try {
-            $reportCard->update(['status' => 'published']);
+            $previousState = ['status' => $reportCard->status];
+            $reportCard->update([
+                'status'       => 'published',
+                'published_at' => now(),
+            ]);
+
+            ResultApprovalLog::log(
+                $this->getSchoolId(),
+                $reportCard,
+                auth()->id(),
+                'published',
+                null,
+                $previousState,
+                ['status' => 'published']
+            );
 
             NotificationDispatchService::onReportCardPublished(
                 $reportCard->school_id,

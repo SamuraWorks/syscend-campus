@@ -235,6 +235,7 @@ class ResultImportController extends Controller
                             'gpa'            => $graded['gpa'],
                             'is_absent'      => $isAbsent,
                             'remarks'        => trim($data['remarks'] ?? ''),
+                            'status'         => 'draft',
                         ]
                     );
                     $imported++;

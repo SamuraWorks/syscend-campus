@@ -511,6 +511,7 @@ Route::middleware('auth')->group(function () {
             Route::get('report-cards',                             [ReportCardController::class, 'index'])->name('report-cards.index');
             Route::middleware('permission:publish-report-cards')->group(function () {
                 Route::post('report-cards/generate',                   [ReportCardController::class, 'generate'])->name('report-cards.generate');
+                Route::post('report-cards/{reportCard}/submit',        [ReportCardController::class, 'submit'])->name('report-cards.submit');
                 Route::patch('report-cards/{reportCard}/approve',      [ReportCardController::class, 'approve'])->name('report-cards.approve');
                 Route::patch('report-cards/{reportCard}/publish',      [ReportCardController::class, 'publish'])->name('report-cards.publish');
                 Route::post('report-cards/bulk-publish',               [ReportCardController::class, 'bulkPublish'])->name('report-cards.bulk-publish');

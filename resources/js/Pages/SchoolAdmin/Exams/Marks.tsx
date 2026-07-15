@@ -15,6 +15,7 @@ interface ExistingMark {
     marks_obtained: string | null; grade: string | null; is_absent: boolean; remarks: string | null;
     raw_score: number | null; weighted_score: number | null; assessment_type: string | null;
     assessment_type_slug: string | null; component_marks: number | null; component_max: number | null;
+    status: string | null;
 }
 interface Exam {
     id: number; name: string; type: string; class_id: number; status: string;

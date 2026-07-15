@@ -197,6 +197,7 @@ const navGroups: NavGroup[] = [
             { label: 'Attendance',   href: '/school/principal/attendance', icon: ClipboardList, roles: ['principal'] },
             { label: 'Examinations', href: '/school/principal/exams',      icon: BookOpen,      roles: ['principal'] },
             { label: 'Results',      href: '/school/principal/results',    icon: BarChart3,     roles: ['principal'] },
+            { label: 'Report Cards', href: '/school/report-cards',         icon: FileText,      roles: ['principal'] },
         ],
     },
     {
@@ -285,6 +286,8 @@ const navGroups: NavGroup[] = [
             { label: 'Attendance',   href: '/school/attendance',  icon: ClipboardList, roles: ['school-admin','teacher'] },
             { label: 'Examinations', href: '/school/exams',       icon: BookOpen,      roles: ['school-admin','teacher'] },
             { label: 'Report Cards', href: '/school/report-cards', icon: FileText,     roles: ['school-admin','accountant'] },
+            { label: 'Result Approvals', href: '/school/approvals', icon: ClipboardList, roles: ['school-admin'] },
+            { label: 'Result Imports',   href: '/school/imports',   icon: FileSpreadsheet, roles: ['school-admin'] },
         ],
     },
     {

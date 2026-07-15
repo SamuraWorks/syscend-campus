@@ -26,7 +26,7 @@ interface SubjectScore {
 interface ReportCard {
     id: number; student_id: number; class_id: number; term_id: number; academic_year_id: number;
     total_marks: number; obtained_marks: number; percentage: number; grade: string; gpa: number;
-    status: string; promotion_status: string | null;
+    rank: number | null; status: string; promotion_status: string | null;
     teacher_comment: string | null; form_master_comment: string | null; principal_comment: string | null;
     total_school_days: number; days_present: number; days_absent: number; days_late: number;
     subject_data: SubjectScore[]; created_at: string; updated_at: string;
@@ -104,14 +104,14 @@ export default function ReportCardsShow({ reportCard, gradeScale }: Props) {
                     </Card>
                     <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                         <CardContent className="p-4 text-center">
-                            <p className="text-3xl font-bold text-blue-600">{attendanceRate}%</p>
-                            <p className="text-xs text-slate-500">Attendance ({rc.days_present}/{rc.total_school_days})</p>
+                            <p className="text-3xl font-bold text-amber-600">{rc.rank != null ? `#${rc.rank}` : '—'}</p>
+                            <p className="text-xs text-slate-500">Class Rank</p>
                         </CardContent>
                     </Card>
                     <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                         <CardContent className="p-4 text-center">
-                            <p className="text-3xl font-bold text-orange-600">{rc.days_late}</p>
-                            <p className="text-xs text-slate-500">Days Late</p>
+                            <p className="text-3xl font-bold text-blue-600">{attendanceRate}%</p>
+                            <p className="text-xs text-slate-500">Attendance ({rc.days_present}/{rc.total_school_days})</p>
                         </CardContent>
                     </Card>
                 </div>

@@ -36,6 +36,7 @@ interface Props extends PageProps {
 
 const STATUS_STYLE: Record<string, string> = {
     draft: 'bg-slate-100 text-slate-600',
+    submitted: 'bg-amber-100 text-amber-700',
     approved: 'bg-blue-100 text-blue-700',
     published: 'bg-green-100 text-green-700',
 };
@@ -68,6 +69,8 @@ export default function ReportCardsIndex({ reportCards, classes, terms, academic
             router.patch(`/school/report-cards/${confirmAction.data.id}/approve`, {}, { onFinish: () => setConfirmAction(null) });
         } else if (confirmAction.type === 'publish') {
             router.patch(`/school/report-cards/${confirmAction.data.id}/publish`, {}, { onFinish: () => setConfirmAction(null) });
+        } else if (confirmAction.type === 'submit') {
+            router.post(`/school/report-cards/${confirmAction.data.id}/submit`, {}, { onFinish: () => setConfirmAction(null) });
         } else if (confirmAction.type === 'bulk-publish') {
             bulkForm.post('/school/report-cards/bulk-publish', { onSuccess: () => { setBulkOpen(false); setConfirmAction(null); } });
         } else if (confirmAction.type === 'promote') {
@@ -140,7 +143,7 @@ export default function ReportCardsIndex({ reportCards, classes, terms, academic
                         <SelectTrigger className="w-40 h-9"><SelectValue placeholder="All Status" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Status</SelectItem>
-                            {['draft', 'approved', 'published'].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                            {['draft', 'submitted', 'approved', 'published'].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
@@ -176,7 +179,8 @@ export default function ReportCardsIndex({ reportCards, classes, terms, academic
                                     <TableCell className="text-right">
                                         <div className="flex gap-1 justify-end">
                                             <Button variant="ghost" size="sm" onClick={() => router.visit(`/school/report-cards/${rc.id}`)}>View</Button>
-                                            {rc.status === 'draft' && <Button variant="ghost" size="sm" className="text-blue-600" onClick={() => handleApprove(rc.id)}>Approve</Button>}
+                                            {rc.status === 'draft' && <Button variant="ghost" size="sm" className="text-amber-600" onClick={() => setConfirmAction({ type: 'submit', data: { id: String(rc.id) } })}>Submit</Button>}
+                                            {rc.status === 'submitted' && <Button variant="ghost" size="sm" className="text-blue-600" onClick={() => handleApprove(rc.id)}>Approve</Button>}
                                             {rc.status === 'approved' && <Button variant="ghost" size="sm" className="text-green-600" onClick={() => handlePublish(rc.id)}>Publish</Button>}
                                         </div>
                                     </TableCell>
@@ -296,14 +300,15 @@ export default function ReportCardsIndex({ reportCards, classes, terms, academic
             <ConfirmDialog
                 open={!!confirmAction}
                 onOpenChange={() => setConfirmAction(null)}
-                title={confirmAction?.type === 'approve' ? 'Approve Report Card' : confirmAction?.type === 'publish' ? 'Publish Report Card' : confirmAction?.type === 'bulk-publish' ? 'Bulk Publish' : 'Confirm Promotion'}
+                title={confirmAction?.type === 'approve' ? 'Approve Report Card' : confirmAction?.type === 'publish' ? 'Publish Report Card' : confirmAction?.type === 'submit' ? 'Submit Report Card' : confirmAction?.type === 'bulk-publish' ? 'Bulk Publish' : 'Confirm Promotion'}
                 description={
                     confirmAction?.type === 'approve' ? 'This will mark the report card as approved and ready to publish.'
                     : confirmAction?.type === 'publish' ? 'This will publish the report card and notify parents.'
+                    : confirmAction?.type === 'submit' ? 'This will submit the report card for approval. It will be locked from further editing.'
                     : confirmAction?.type === 'bulk-publish' ? 'Publish all approved report cards for this class and term? Parents will be notified.'
                     : 'Promote students based on their GPA. This action cannot be undone.'
                 }
-                confirmText={confirmAction?.type === 'approve' ? 'Approve' : confirmAction?.type === 'publish' ? 'Publish' : confirmAction?.type === 'bulk-publish' ? 'Publish All' : 'Promote'}
+                confirmText={confirmAction?.type === 'approve' ? 'Approve' : confirmAction?.type === 'publish' ? 'Publish' : confirmAction?.type === 'submit' ? 'Submit' : confirmAction?.type === 'bulk-publish' ? 'Publish All' : 'Promote'}
                 onConfirm={executeConfirm}
             />
         </AppLayout>

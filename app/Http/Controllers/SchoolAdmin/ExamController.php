@@ -8,6 +8,7 @@ use App\Models\ExamAssessmentLink;
 use App\Models\AssessmentType;
 use App\Models\GradeScale;
 use App\Models\Mark;
+use App\Models\ResultApprovalLog;
 use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\Student;
@@ -200,6 +201,24 @@ class ExamController extends Controller
             'submitted_at' => now(),
         ]);
 
+        Mark::where('exam_id', $exam->id)
+            ->where('status', 'draft')
+            ->update([
+                'status'       => 'submitted',
+                'submitted_by' => auth()->id(),
+                'submitted_at' => now(),
+            ]);
+
+        ResultApprovalLog::log(
+            $this->getSchoolId(),
+            $exam,
+            auth()->id(),
+            'submitted',
+            null,
+            ['status' => $exam->status],
+            ['status' => $exam->status, 'submitted_at' => now()->toIso8601String()]
+        );
+
         return back()->with('success', 'Exam submitted for approval. Marks are now locked.');
     }
 
@@ -212,11 +231,27 @@ class ExamController extends Controller
             return back()->with('error', 'This exam cannot be approved.');
         }
 
+        $previousState = ['status' => $exam->status, 'submitted_at' => $exam->submitted_at?->toIso8601String()];
+
         $exam->update([
             'approved_by' => auth()->id(),
             'approved_at' => now(),
             'status'      => 'completed',
         ]);
+
+        Mark::where('exam_id', $exam->id)
+            ->where('status', 'submitted')
+            ->update(['status' => 'approved']);
+
+        ResultApprovalLog::log(
+            $this->getSchoolId(),
+            $exam,
+            auth()->id(),
+            'approved',
+            null,
+            $previousState,
+            ['status' => 'completed', 'approved_at' => now()->toIso8601String()]
+        );
 
         return back()->with('success', 'Exam approved. Results are now published.');
     }
@@ -284,12 +319,12 @@ class ExamController extends Controller
 
         $data = $request->validate([
             'section_id'              => 'nullable|exists:sections,id',
-            'marks'                   => 'required|array',
-            'marks.*.student_id'      => 'required|exists:students,id',
-            'marks.*.subject_id'      => 'required|exists:subjects,id',
-            'marks.*.marks_obtained'  => 'nullable|numeric|min:0',
-            'marks.*.is_absent'       => 'boolean',
-            'marks.*.remarks'         => 'nullable|string|max:200',
+            'records'                 => 'required|array',
+            'records.*.student_id'    => 'required|exists:students,id',
+            'records.*.subject_id'    => 'required|exists:subjects,id',
+            'records.*.marks_obtained'=> 'nullable|numeric|min:0',
+            'records.*.is_absent'     => 'boolean',
+            'records.*.remarks'       => 'nullable|string|max:200',
         ]);
 
         $schoolId = $this->getSchoolId();
@@ -297,7 +332,7 @@ class ExamController extends Controller
 
         try {
             DB::transaction(function () use ($data, $exam, $schoolId, $grading) {
-                foreach ($data['marks'] as $row) {
+                foreach ($data['records'] as $row) {
                     $marksObtained = $row['is_absent'] ? null : ($row['marks_obtained'] ?? null);
                     $maxScore = $exam->max_score ?: 100;
                     $graded = $marksObtained !== null ? $grading->calculate((float) $marksObtained, $maxScore) : ['grade' => null, 'gpa' => null];
@@ -316,6 +351,7 @@ class ExamController extends Controller
                             'gpa'            => $graded['gpa'],
                             'is_absent'      => $row['is_absent'] ?? false,
                             'remarks'        => $row['remarks'] ?? null,
+                            'status'         => 'draft',
                         ]
                     );
                 }
@@ -514,6 +550,7 @@ class ExamController extends Controller
                             'gpa'            => $graded['gpa'],
                             'is_absent'      => $isAbsent,
                             'remarks'        => trim($data['remarks'] ?? ''),
+                            'status'         => 'draft',
                         ]
                     );
                     $imported++;

@@ -308,6 +308,7 @@ class ParentPortalController extends Controller
 
         $reportCards = ReportCard::where('school_id', $user->school_id)
             ->whereIn('student_id', $studentIds)
+            ->where('status', 'published')
             ->with(['student:id,first_name,last_name,admission_no', 'academicYear:id,name', 'term:id,name', 'schoolClass:id,name'])
             ->orderByDesc('created_at')
             ->get()

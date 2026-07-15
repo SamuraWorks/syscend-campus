@@ -418,6 +418,7 @@ PROMPT,
                     'gpa'            => $graded['gpa'],
                     'is_absent'      => false,
                     'remarks'        => trim($subjectData['remarks'] ?? '') ?: ($graded['remarks'] ?? null),
+                    'status'         => 'draft',
                 ]
             );
             $imported++;
