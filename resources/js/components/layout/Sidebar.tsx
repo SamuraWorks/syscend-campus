@@ -252,8 +252,35 @@ const navGroups: NavGroup[] = [
     },
 
     // ═══════════════════════════════════════════════════════════════
-    // SCHOOL ADMIN PORTAL — Operational Management
+    // SCHOOL ADMIN PORTAL — Command Center
     // ═══════════════════════════════════════════════════════════════
+
+    // ── School Setup ──────────────────────────────────────────────
+    // Everything that defines how the school operates.
+    // Configured once → automatically used everywhere.
+    {
+        title: '🏫 School Setup',
+        items: [
+            { label: 'School Identity',     href: '/school/school-identity',       icon: Fingerprint,   roles: ['school-admin'] },
+            { label: 'Academic Years',      href: '/school/academic-terms',        icon: CalendarDays,  roles: ['school-admin'] },
+            { label: 'Classes',             href: '/school/classes',               icon: GraduationCap, roles: ['school-admin'] },
+            { label: 'Sections',            href: '/school/sections',              icon: Layers,        roles: ['school-admin'] },
+            { label: 'Subjects',            href: '/school/subjects',              icon: BookOpen,      roles: ['school-admin'] },
+            { label: 'Departments',         href: '/school/departments',           icon: Building2,     roles: ['school-admin'] },
+            { label: 'Designations',        href: '/school/designations',          icon: BadgeCheck,    roles: ['school-admin'] },
+            { label: 'Shifts',              href: '/school/shifts',                icon: Clock,         roles: ['school-admin'] },
+            { label: 'Holidays',            href: '/school/holidays',              icon: CalendarOff,   roles: ['school-admin'] },
+            { label: 'Timetable Settings',  href: '/school/settings/school-time',  icon: CalendarClock, roles: ['school-admin'] },
+            { label: 'Assessment Config',   href: '/school/assessment-config',     icon: Settings,      roles: ['school-admin'] },
+            { label: 'Grade Scales',        href: '/school/grade-scales',          icon: BarChart3,     roles: ['school-admin'] },
+            { label: 'School Preferences',  href: '/school/settings',              icon: Settings,      roles: ['school-admin'] },
+            { label: 'Sierra Leone Config', href: '/school/settings/sierra-leone', icon: Landmark,      roles: ['school-admin'] },
+            { label: 'Integrations',        href: '/school/settings/integrations', icon: Plug,          roles: ['school-admin'] },
+        ],
+    },
+
+    // ── Daily Operations ──────────────────────────────────────────
+    // Everything staff use every day.
     {
         title: 'Dashboard',
         items: [
@@ -261,46 +288,32 @@ const navGroups: NavGroup[] = [
         ],
     },
     {
-        title: 'School',
-        items: [
-            { label: 'School Identity', href: '/school/school-identity', icon: Fingerprint, roles: ['school-admin'] },
-            { label: 'Classes',   href: '/school/classes',  icon: GraduationCap, roles: ['school-admin'] },
-            { label: 'Sections',  href: '/school/sections', icon: Layers,        roles: ['school-admin'] },
-            { label: 'Subjects',  href: '/school/subjects', icon: BookOpen,      roles: ['school-admin'] },
-            { label: 'Shifts',    href: '/school/shifts',   icon: Clock,         roles: ['school-admin'] },
-            { label: 'Holidays',  href: '/school/holidays', icon: CalendarOff,   roles: ['school-admin'] },
-        ],
-    },
-    {
         title: 'People',
         items: [
-            { label: 'Students',        href: '/school/students',    icon: GraduationCap, roles: ['school-admin','receptionist'] },
-            { label: 'Staff',           href: '/school/staff',       icon: UserCog,       roles: ['school-admin'] },
-            { label: 'Departments',     href: '/school/departments', icon: Building2,     roles: ['school-admin'] },
-            { label: 'Designations',    href: '/school/designations',icon: BadgeCheck,    roles: ['school-admin'] },
-            { label: 'Leave Requests',  href: '/school/hr/leaves',   icon: CalendarDays,  roles: ['school-admin'] },
-            { label: 'Manage Users',    href: '/school/settings/admins', icon: UserCog,   roles: ['school-admin'] },
+            { label: 'Students',       href: '/school/students',           icon: GraduationCap, roles: ['school-admin','receptionist'] },
+            { label: 'Staff',          href: '/school/staff',              icon: UserCog,       roles: ['school-admin'] },
+            { label: 'Manage Users',   href: '/school/settings/admins',    icon: UserCog,       roles: ['school-admin'] },
+            { label: 'Leave Requests', href: '/school/hr/leaves',          icon: CalendarDays,  roles: ['school-admin'] },
         ],
     },
     {
         title: 'Academics',
         items: [
-            { label: 'Timetable',         href: '/school/timetable',   icon: CalendarDays,    roles: ['school-admin','teacher'] },
-            { label: 'Attendance',        href: '/school/attendance',  icon: ClipboardList,   roles: ['school-admin','teacher'] },
-            { label: 'Examinations',      href: '/school/exams',       icon: BookOpen,        roles: ['school-admin','teacher'] },
-            { label: 'Assessment Config', href: '/school/assessment-config', icon: Settings, roles: ['school-admin'] },
-            { label: 'Report Cards',      href: '/school/report-cards',icon: FileText,        roles: ['school-admin','accountant'] },
-            { label: 'Result Approvals',  href: '/school/approvals',   icon: ClipboardList,   roles: ['school-admin'] },
+            { label: 'Timetable',        href: '/school/timetable',      icon: CalendarDays,  roles: ['school-admin','teacher'] },
+            { label: 'Attendance',       href: '/school/attendance',     icon: ClipboardList, roles: ['school-admin','teacher'] },
+            { label: 'Examinations',     href: '/school/exams',          icon: BookOpen,      roles: ['school-admin','teacher'] },
+            { label: 'Result Approvals', href: '/school/approvals',      icon: ClipboardList, roles: ['school-admin'] },
+            { label: 'Report Cards',     href: '/school/report-cards',   icon: FileText,      roles: ['school-admin','accountant'] },
         ],
     },
     {
         title: 'Teaching & Learning',
         items: [
-            { label: 'Homework',           href: '/school/homework',                icon: NotebookPen,   roles: ['school-admin','teacher'] },
-            { label: 'Lesson Plans',       href: '/school/homework/lesson-plans',   icon: ClipboardList, roles: ['school-admin','teacher'] },
-            { label: 'Syllabus',           href: '/school/homework/syllabi',        icon: BookOpen,      roles: ['school-admin','teacher'] },
-            { label: 'Online Classes',     href: '/school/homework/online-classes', icon: Video,         roles: ['school-admin','teacher'] },
-            { label: 'AI Result Imports',  href: '/school/imports',                 icon: FileSpreadsheet, roles: ['school-admin'] },
+            { label: 'Homework',          href: '/school/homework',                icon: NotebookPen,     roles: ['school-admin','teacher'] },
+            { label: 'Lesson Plans',      href: '/school/homework/lesson-plans',   icon: ClipboardList,   roles: ['school-admin','teacher'] },
+            { label: 'Syllabus',          href: '/school/homework/syllabi',        icon: BookOpen,        roles: ['school-admin','teacher'] },
+            { label: 'Online Classes',    href: '/school/homework/online-classes', icon: Video,           roles: ['school-admin','teacher'] },
+            { label: 'AI Result Imports', href: '/school/imports',                 icon: FileSpreadsheet, roles: ['school-admin'] },
         ],
     },
     {
@@ -336,19 +349,18 @@ const navGroups: NavGroup[] = [
     {
         title: 'Reports',
         items: [
-            { label: 'Dashboard Reports', href: '/school/reports/dashboard',  icon: PieChart,      roles: ['school-admin','teacher','accountant'] },
-            { label: 'Attendance Reports', href: '/school/reports/attendance', icon: ClipboardList, roles: ['school-admin','teacher'] },
-            { label: 'Academic Reports',   href: '/school/reports/academic',   icon: TrendingUp,    roles: ['school-admin','teacher'] },
-            { label: 'Finance Reports',    href: '/school/reports/finance',    icon: DollarSign,    roles: ['school-admin','accountant'] },
-            { label: 'Custom Reports',     href: '/school/reports/custom',     icon: FileText,      roles: ['school-admin','accountant'] },
-            { label: 'Audit Log',          href: '/school/reports/audit-log',  icon: ShieldCheck,   roles: ['school-admin'] },
+            { label: 'Dashboard Reports',  href: '/school/reports/dashboard',   icon: PieChart,      roles: ['school-admin','teacher','accountant'] },
+            { label: 'Attendance Reports', href: '/school/reports/attendance',  icon: ClipboardList, roles: ['school-admin','teacher'] },
+            { label: 'Academic Reports',   href: '/school/reports/academic',    icon: TrendingUp,    roles: ['school-admin','teacher'] },
+            { label: 'Finance Reports',    href: '/school/reports/finance',     icon: DollarSign,    roles: ['school-admin','accountant'] },
+            { label: 'Custom Reports',     href: '/school/reports/custom',      icon: FileText,      roles: ['school-admin','accountant'] },
+            { label: 'Audit Log',          href: '/school/reports/audit-log',   icon: ShieldCheck,   roles: ['school-admin'] },
         ],
     },
     {
         title: 'Administration',
         items: [
-            { label: 'Settings',     href: '/school/settings',              icon: Settings, roles: ['school-admin'] },
-            { label: 'Integrations', href: '/school/settings/integrations', icon: Plug,     roles: ['school-admin'] },
+            { label: 'Settings', href: '/school/settings', icon: Settings, roles: ['school-admin'] },
         ],
     },
 
