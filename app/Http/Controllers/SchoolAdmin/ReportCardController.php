@@ -10,6 +10,7 @@ use App\Models\Exam;
 use App\Models\GradeScale;
 use App\Models\Mark;
 use App\Models\ReportCard;
+use App\Models\ReportCardTemplate;
 use App\Models\ResultApprovalLog;
 use App\Models\SchoolClass;
 use App\Models\SchoolSetting;
@@ -415,6 +416,10 @@ class ReportCardController extends Controller
             $gradeScale = GradeScale::where('school_id', $reportCard->school_id)->orderByDesc('min_marks')->get();
             $subjectData = $reportCard->subject_data ?? [];
 
+            $activeTemplate = ReportCardTemplate::where('school_id', $reportCard->school_id)
+                ->where('status', 'active')
+                ->first();
+
             $pdf = Pdf::loadView('report-cards.print', [
                 'reportCard'  => $reportCard,
                 'student'     => $reportCard->student,
@@ -425,6 +430,8 @@ class ReportCardController extends Controller
                 'school'      => $school,
                 'subjectData' => $subjectData,
                 'gradeScale'  => $gradeScale,
+                'template'    => $activeTemplate,
+                'templateConfig' => $activeTemplate?->template_config,
             ])->setPaper('a4', 'portrait');
 
             $filename = "report-card-{$reportCard->student->admission_no}-{$reportCard->term->name}.pdf";

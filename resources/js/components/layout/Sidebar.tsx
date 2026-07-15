@@ -188,11 +188,23 @@ const navGroups: NavGroup[] = [
         ],
     },
     {
-        title: 'Academic Management',
+        title: 'School',
         items: [
             { label: 'School Identity', href: '/school/school-identity', icon: Fingerprint, roles: ['principal'] },
-            { label: 'Students',     href: '/school/principal/students',   icon: GraduationCap, roles: ['principal'] },
-            { label: 'Staff',        href: '/school/principal/staff',      icon: Users,         roles: ['principal'] },
+            { label: 'Classes',   href: '/school/principal/students',  icon: GraduationCap, roles: ['principal'] },
+            { label: 'Holidays',  href: '/school/holidays',            icon: CalendarOff,  roles: ['principal'] },
+        ],
+    },
+    {
+        title: 'People',
+        items: [
+            { label: 'Students', href: '/school/principal/students', icon: GraduationCap, roles: ['principal'] },
+            { label: 'Staff',    href: '/school/principal/staff',    icon: Users,         roles: ['principal'] },
+        ],
+    },
+    {
+        title: 'Academics',
+        items: [
             { label: 'Timetable',    href: '/school/principal/timetable',  icon: CalendarDays,  roles: ['principal'] },
             { label: 'Attendance',   href: '/school/principal/attendance', icon: ClipboardList, roles: ['principal'] },
             { label: 'Examinations', href: '/school/principal/exams',      icon: BookOpen,      roles: ['principal'] },
@@ -201,52 +213,34 @@ const navGroups: NavGroup[] = [
         ],
     },
     {
-        title: 'School Performance',
+        title: 'Finance',
         items: [
-            { label: 'Performance Overview', href: '/school/principal/performance',    icon: Brain,       roles: ['principal'] },
-            { label: 'Top Students',         href: '/school/performance/top-students',  icon: Trophy,      roles: ['principal'] },
-            { label: 'At-Risk Students',     href: '/school/performance/at-risk',       icon: AlertCircle, roles: ['principal'] },
-            { label: 'Most Improved',        href: '/school/performance/most-improved', icon: TrendingUp,  roles: ['principal'] },
-            { label: 'Subject Performance',  href: '/school/performance/subjects',      icon: BookOpen,    roles: ['principal'] },
-            { label: 'Departments',          href: '/school/performance/departments',   icon: Building2,   roles: ['principal'] },
-            { label: 'Interventions',        href: '/school/performance/interventions', icon: Target,      roles: ['principal'] },
+            { label: 'Fee Collection', href: '/school/principal/fees',  icon: DollarSign, roles: ['principal'] },
+            { label: 'Fee Payments',   href: '/school/fees/payments',   icon: Receipt,    roles: ['principal'] },
         ],
     },
     {
-        title: 'Admissions',
+        title: 'Operations',
         items: [
             { label: 'Inquiries', href: '/school/admissions/inquiries', icon: ClipboardList, roles: ['principal'] },
-        ],
-    },
-    {
-        title: 'Finance Overview',
-        items: [
-            { label: 'Fee Collection', href: '/school/principal/fees', icon: DollarSign, roles: ['principal'] },
-            { label: 'Fee Payments',   href: '/school/fees/payments', icon: Receipt,    roles: ['principal'] },
+            { label: 'Library',   href: '/school/library/books',        icon: Library,       roles: ['principal'] },
         ],
     },
     {
         title: 'Communication',
         items: [
-            { label: 'Announcements', href: '/school/principal/announcements',           icon: Megaphone,     roles: ['principal'] },
-            { label: 'Messages',      href: '/school/principal/messages',                icon: MessageSquare, roles: ['principal'] },
-            { label: 'Notifications', href: '/school/communication/notifications',       icon: Bell,          roles: ['principal'] },
+            { label: 'Announcements', href: '/school/principal/announcements',         icon: Megaphone,     roles: ['principal'] },
+            { label: 'Messages',      href: '/school/principal/messages',              icon: MessageSquare, roles: ['principal'] },
+            { label: 'Notifications', href: '/school/communication/notifications',     icon: Bell,          roles: ['principal'] },
         ],
     },
     {
         title: 'Reports',
         items: [
-            { label: 'Overview',      href: '/school/principal/reports',  icon: PieChart,      roles: ['principal'] },
-            { label: 'Attendance',    href: '/school/reports/attendance', icon: ClipboardList, roles: ['principal'] },
-            { label: 'Academic',      href: '/school/reports/academic',   icon: TrendingUp,    roles: ['principal'] },
-            { label: 'Custom Report', href: '/school/reports/custom',     icon: FileText,      roles: ['principal'] },
-        ],
-    },
-    {
-        title: 'Resources',
-        items: [
-            { label: 'Library',  href: '/school/library/books', icon: Library,     roles: ['principal'] },
-            { label: 'Holidays', href: '/school/holidays',      icon: CalendarOff, roles: ['principal'] },
+            { label: 'Overview',         href: '/school/principal/reports',  icon: PieChart,      roles: ['principal'] },
+            { label: 'Attendance Reports', href: '/school/reports/attendance', icon: ClipboardList, roles: ['principal'] },
+            { label: 'Academic Reports',   href: '/school/reports/academic',   icon: TrendingUp,    roles: ['principal'] },
+            { label: 'Custom Reports',     href: '/school/reports/custom',     icon: FileText,      roles: ['principal'] },
         ],
     },
     {
@@ -267,9 +261,10 @@ const navGroups: NavGroup[] = [
         ],
     },
     {
-        title: 'School Setup',
+        title: 'School',
         items: [
             { label: 'School Identity', href: '/school/school-identity', icon: Fingerprint, roles: ['school-admin'] },
+            { label: 'Report Templates', href: '/school/report-card-templates', icon: FileText, roles: ['school-admin'] },
             { label: 'Classes',   href: '/school/classes',  icon: GraduationCap, roles: ['school-admin'] },
             { label: 'Sections',  href: '/school/sections', icon: Layers,        roles: ['school-admin'] },
             { label: 'Subjects',  href: '/school/subjects', icon: BookOpen,      roles: ['school-admin'] },
@@ -278,34 +273,32 @@ const navGroups: NavGroup[] = [
         ],
     },
     {
-        title: 'Academic',
+        title: 'People',
         items: [
-            { label: 'Students',     href: '/school/students',    icon: GraduationCap, roles: ['school-admin','receptionist'] },
-            { label: 'Staff',        href: '/school/staff',       icon: UserCog,       roles: ['school-admin'] },
-            { label: 'Timetable',    href: '/school/timetable',   icon: CalendarDays,  roles: ['school-admin','teacher'] },
-            { label: 'Attendance',   href: '/school/attendance',  icon: ClipboardList, roles: ['school-admin','teacher'] },
-            { label: 'Examinations', href: '/school/exams',       icon: BookOpen,      roles: ['school-admin','teacher'] },
-            { label: 'Report Cards', href: '/school/report-cards', icon: FileText,     roles: ['school-admin','accountant'] },
-            { label: 'Result Approvals', href: '/school/approvals', icon: ClipboardList, roles: ['school-admin'] },
-            { label: 'Result Imports',   href: '/school/imports',   icon: FileSpreadsheet, roles: ['school-admin'] },
+            { label: 'Students',        href: '/school/students',    icon: GraduationCap, roles: ['school-admin','receptionist'] },
+            { label: 'Staff',           href: '/school/staff',       icon: UserCog,       roles: ['school-admin'] },
+            { label: 'Departments',     href: '/school/departments', icon: Building2,     roles: ['school-admin'] },
+            { label: 'Designations',    href: '/school/designations',icon: BadgeCheck,    roles: ['school-admin'] },
+            { label: 'Leave Requests',  href: '/school/hr/leaves',   icon: CalendarDays,  roles: ['school-admin'] },
         ],
     },
     {
-        title: 'HR Setup',
+        title: 'Academics',
         items: [
-            { label: 'Departments',    href: '/school/departments',  icon: Building2,   roles: ['school-admin'] },
-            { label: 'Designations',   href: '/school/designations', icon: BadgeCheck,  roles: ['school-admin'] },
-            { label: 'Leave Requests', href: '/school/hr/leaves',    icon: CalendarDays, roles: ['school-admin'] },
-            { label: 'Payroll',        href: '/school/hr/payroll',   icon: DollarSign,  roles: ['school-admin','accountant'] },
+            { label: 'Timetable',       href: '/school/timetable',   icon: CalendarDays,    roles: ['school-admin','teacher'] },
+            { label: 'Attendance',      href: '/school/attendance',  icon: ClipboardList,   roles: ['school-admin','teacher'] },
+            { label: 'Examinations',    href: '/school/exams',       icon: BookOpen,        roles: ['school-admin','teacher'] },
+            { label: 'Report Cards',    href: '/school/report-cards',icon: FileText,        roles: ['school-admin','accountant'] },
         ],
     },
     {
-        title: 'Learning',
+        title: 'Teaching & Learning',
         items: [
-            { label: 'Homework',       href: '/school/homework',                icon: NotebookPen,   roles: ['school-admin','teacher'] },
-            { label: 'Lesson Plans',   href: '/school/homework/lesson-plans',   icon: ClipboardList, roles: ['school-admin','teacher'] },
-            { label: 'Syllabus',       href: '/school/homework/syllabi',        icon: BookOpen,      roles: ['school-admin','teacher'] },
-            { label: 'Online Classes', href: '/school/homework/online-classes', icon: Video,         roles: ['school-admin','teacher'] },
+            { label: 'Homework',         href: '/school/homework',                icon: NotebookPen,   roles: ['school-admin','teacher'] },
+            { label: 'Lesson Plans',     href: '/school/homework/lesson-plans',   icon: ClipboardList, roles: ['school-admin','teacher'] },
+            { label: 'Syllabus',         href: '/school/homework/syllabi',        icon: BookOpen,      roles: ['school-admin','teacher'] },
+            { label: 'Online Classes',   href: '/school/homework/online-classes', icon: Video,         roles: ['school-admin','teacher'] },
+            { label: 'Result Imports',   href: '/school/imports',                 icon: FileSpreadsheet, roles: ['school-admin'] },
         ],
     },
     {
@@ -314,22 +307,18 @@ const navGroups: NavGroup[] = [
             { label: 'Fee Payments',   href: '/school/fees/payments',   icon: DollarSign,    roles: ['school-admin'] },
             { label: 'Fee Structures', href: '/school/fees/structures', icon: BarChart3,     roles: ['school-admin'] },
             { label: 'Fee Categories', href: '/school/fees/categories', icon: ClipboardList, roles: ['school-admin'] },
+            { label: 'Payroll',        href: '/school/hr/payroll',      icon: Wallet,        roles: ['school-admin','accountant'] },
         ],
     },
     {
-        title: 'Admissions',
+        title: 'Operations',
         items: [
-            { label: 'Inquiries', href: '/school/admissions/inquiries', icon: ClipboardList, roles: ['school-admin','receptionist'] },
-            { label: 'Visitors',  href: '/school/admissions/visitors',  icon: Users,         roles: ['school-admin','receptionist'] },
-        ],
-    },
-    {
-        title: 'Facilities',
-        items: [
-            { label: 'Library',   href: '/school/library/books',      icon: Library, roles: ['school-admin','librarian'] },
-            { label: 'Transport', href: '/school/transport/vehicles', icon: Bus,     roles: ['school-admin','driver'] },
-            { label: 'Hostel',    href: '/school/hostel',             icon: Home,    roles: ['school-admin','warden'] },
-            { label: 'Inventory', href: '/school/inventory/items',    icon: Package, roles: ['school-admin','store-manager'] },
+            { label: 'Admissions', href: '/school/admissions/inquiries', icon: ClipboardList, roles: ['school-admin','receptionist'] },
+            { label: 'Visitors',   href: '/school/admissions/visitors',  icon: Users,         roles: ['school-admin','receptionist'] },
+            { label: 'Library',    href: '/school/library/books',        icon: Library,       roles: ['school-admin','librarian'] },
+            { label: 'Transport',  href: '/school/transport/vehicles',   icon: Bus,           roles: ['school-admin','driver'] },
+            { label: 'Hostel',     href: '/school/hostel',               icon: Home,          roles: ['school-admin','warden'] },
+            { label: 'Inventory',  href: '/school/inventory/items',      icon: Package,       roles: ['school-admin','store-manager'] },
         ],
     },
     {
@@ -345,28 +334,16 @@ const navGroups: NavGroup[] = [
     {
         title: 'Reports',
         items: [
-            { label: 'Dashboard',     href: '/school/reports/dashboard',  icon: PieChart,      roles: ['school-admin','teacher','accountant'] },
-            { label: 'Attendance',    href: '/school/reports/attendance', icon: ClipboardList, roles: ['school-admin','teacher'] },
-            { label: 'Academic',      href: '/school/reports/academic',   icon: TrendingUp,    roles: ['school-admin','teacher'] },
-            { label: 'Finance',       href: '/school/reports/finance',    icon: DollarSign,    roles: ['school-admin','accountant'] },
-            { label: 'Custom Report', href: '/school/reports/custom',     icon: FileText,      roles: ['school-admin','accountant'] },
-            { label: 'Audit Log',     href: '/school/reports/audit-log',  icon: ShieldCheck,   roles: ['school-admin'] },
+            { label: 'Dashboard Reports', href: '/school/reports/dashboard',  icon: PieChart,      roles: ['school-admin','teacher','accountant'] },
+            { label: 'Attendance Reports', href: '/school/reports/attendance', icon: ClipboardList, roles: ['school-admin','teacher'] },
+            { label: 'Academic Reports',   href: '/school/reports/academic',   icon: TrendingUp,    roles: ['school-admin','teacher'] },
+            { label: 'Finance Reports',    href: '/school/reports/finance',    icon: DollarSign,    roles: ['school-admin','accountant'] },
+            { label: 'Custom Reports',     href: '/school/reports/custom',     icon: FileText,      roles: ['school-admin','accountant'] },
+            { label: 'Audit Log',          href: '/school/reports/audit-log',  icon: ShieldCheck,   roles: ['school-admin'] },
         ],
     },
     {
-        title: 'Performance Intelligence',
-        items: [
-            { label: 'Overview',      href: '/school/performance/overview',        icon: Brain,       roles: ['school-admin'] },
-            { label: 'Top Students',  href: '/school/performance/top-students',    icon: Trophy,      roles: ['school-admin'] },
-            { label: 'At-Risk',       href: '/school/performance/at-risk',         icon: AlertCircle, roles: ['school-admin'] },
-            { label: 'Improved',      href: '/school/performance/most-improved',   icon: TrendingUp,  roles: ['school-admin'] },
-            { label: 'Subjects',      href: '/school/performance/subjects',        icon: BookOpen,    roles: ['school-admin'] },
-            { label: 'Interventions', href: '/school/performance/interventions',   icon: Target,      roles: ['school-admin'] },
-            { label: 'Alerts',        href: '/school/performance/alerts',          icon: Bell,        roles: ['school-admin'] },
-        ],
-    },
-    {
-        title: 'Admin',
+        title: 'Administration',
         items: [
             { label: 'Settings',     href: '/school/settings',              icon: Settings, roles: ['school-admin'] },
             { label: 'Integrations', href: '/school/settings/integrations', icon: Plug,     roles: ['school-admin'] },

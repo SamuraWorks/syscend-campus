@@ -3,12 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <title>Report Card — {{ $student->first_name }} {{ $student->last_name }}</title>
+    @php
+        $tc = $templateConfig ?? null;
+        $primaryColor = $tc['colors']['primary'] ?? ($school->primary_color ?: '#1e3a5f');
+        $secondaryColor = $tc['colors']['secondary'] ?? ($school->secondary_color ?: '#4a5568');
+        $headerBg = $tc['colors']['header_bg'] ?? $primaryColor;
+        $showAttendance = $tc['sections']['attendance'] ?? true;
+        $showGradeScale = $tc['sections']['grade_scale'] ?? true;
+        $showSignatures = $tc['sections']['signatures'] ?? true;
+        $showStamp = $tc['sections']['stamp'] ?? (!empty($school->official_stamp));
+    @endphp
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; color: #1a1a1a; }
         .page { width: 100%; padding: 20px; }
-        .header { text-align: center; border-bottom: 3px solid #1e3a5f; padding-bottom: 12px; margin-bottom: 16px; }
-        .header h1 { font-size: 18px; color: #1e3a5f; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
+
+        .header { text-align: center; border-bottom: 3px solid {{ $primaryColor }}; padding-bottom: 12px; margin-bottom: 16px; }
+        .header h1 { font-size: 18px; color: {{ $primaryColor }}; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
         .header h2 { font-size: 13px; color: #4a5568; font-weight: normal; }
         .header .subtitle { font-size: 11px; color: #718096; margin-top: 4px; }
         .school-motto { font-style: italic; color: #6b7280; font-size: 10px; margin-top: 2px; }
@@ -20,10 +31,10 @@
         .info-label { font-weight: bold; color: #4a5568; display: inline-block; width: 100px; }
         .info-value { color: #1a1a1a; }
 
-        .section-title { font-size: 12px; font-weight: bold; color: #1e3a5f; text-transform: uppercase; border-bottom: 2px solid #1e3a5f; padding-bottom: 3px; margin: 14px 0 8px 0; letter-spacing: 0.5px; }
+        .section-title { font-size: 12px; font-weight: bold; color: {{ $primaryColor }}; text-transform: uppercase; border-bottom: 2px solid {{ $primaryColor }}; padding-bottom: 3px; margin: 14px 0 8px 0; letter-spacing: 0.5px; }
 
         table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-        th { background: #1e3a5f; color: #ffffff; padding: 6px 8px; text-align: left; font-size: 10px; text-transform: uppercase; }
+        th { background: {{ $headerBg }}; color: #ffffff; padding: 6px 8px; text-align: left; font-size: 10px; text-transform: uppercase; }
         td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; font-size: 10px; }
         tr:nth-child(even) { background: #f7fafc; }
         .text-center { text-align: center; }
@@ -31,7 +42,7 @@
 
         .summary-grid { display: flex; gap: 12px; margin-bottom: 14px; }
         .summary-card { flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px; text-align: center; }
-        .summary-card .big { font-size: 20px; font-weight: bold; color: #1e3a5f; }
+        .summary-card .big { font-size: 20px; font-weight: bold; color: {{ $primaryColor }}; }
         .summary-card .label { font-size: 9px; color: #718096; text-transform: uppercase; }
 
         .grade-a { color: #16a34a; font-weight: bold; }
@@ -48,10 +59,15 @@
         .grade-scale table th { font-size: 9px; padding: 4px 6px; }
         .grade-scale table td { font-size: 9px; padding: 3px 6px; }
 
-        .footer { text-align: center; border-top: 2px solid #1e3a5f; padding-top: 10px; margin-top: 16px; font-size: 9px; color: #718096; }
+        .footer { text-align: center; border-top: 2px solid {{ $primaryColor }}; padding-top: 10px; margin-top: 16px; font-size: 9px; color: #718096; }
+
         .signatures { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 10px; }
         .signature-line { width: 30%; text-align: center; }
-        .signature-line .line { border-top: 1px solid #1a1a1a; margin-top: 30px; padding-top: 4px; font-size: 9px; color: #4a5568; }
+        .signature-line .sig-image { max-height: 40px; max-width: 120px; margin-bottom: 2px; }
+        .signature-line .line { border-top: 1px solid #1a1a1a; margin-top: 4px; padding-top: 4px; font-size: 9px; color: #4a5568; }
+
+        .stamp-area { text-align: center; margin-top: 10px; }
+        .stamp-area .stamp-image { max-height: 70px; max-width: 70px; opacity: 0.85; }
 
         .promotion-badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 10px; font-weight: bold; }
         .promoted { background: #dcfce7; color: #166534; }
@@ -63,10 +79,13 @@
     <div class="page">
         {{-- Header --}}
         <div class="header">
-            @if(!empty($school->logo_path) && file_exists(storage_path('app/public/' . $school->logo_path)))
-                <img src="{{ storage_path('app/public/' . $school->logo_path) }}" style="height: 60px; margin-bottom: 6px;" alt="School Logo">
+            @if(!empty($school->logo) && file_exists(storage_path('app/public/' . $school->logo)))
+                <img src="{{ storage_path('app/public/' . $school->logo) }}" style="height: 60px; margin-bottom: 6px;" alt="School Logo">
             @endif
             <h1>{{ $school->name }}</h1>
+            @if(!empty($school->badge) && file_exists(storage_path('app/public/' . $school->badge)))
+                <img src="{{ storage_path('app/public/' . $school->badge) }}" style="height: 30px; margin-bottom: 4px;" alt="School Badge">
+            @endif
             <h2>Student Academic Report Card</h2>
             <div class="subtitle">{{ $academicYear->name }} — {{ $term->name }}</div>
             @if($school->motto)
@@ -87,8 +106,8 @@
                 @endif
             </div>
             <div class="info-right">
-                <div class="info-row"><span class="info-label">Grade:</span> <span class="info-value" style="font-size:14px; font-weight:bold; color:#1e3a5f;">{{ $reportCard->grade }}</span></div>
-                <div class="info-row"><span class="info-label">GPA:</span> <span class="info-value" style="font-size:14px; font-weight:bold; color:#1e3a5f;">{{ number_format($reportCard->gpa, 2) }}</span></div>
+                <div class="info-row"><span class="info-label">Grade:</span> <span class="info-value" style="font-size:14px; font-weight:bold; color:{{ $primaryColor }};">{{ $reportCard->grade }}</span></div>
+                <div class="info-row"><span class="info-label">GPA:</span> <span class="info-value" style="font-size:14px; font-weight:bold; color:{{ $primaryColor }};">{{ number_format($reportCard->gpa, 2) }}</span></div>
                 <div class="info-row"><span class="info-label">Percentage:</span> <span class="info-value">{{ number_format($reportCard->percentage, 1) }}%</span></div>
                 @if($reportCard->promotion_status)
                     <div class="info-row">
@@ -158,6 +177,7 @@
         </table>
 
         {{-- Attendance Detail --}}
+        @if($showAttendance)
         <div class="section-title">Attendance Summary</div>
         <table>
             <thead>
@@ -179,6 +199,7 @@
                 </tr>
             </tbody>
         </table>
+        @endif
 
         {{-- Comments --}}
         <div class="section-title">Remarks & Comments</div>
@@ -209,7 +230,7 @@
         </div>
 
         {{-- Grade Scale --}}
-        @if(!empty($gradeScale) && count($gradeScale) > 0)
+        @if($showGradeScale && !empty($gradeScale) && count($gradeScale) > 0)
             <div class="grade-scale">
                 <div class="section-title">Grade Scale</div>
                 <table>
@@ -236,18 +257,33 @@
             </div>
         @endif
 
+        {{-- Official Stamp --}}
+        @if($showStamp && !empty($school->official_stamp) && file_exists(storage_path('app/public/' . $school->official_stamp)))
+            <div class="stamp-area">
+                <img src="{{ storage_path('app/public/' . $school->official_stamp) }}" class="stamp-image" alt="Official Stamp">
+            </div>
+        @endif
+
         {{-- Signatures --}}
+        @if($showSignatures)
         <div class="signatures">
             <div class="signature-line">
+                @if(!empty($school->official_signature) && file_exists(storage_path('app/public/' . $school->official_signature)))
+                    <img src="{{ storage_path('app/public/' . $school->official_signature) }}" class="sig-image" alt="Signature">
+                @endif
                 <div class="line">Class Teacher</div>
             </div>
             <div class="signature-line">
+                @if(!empty($school->official_signature) && file_exists(storage_path('app/public/' . $school->official_signature)))
+                    <img src="{{ storage_path('app/public/' . $school->official_signature) }}" class="sig-image" alt="Signature">
+                @endif
                 <div class="line">Principal</div>
             </div>
             <div class="signature-line">
                 <div class="line">Parent/Guardian</div>
             </div>
         </div>
+        @endif
 
         {{-- Footer --}}
         <div class="footer">

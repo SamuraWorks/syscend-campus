@@ -67,6 +67,7 @@ use App\Http\Controllers\SchoolAdmin\ReportCardController;
 use App\Http\Controllers\SchoolAdmin\NationalExaminationController;
 use App\Http\Controllers\SchoolAdmin\SierraLeoneSettingsController;
 use App\Http\Controllers\SchoolAdmin\SchoolIdentityController;
+use App\Http\Controllers\SchoolAdmin\ReportCardTemplateController;
 use App\Http\Controllers\ResultChangeRequestController;
 use App\Http\Controllers\AttendanceApprovalController;
 use App\Http\Controllers\PerformanceController;
@@ -520,6 +521,18 @@ Route::middleware('auth')->group(function () {
             Route::get('report-cards/{reportCard}',                [ReportCardController::class, 'show'])->name('report-cards.show');
             Route::get('report-cards/{reportCard}/print',         [ReportCardController::class, 'printPdf'])->name('report-cards.print');
             Route::put('report-cards/{reportCard}/comments',       [ReportCardController::class, 'updateComments'])->name('report-cards.comments');
+
+            // ── Report Card Templates ──
+            Route::get('report-card-templates',                                     [ReportCardTemplateController::class, 'index'])->name('report-card-templates.index');
+            Route::get('report-card-templates/create',                              [ReportCardTemplateController::class, 'create'])->name('report-card-templates.create');
+            Route::post('report-card-templates',                                    [ReportCardTemplateController::class, 'store'])->name('report-card-templates.store');
+            Route::get('report-card-templates/{reportCardTemplate}',                [ReportCardTemplateController::class, 'show'])->name('report-card-templates.show');
+            Route::put('report-card-templates/{reportCardTemplate}',                [ReportCardTemplateController::class, 'update'])->name('report-card-templates.update');
+            Route::patch('report-card-templates/{reportCardTemplate}/approve',      [ReportCardTemplateController::class, 'approve'])->name('report-card-templates.approve');
+            Route::patch('report-card-templates/{reportCardTemplate}/archive',      [ReportCardTemplateController::class, 'archive'])->name('report-card-templates.archive');
+            Route::post('report-card-templates/{reportCardTemplate}/duplicate',     [ReportCardTemplateController::class, 'duplicate'])->name('report-card-templates.duplicate');
+            Route::post('report-card-templates/{reportCardTemplate}/restore',       [ReportCardTemplateController::class, 'restore'])->name('report-card-templates.restore');
+            Route::get('report-card-templates/{reportCardTemplate}/versions',       [ReportCardTemplateController::class, 'versions'])->name('report-card-templates.versions');
 
             // ── Sierra Leone: National Examinations ──
             Route::get('national-exams',                                    [NationalExaminationController::class, 'index'])->name('national-exams.index');

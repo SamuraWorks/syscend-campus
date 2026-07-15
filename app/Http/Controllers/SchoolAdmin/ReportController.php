@@ -19,6 +19,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use App\Services\StudentPerformanceEngine;
 use Spatie\Activitylog\Models\Activity;
 
 class ReportController extends Controller
@@ -95,7 +96,26 @@ class ReportController extends Controller
             ->take(10)
             ->get();
 
-        return compact('totalStudents', 'totalStaff', 'attendancePct', 'monthFees', 'pendingFees', 'feeChart', 'attChart', 'pendingHomework', 'recentActivity');
+        $engine = new StudentPerformanceEngine($sid);
+        $topStudents = $engine->getTopStudents('school', 10)->map(fn ($s) => [
+            'id'            => $s->student_id,
+            'name'          => trim(($s->student->first_name ?? '') . ' ' . ($s->student->last_name ?? '')),
+            'total_score'   => (float) $s->total_score,
+            'classification'=> $s->classification_label,
+            'class_rank'    => $s->class_rank,
+            'schoolClass'   => $s->schoolClass?->name ?? '—',
+        ]);
+
+        $atRiskStudents = $engine->getStudentsRequiringAttention(10)->map(fn ($s) => [
+            'id'            => $s->student_id,
+            'name'          => trim(($s->student->first_name ?? '') . ' ' . ($s->student->last_name ?? '')),
+            'total_score'   => (float) $s->total_score,
+            'classification'=> $s->classification_label,
+            'color'         => $s->classification_color,
+            'schoolClass'   => $s->schoolClass?->name ?? '—',
+        ]);
+
+        return compact('totalStudents', 'totalStaff', 'attendancePct', 'monthFees', 'pendingFees', 'feeChart', 'attChart', 'pendingHomework', 'recentActivity', 'topStudents', 'atRiskStudents');
     }
 
     private function teacherDashboard(int $sid): array
@@ -104,7 +124,7 @@ class ReportController extends Controller
             'submissions as pending_count' => fn ($q) => $q->where('status', 'submitted'),
         ])->get()->sum('pending_count');
 
-        return ['pendingHomework' => $pending, 'totalStudents' => 0, 'totalStaff' => 0, 'attendancePct' => 0, 'monthFees' => 0, 'pendingFees' => 0, 'feeChart' => [], 'attChart' => [], 'recentActivity' => collect()];
+        return ['pendingHomework' => $pending, 'totalStudents' => 0, 'totalStaff' => 0, 'attendancePct' => 0, 'monthFees' => 0, 'pendingFees' => 0, 'feeChart' => [], 'attChart' => [], 'recentActivity' => collect(), 'topStudents' => collect(), 'atRiskStudents' => collect()];
     }
 
     private function accountantDashboard(int $sid): array
@@ -122,7 +142,7 @@ class ReportController extends Controller
             ];
         }
 
-        return ['totalStudents' => 0, 'totalStaff' => 0, 'attendancePct' => 0, 'monthFees' => $monthFees, 'pendingFees' => $outstanding, 'todayCollection' => $todayCollection, 'feeChart' => $feeChart, 'attChart' => [], 'pendingHomework' => 0, 'recentActivity' => collect()];
+        return ['totalStudents' => 0, 'totalStaff' => 0, 'attendancePct' => 0, 'monthFees' => $monthFees, 'pendingFees' => $outstanding, 'todayCollection' => $todayCollection, 'feeChart' => $feeChart, 'attChart' => [], 'pendingHomework' => 0, 'recentActivity' => collect(), 'topStudents' => collect(), 'atRiskStudents' => collect()];
     }
 
     private function superAdminDashboard(): array
@@ -131,7 +151,7 @@ class ReportController extends Controller
         $students = Student::withoutGlobalScopes()->count();
         $revenue  = FeePayment::sum('amount_paid');
 
-        return ['schools' => $schools, 'totalStudents' => $students, 'totalStaff' => 0, 'attendancePct' => 0, 'monthFees' => $revenue, 'pendingFees' => 0, 'feeChart' => [], 'attChart' => [], 'pendingHomework' => 0, 'recentActivity' => collect()];
+        return ['schools' => $schools, 'totalStudents' => $students, 'totalStaff' => 0, 'attendancePct' => 0, 'monthFees' => $revenue, 'pendingFees' => 0, 'feeChart' => [], 'attChart' => [], 'pendingHomework' => 0, 'recentActivity' => collect(), 'topStudents' => collect(), 'atRiskStudents' => collect()];
     }
 
     // ── Attendance Report ─────────────────────────────────────────

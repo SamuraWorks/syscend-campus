@@ -1,12 +1,15 @@
 import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserCog, CalendarCheck, DollarSign, Clock, AlertCircle } from 'lucide-react';
+import { Users, UserCog, CalendarCheck, DollarSign, Clock, AlertCircle, Trophy, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     LineChart, Line, Legend,
 } from 'recharts';
 
 interface Activity { id: number; description: string; causer?: { name: string }; created_at: string; }
+interface TopStudent { id: number; name: string; total_score: number; classification: string; class_rank: number | null; schoolClass: string; }
+interface AtRiskStudent { id: number; name: string; total_score: number; classification: string; color: string; schoolClass: string; }
 interface Props {
     role:             string;
     totalStudents:    number;
@@ -20,6 +23,8 @@ interface Props {
     attChart:         { day: string; present: number; absent: number }[];
     recentActivity:   Activity[];
     schools?:         number;
+    topStudents:      TopStudent[];
+    atRiskStudents:   AtRiskStudent[];
 }
 
 function KpiCard({ title, value, sub, icon: Icon, color }: { title: string; value: string | number; sub?: string; icon: React.ElementType; color: string }) {
@@ -41,7 +46,7 @@ function KpiCard({ title, value, sub, icon: Icon, color }: { title: string; valu
     );
 }
 
-export default function Dashboard({ role, totalStudents, totalStaff, attendancePct, monthFees, pendingFees, pendingHomework, todayCollection, feeChart, attChart, recentActivity, schools }: Props) {
+export default function Dashboard({ role, totalStudents, totalStaff, attendancePct, monthFees, pendingFees, pendingHomework, todayCollection, feeChart, attChart, recentActivity, schools, topStudents = [], atRiskStudents = [] }: Props) {
     const fmt = (n: number) => new Intl.NumberFormat().format(n);
 
     return (
@@ -116,6 +121,104 @@ export default function Dashboard({ role, totalStudents, totalStaff, attendanceP
                         </Card>
                     )}
                 </div>
+
+                {/* Performance Widgets — school-admin only */}
+                {(role === 'school-admin' || role === 'principal') && (topStudents.length > 0 || atRiskStudents.length > 0) && (
+                    <div className="grid gap-6 lg:grid-cols-2">
+                        {/* Top Performing Students */}
+                        {topStudents.length > 0 && (
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <Trophy className="w-4 h-4 text-amber-500" />
+                                        Top Performing Students
+                                    </CardTitle>
+                                    <Link href="/school/performance/top-students" className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                        View All <ArrowRight className="w-3 h-3" />
+                                    </Link>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-slate-100 dark:border-slate-800 text-left text-xs text-slate-500 uppercase tracking-wide">
+                                                <th className="px-4 py-2">Student</th>
+                                                <th className="px-4 py-2">Class</th>
+                                                <th className="px-4 py-2 text-right">Average</th>
+                                                <th className="px-4 py-2">Grade</th>
+                                                <th className="px-4 py-2 text-right">Position</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                                            {topStudents.map((s, i) => (
+                                                <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" onClick={() => window.location.href = `/school/performance/student/${s.id}`}>
+                                                    <td className="px-4 py-2.5 font-medium flex items-center gap-2">
+                                                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white ${i === 0 ? 'bg-amber-400' : i === 1 ? 'bg-slate-400' : i === 2 ? 'bg-amber-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                                            {i + 1}
+                                                        </span>
+                                                        {s.name}
+                                                    </td>
+                                                    <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{s.schoolClass}</td>
+                                                    <td className="px-4 py-2.5 text-right font-semibold">{Number(s.total_score).toFixed(1)}%</td>
+                                                    <td className="px-4 py-2.5">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                                            {s.classification}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2.5 text-right text-slate-500">{s.class_rank ? `#${s.class_rank}` : '—'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* At-Risk Students */}
+                        {atRiskStudents.length > 0 && (
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4 text-orange-500" />
+                                        At-Risk Students
+                                    </CardTitle>
+                                    <Link href="/school/performance/at-risk" className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                        View All <ArrowRight className="w-3 h-3" />
+                                    </Link>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-slate-100 dark:border-slate-800 text-left text-xs text-slate-500 uppercase tracking-wide">
+                                                <th className="px-4 py-2">Student</th>
+                                                <th className="px-4 py-2">Class</th>
+                                                <th className="px-4 py-2 text-right">Score</th>
+                                                <th className="px-4 py-2">Risk Level</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                                            {atRiskStudents.map((s) => (
+                                                <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" onClick={() => window.location.href = `/school/performance/student/${s.id}`}>
+                                                    <td className="px-4 py-2.5 font-medium">{s.name}</td>
+                                                    <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{s.schoolClass}</td>
+                                                    <td className="px-4 py-2.5 text-right font-semibold">{Number(s.total_score).toFixed(1)}%</td>
+                                                    <td className="px-4 py-2.5">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                            s.color === 'red' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                            s.color === 'orange' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                                        }`}>
+                                                            {s.classification}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                )}
 
                 {/* Recent Activity */}
                 {recentActivity && recentActivity.length > 0 && (
