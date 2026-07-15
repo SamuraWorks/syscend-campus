@@ -106,14 +106,26 @@ class ReportController extends Controller
             'schoolClass'   => $s->schoolClass?->name ?? '—',
         ]);
 
-        $atRiskStudents = $engine->getStudentsRequiringAttention(10)->map(fn ($s) => [
-            'id'            => $s->student_id,
-            'name'          => trim(($s->student->first_name ?? '') . ' ' . ($s->student->last_name ?? '')),
-            'total_score'   => (float) $s->total_score,
-            'classification'=> $s->classification_label,
-            'color'         => $s->classification_color,
-            'schoolClass'   => $s->schoolClass?->name ?? '—',
-        ]);
+        $atRiskStudents = $engine->getStudentsRequiringAttention(10)->map(function ($s) {
+            $reason = match (true) {
+                $s->attendance_score < 60  => 'Poor Attendance',
+                $s->academic_score < 50    => 'Low Academic Performance',
+                $s->homework_score < 40    => 'Missing Homework',
+                $s->behavior_score < 50    => 'Behavior Concerns',
+                $s->classification === 'critical' => 'Critical — Requires Immediate Attention',
+                default                    => 'Needs Academic Support',
+            };
+
+            return [
+                'id'            => $s->student_id,
+                'name'          => trim(($s->student->first_name ?? '') . ' ' . ($s->student->last_name ?? '')),
+                'total_score'   => (float) $s->total_score,
+                'classification'=> $s->classification_label,
+                'color'         => $s->classification_color,
+                'schoolClass'   => $s->schoolClass?->name ?? '—',
+                'reason'        => $reason,
+            ];
+        });
 
         return compact('totalStudents', 'totalStaff', 'attendancePct', 'monthFees', 'pendingFees', 'feeChart', 'attChart', 'pendingHomework', 'recentActivity', 'topStudents', 'atRiskStudents');
     }

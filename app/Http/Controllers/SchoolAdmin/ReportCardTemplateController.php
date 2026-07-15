@@ -183,6 +183,46 @@ class ReportCardTemplateController extends Controller
         return back()->with('success', 'Template restored to draft.');
     }
 
+    public function analyze(ReportCardTemplate $reportCardTemplate)
+    {
+        $sid = $this->getSchoolId();
+
+        if ($reportCardTemplate->school_id !== $sid) {
+            abort(403);
+        }
+
+        if (!$reportCardTemplate->front_image_path) {
+            return response()->json(['error' => 'No image to analyze.'], 422);
+        }
+
+        try {
+            $analyzer = app(ReportCardTemplateAnalyzer::class);
+            $analysis = $analyzer->analyze($reportCardTemplate);
+
+            $reportCardTemplate->update([
+                'ai_analysis'    => $analysis,
+                'ai_analyzed_at' => now(),
+            ]);
+
+            return response()->json(['analysis' => $analysis]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'AI analysis failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function destroy(ReportCardTemplate $reportCardTemplate)
+    {
+        $sid = $this->getSchoolId();
+
+        if ($reportCardTemplate->school_id !== $sid) {
+            abort(403);
+        }
+
+        $reportCardTemplate->delete();
+
+        return back()->with('success', 'Template deleted.');
+    }
+
     public function versions(ReportCardTemplate $reportCardTemplate)
     {
         $versions = ReportCardTemplate::where('school_id', $reportCardTemplate->school_id)

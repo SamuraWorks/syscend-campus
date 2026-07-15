@@ -86,23 +86,33 @@ class SchoolUserController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
             'phone'    => 'nullable|string|max:20',
-            'password' => 'required|string|min:8',
-            'role'     => ['required', 'string', Rule::in($this->allowedRoles())],
+            'password' => 'nullable|string|min:8',
+            'roles'    => 'required|array|min:1',
+            'roles.*'  => ['required', 'string', Rule::in($this->allowedRoles())],
             'status'   => 'required|in:active,inactive',
         ]);
 
+        $tempPassword = $data['password'] ?: Str::random(12);
+
         $user = User::create([
-            'name'      => $data['name'],
-            'email'     => $data['email'],
-            'phone'     => $data['phone'] ?? null,
-            'password'  => Hash::make($data['password']),
-            'school_id' => $sid,
-            'status'    => $data['status'],
+            'name'                 => $data['name'],
+            'email'                => $data['email'],
+            'phone'                => $data['phone'] ?? null,
+            'password'             => Hash::make($tempPassword),
+            'school_id'            => $sid,
+            'status'               => $data['status'],
+            'is_temporary_password'=> true,
+            'must_change_password' => true,
         ]);
 
-        $user->assignRole($data['role']);
+        $user->syncRoles($data['roles']);
 
-        return back()->with('success', 'User created successfully.');
+        return back()->with('user_created', [
+            'name'        => $user->name,
+            'email'       => $user->email,
+            'temp_password'=> $tempPassword,
+            'roles'       => $data['roles'],
+        ]);
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -116,7 +126,8 @@ class SchoolUserController extends Controller
             'email'    => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'phone'    => 'nullable|string|max:20',
             'password' => 'nullable|string|min:8',
-            'role'     => ['required', 'string', Rule::in($this->allowedRoles())],
+            'roles'    => 'required|array|min:1',
+            'roles.*'  => ['required', 'string', Rule::in($this->allowedRoles())],
             'status'   => 'required|in:active,inactive,suspended',
         ]);
 
@@ -128,10 +139,10 @@ class SchoolUserController extends Controller
         ]);
 
         if (!blank($data['password'])) {
-            $user->update(['password' => Hash::make($data['password']), 'force_password_change' => true]);
+            $user->update(['password' => Hash::make($data['password']), 'force_password_change' => true, 'is_temporary_password' => true, 'must_change_password' => true]);
         }
 
-        $user->syncRoles([$data['role']]);
+        $user->syncRoles($data['roles']);
 
         return back()->with('success', 'User updated successfully.');
     }
@@ -176,8 +187,10 @@ class SchoolUserController extends Controller
 
         $newPassword = Str::random(12);
         $user->update([
-            'password' => Hash::make($newPassword),
+            'password'              => Hash::make($newPassword),
             'force_password_change' => true,
+            'is_temporary_password' => true,
+            'must_change_password'  => true,
         ]);
 
         return back()->with('reset_password', [
@@ -302,7 +315,7 @@ class SchoolUserController extends Controller
                     $u->name,
                     $u->email,
                     $u->phone ?? '',
-                    $u->roles->first()?->name ?? '',
+                    implode(' | ', $u->roles->pluck('name')->toArray()),
                     $u->status,
                     $u->created_at->format('Y-m-d'),
                     $u->last_login_at?->format('Y-m-d') ?? '',

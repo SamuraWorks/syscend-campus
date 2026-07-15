@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SchoolAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\ReportCardTemplate;
 use App\Models\School;
 use App\Models\SchoolSetting;
 use Illuminate\Http\Request;
@@ -17,9 +18,15 @@ class SchoolIdentityController extends Controller
         $sid    = $this->getSchoolId();
         $school = School::findOrFail($sid);
 
+        $templates = ReportCardTemplate::where('school_id', $sid)
+            ->with('creator:id,name')
+            ->latest()
+            ->get();
+
         return Inertia::render('SchoolAdmin/SchoolIdentity/Index', [
-            'school'   => $this->schoolPayload($school),
-            'settings' => SchoolSetting::allFor($sid),
+            'school'     => $this->schoolPayload($school),
+            'settings'   => SchoolSetting::allFor($sid),
+            'templates'  => $templates,
         ]);
     }
 

@@ -9,7 +9,7 @@ import {
 
 interface Activity { id: number; description: string; causer?: { name: string }; created_at: string; }
 interface TopStudent { id: number; name: string; total_score: number; classification: string; class_rank: number | null; schoolClass: string; }
-interface AtRiskStudent { id: number; name: string; total_score: number; classification: string; color: string; schoolClass: string; }
+interface AtRiskStudent { id: number; name: string; total_score: number; classification: string; color: string; schoolClass: string; reason: string; }
 interface Props {
     role:             string;
     totalStudents:    number;
@@ -193,6 +193,7 @@ export default function Dashboard({ role, totalStudents, totalStaff, attendanceP
                                                 <th className="px-4 py-2">Class</th>
                                                 <th className="px-4 py-2 text-right">Score</th>
                                                 <th className="px-4 py-2">Risk Level</th>
+                                                <th className="px-4 py-2">Reason</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -210,6 +211,7 @@ export default function Dashboard({ role, totalStudents, totalStaff, attendanceP
                                                             {s.classification}
                                                         </span>
                                                     </td>
+                                                    <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-400">{s.reason}</td>
                                                 </tr>
                                             ))}
                                         </tbody>

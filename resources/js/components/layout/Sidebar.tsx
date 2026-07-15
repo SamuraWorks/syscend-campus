@@ -264,7 +264,6 @@ const navGroups: NavGroup[] = [
         title: 'School',
         items: [
             { label: 'School Identity', href: '/school/school-identity', icon: Fingerprint, roles: ['school-admin'] },
-            { label: 'Report Templates', href: '/school/report-card-templates', icon: FileText, roles: ['school-admin'] },
             { label: 'Classes',   href: '/school/classes',  icon: GraduationCap, roles: ['school-admin'] },
             { label: 'Sections',  href: '/school/sections', icon: Layers,        roles: ['school-admin'] },
             { label: 'Subjects',  href: '/school/subjects', icon: BookOpen,      roles: ['school-admin'] },
@@ -280,25 +279,28 @@ const navGroups: NavGroup[] = [
             { label: 'Departments',     href: '/school/departments', icon: Building2,     roles: ['school-admin'] },
             { label: 'Designations',    href: '/school/designations',icon: BadgeCheck,    roles: ['school-admin'] },
             { label: 'Leave Requests',  href: '/school/hr/leaves',   icon: CalendarDays,  roles: ['school-admin'] },
+            { label: 'Manage Users',    href: '/school/settings/admins', icon: UserCog,   roles: ['school-admin'] },
         ],
     },
     {
         title: 'Academics',
         items: [
-            { label: 'Timetable',       href: '/school/timetable',   icon: CalendarDays,    roles: ['school-admin','teacher'] },
-            { label: 'Attendance',      href: '/school/attendance',  icon: ClipboardList,   roles: ['school-admin','teacher'] },
-            { label: 'Examinations',    href: '/school/exams',       icon: BookOpen,        roles: ['school-admin','teacher'] },
-            { label: 'Report Cards',    href: '/school/report-cards',icon: FileText,        roles: ['school-admin','accountant'] },
+            { label: 'Timetable',         href: '/school/timetable',   icon: CalendarDays,    roles: ['school-admin','teacher'] },
+            { label: 'Attendance',        href: '/school/attendance',  icon: ClipboardList,   roles: ['school-admin','teacher'] },
+            { label: 'Examinations',      href: '/school/exams',       icon: BookOpen,        roles: ['school-admin','teacher'] },
+            { label: 'Assessment Config', href: '/school/assessment-config', icon: Settings, roles: ['school-admin'] },
+            { label: 'Report Cards',      href: '/school/report-cards',icon: FileText,        roles: ['school-admin','accountant'] },
+            { label: 'Result Approvals',  href: '/school/approvals',   icon: ClipboardList,   roles: ['school-admin'] },
         ],
     },
     {
         title: 'Teaching & Learning',
         items: [
-            { label: 'Homework',         href: '/school/homework',                icon: NotebookPen,   roles: ['school-admin','teacher'] },
-            { label: 'Lesson Plans',     href: '/school/homework/lesson-plans',   icon: ClipboardList, roles: ['school-admin','teacher'] },
-            { label: 'Syllabus',         href: '/school/homework/syllabi',        icon: BookOpen,      roles: ['school-admin','teacher'] },
-            { label: 'Online Classes',   href: '/school/homework/online-classes', icon: Video,         roles: ['school-admin','teacher'] },
-            { label: 'Result Imports',   href: '/school/imports',                 icon: FileSpreadsheet, roles: ['school-admin'] },
+            { label: 'Homework',           href: '/school/homework',                icon: NotebookPen,   roles: ['school-admin','teacher'] },
+            { label: 'Lesson Plans',       href: '/school/homework/lesson-plans',   icon: ClipboardList, roles: ['school-admin','teacher'] },
+            { label: 'Syllabus',           href: '/school/homework/syllabi',        icon: BookOpen,      roles: ['school-admin','teacher'] },
+            { label: 'Online Classes',     href: '/school/homework/online-classes', icon: Video,         roles: ['school-admin','teacher'] },
+            { label: 'AI Result Imports',  href: '/school/imports',                 icon: FileSpreadsheet, roles: ['school-admin'] },
         ],
     },
     {
@@ -347,7 +349,6 @@ const navGroups: NavGroup[] = [
         items: [
             { label: 'Settings',     href: '/school/settings',              icon: Settings, roles: ['school-admin'] },
             { label: 'Integrations', href: '/school/settings/integrations', icon: Plug,     roles: ['school-admin'] },
-            { label: 'Manage Users', href: '/school/settings/admins',       icon: UserCog,  roles: ['school-admin'] },
         ],
     },
 

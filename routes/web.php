@@ -532,6 +532,8 @@ Route::middleware('auth')->group(function () {
             Route::patch('report-card-templates/{reportCardTemplate}/archive',      [ReportCardTemplateController::class, 'archive'])->name('report-card-templates.archive');
             Route::post('report-card-templates/{reportCardTemplate}/duplicate',     [ReportCardTemplateController::class, 'duplicate'])->name('report-card-templates.duplicate');
             Route::post('report-card-templates/{reportCardTemplate}/restore',       [ReportCardTemplateController::class, 'restore'])->name('report-card-templates.restore');
+            Route::post('report-card-templates/{reportCardTemplate}/analyze',      [ReportCardTemplateController::class, 'analyze'])->name('report-card-templates.analyze');
+            Route::delete('report-card-templates/{reportCardTemplate}',            [ReportCardTemplateController::class, 'destroy'])->name('report-card-templates.destroy');
             Route::get('report-card-templates/{reportCardTemplate}/versions',       [ReportCardTemplateController::class, 'versions'])->name('report-card-templates.versions');
 
             // ── Sierra Leone: National Examinations ──

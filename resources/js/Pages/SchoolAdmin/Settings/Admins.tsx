@@ -13,7 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
     UserCog, Plus, Search, Edit, Trash2, Ban, CheckCircle, ChevronLeft, ChevronRight,
-    Upload, Download, Key, Users, ShieldCheck, AlertTriangle, Loader2,
+    Upload, Download, Key, Users, ShieldCheck, AlertTriangle, Loader2, Copy, Check,
 } from 'lucide-react';
 
 interface Role { name: string; }
@@ -54,22 +54,21 @@ export default function Admins({ users, roles, filters, stats }: Props) {
     const [editUser, setEditUser]     = useState<UserRow | null>(null);
     const [deleteUser, setDeleteUser] = useState<UserRow | null>(null);
 
-    // Bulk actions
     const [selected, setSelected]     = useState<number[]>([]);
     const [showBulkDialog, setShowBulkDialog] = useState(false);
     const [bulkAction, setBulkAction] = useState<'activate' | 'suspend' | 'delete'>('activate');
 
-    // Import
     const [showImportDialog, setShowImportDialog] = useState(false);
     const importForm = useForm({ csv_file: null as File | null, default_role: 'teacher' });
     const fileRef = useRef<HTMLInputElement>(null);
 
-    // Password reset result
     const [resetResult, setResetResult] = useState<{ user: string; password: string } | null>(null);
+    const [createdResult, setCreatedResult] = useState<{ name: string; email: string; temp_password: string; roles: string[] } | null>(null);
+    const [copied, setCopied] = useState(false);
 
     const form = useForm({
         name: '', email: '', phone: '', password: '',
-        role: '', status: 'active',
+        roles: [] as string[], status: 'active',
     });
 
     function applyFilters(overrides: Record<string, string> = {}) {
@@ -80,6 +79,7 @@ export default function Admins({ users, roles, filters, stats }: Props) {
 
     function openCreate() {
         form.reset();
+        form.setData({ name: '', email: '', phone: '', password: '', roles: [], status: 'active' });
         form.clearErrors();
         setEditUser(null);
         setShowModal(true);
@@ -88,7 +88,7 @@ export default function Admins({ users, roles, filters, stats }: Props) {
     function openEdit(u: UserRow) {
         form.setData({
             name: u.name, email: u.email, phone: u.phone ?? '',
-            password: '', role: u.roles[0]?.name ?? '', status: u.status,
+            password: '', roles: u.roles.map(r => r.name), status: u.status,
         });
         form.clearErrors();
         setEditUser(u);
@@ -100,7 +100,13 @@ export default function Admins({ users, roles, filters, stats }: Props) {
         if (editUser) {
             form.put(`/school/settings/admins/${editUser.id}`, { onSuccess: () => setShowModal(false) });
         } else {
-            form.post('/school/settings/admins', { onSuccess: () => setShowModal(false) });
+            form.post('/school/settings/admins', {
+                onSuccess: (page: any) => {
+                    setShowModal(false);
+                    const flash = page.props?.user_created;
+                    if (flash) setCreatedResult(flash);
+                },
+            });
         }
     }
 
@@ -123,7 +129,21 @@ export default function Admins({ users, roles, filters, stats }: Props) {
         });
     }
 
-    // Bulk
+    function toggleRole(roleName: string) {
+        const current = form.data.roles;
+        if (current.includes(roleName)) {
+            form.setData('roles', current.filter(r => r !== roleName));
+        } else {
+            form.setData('roles', [...current, roleName]);
+        }
+    }
+
+    function copyPassword(pwd: string) {
+        navigator.clipboard.writeText(pwd);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
+
     function toggleSelect(id: number) {
         setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     }
@@ -136,7 +156,6 @@ export default function Admins({ users, roles, filters, stats }: Props) {
         router.post(url, { ids: selected }, { onSuccess: () => { setSelected([]); setShowBulkDialog(false); } });
     }
 
-    // Import
     function submitImport(e: React.FormEvent) {
         e.preventDefault();
         if (!importForm.data.csv_file) return;
@@ -258,7 +277,7 @@ export default function Admins({ users, roles, filters, stats }: Props) {
                                         <th className="text-left py-3 px-4 font-medium">Name</th>
                                         <th className="text-left py-3 px-4 font-medium">Email</th>
                                         <th className="text-left py-3 px-4 font-medium">Phone</th>
-                                        <th className="text-left py-3 px-4 font-medium">Role</th>
+                                        <th className="text-left py-3 px-4 font-medium">Roles</th>
                                         <th className="text-left py-3 px-4 font-medium">Status</th>
                                         <th className="text-left py-3 px-4 font-medium">Last Login</th>
                                         <th className="text-right py-3 px-4 font-medium">Actions</th>
@@ -278,9 +297,13 @@ export default function Admins({ users, roles, filters, stats }: Props) {
                                             <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
                                             <td className="py-3 px-4 text-muted-foreground">{u.phone ?? '—'}</td>
                                             <td className="py-3 px-4">
-                                                {u.roles[0]
-                                                    ? <Badge variant="outline" className="text-xs">{roleLabel(u.roles[0].name)}</Badge>
-                                                    : <span className="text-muted-foreground">—</span>}
+                                                <div className="flex flex-wrap gap-1">
+                                                    {u.roles.length > 0
+                                                        ? u.roles.map(r => (
+                                                            <Badge key={r.name} variant="outline" className="text-xs">{roleLabel(r.name)}</Badge>
+                                                        ))
+                                                        : <span className="text-muted-foreground">—</span>}
+                                                </div>
                                             </td>
                                             <td className="py-3 px-4">{statusBadge(u.status)}</td>
                                             <td className="py-3 px-4 text-muted-foreground text-xs">
@@ -313,7 +336,6 @@ export default function Admins({ users, roles, filters, stats }: Props) {
                             </table>
                         </div>
 
-                        {/* Pagination */}
                         {users.meta.last_page > 1 && (
                             <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
                                 <p className="text-sm text-muted-foreground">
@@ -337,7 +359,7 @@ export default function Admins({ users, roles, filters, stats }: Props) {
 
             {/* Create / Edit Modal */}
             <Dialog open={showModal} onOpenChange={setShowModal}>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editUser ? 'Edit User' : 'Add User'}</DialogTitle>
                     </DialogHeader>
@@ -360,37 +382,45 @@ export default function Admins({ users, roles, filters, stats }: Props) {
                                 <Input value={form.data.phone} onChange={e => form.setData('phone', e.target.value)} placeholder="+232..." />
                             </div>
                             <div>
-                                <Label>{editUser ? 'New Password' : 'Password *'}</Label>
+                                <Label>{editUser ? 'New Password' : 'Password'}</Label>
                                 <Input type="password" value={form.data.password}
                                     onChange={e => form.setData('password', e.target.value)}
-                                    placeholder={editUser ? 'Leave blank to keep' : 'Min 8 chars'} />
+                                    placeholder={editUser ? 'Leave blank to keep' : 'Auto-generated if empty'} />
                                 {form.errors.password && <p className="text-xs text-red-500 mt-1">{form.errors.password}</p>}
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label>Role *</Label>
-                                <Select value={form.data.role} onValueChange={v => form.setData('role', v)}>
-                                    <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                                    <SelectContent>
-                                        {roles.map(r => <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                {form.errors.role && <p className="text-xs text-red-500 mt-1">{form.errors.role}</p>}
+                        <div>
+                            <Label>Roles * (select one or more)</Label>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {roles.map(r => {
+                                    const active = form.data.roles.includes(r);
+                                    return (
+                                        <button key={r} type="button" onClick={() => toggleRole(r)}
+                                            className={cn(
+                                                'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                                                active
+                                                    ? 'bg-primary text-primary-foreground border-primary'
+                                                    : 'bg-background text-muted-foreground border-border hover:border-primary/50'
+                                            )}>
+                                            {roleLabel(r)}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                            <div>
-                                <Label>Status *</Label>
-                                <Select value={form.data.status} onValueChange={v => form.setData('status', v)}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {STATUSES.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            {form.errors.roles && <p className="text-xs text-red-500 mt-1">{form.errors.roles}</p>}
+                        </div>
+                        <div>
+                            <Label>Status *</Label>
+                            <Select value={form.data.status} onValueChange={v => form.setData('status', v)}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {STATUSES.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-                            <Button type="submit" disabled={form.processing}>
+                            <Button type="submit" disabled={form.processing || form.data.roles.length === 0}>
                                 {editUser ? 'Save Changes' : 'Create User'}
                             </Button>
                         </DialogFooter>
@@ -435,6 +465,44 @@ export default function Admins({ users, roles, filters, stats }: Props) {
                 </DialogContent>
             </Dialog>
 
+            {/* User Created — Temporary Password Display */}
+            <Dialog open={!!createdResult} onOpenChange={open => !open && setCreatedResult(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2"><CheckCircle className="w-5 h-5 text-green-600" /> User Created</DialogTitle>
+                    </DialogHeader>
+                    {createdResult && (
+                        <div className="space-y-3">
+                            <p className="text-sm text-muted-foreground">
+                                Account created for <strong>{createdResult.name}</strong> ({createdResult.email})
+                            </p>
+                            <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-3">
+                                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mb-1">Temporary password:</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="font-mono text-sm font-bold text-amber-900 dark:text-amber-300 select-all">{createdResult.temp_password}</p>
+                                    <button type="button" onClick={() => copyPassword(createdResult.temp_password)}
+                                        className="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400">
+                                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                                <span className="text-xs text-muted-foreground">Assigned roles:</span>
+                                {createdResult.roles.map(r => (
+                                    <Badge key={r} variant="outline" className="text-xs">{roleLabel(r)}</Badge>
+                                ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                The user will be forced to change this password on first login.
+                            </p>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button onClick={() => setCreatedResult(null)}>Done</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Password Reset Result */}
             <Dialog open={!!resetResult} onOpenChange={open => !open && setResetResult(null)}>
                 <DialogContent className="max-w-md">
@@ -448,7 +516,13 @@ export default function Admins({ users, roles, filters, stats }: Props) {
                             </p>
                             <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-3">
                                 <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mb-1">New temporary password:</p>
-                                <p className="font-mono text-sm font-bold text-amber-900 dark:text-amber-300 select-all">{resetResult.password}</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="font-mono text-sm font-bold text-amber-900 dark:text-amber-300 select-all">{resetResult.password}</p>
+                                    <button type="button" onClick={() => copyPassword(resetResult.password)}
+                                        className="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400">
+                                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                    </button>
+                                </div>
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 The user will be forced to change this password on next login.

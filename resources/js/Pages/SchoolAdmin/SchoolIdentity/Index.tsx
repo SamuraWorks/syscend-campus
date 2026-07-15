@@ -8,11 +8,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
     Fingerprint, FileText, Phone, Users, GraduationCap, Palette, Globe,
     Save, Upload, Trash2, CheckCircle, Eye, EyeOff,
+    FileImage, Plus, Copy, Loader2, Brain, Sparkles, Check,
 } from 'lucide-react';
 
 interface SchoolData {
@@ -42,16 +47,17 @@ interface SchoolData {
     school_mission: string | null; school_vision: string | null;
 }
 
-interface Props { school: SchoolData; settings: Record<string, string>; }
+interface Props { school: SchoolData; settings: Record<string, string>; templates: ReportCardTemplateRow[]; }
 
 const TABS = [
-    { id: 'basic',        label: 'Basic Identity',  icon: Fingerprint },
-    { id: 'registration', label: 'Registration',     icon: FileText },
-    { id: 'contact',      label: 'Contact Info',     icon: Phone },
-    { id: 'leadership',   label: 'Leadership',       icon: Users },
-    { id: 'academic',     label: 'Academic Config',  icon: GraduationCap },
-    { id: 'branding',     label: 'Branding Assets',  icon: Palette },
-    { id: 'public',       label: 'Public Profile',   icon: Globe },
+    { id: 'basic',        label: 'Basic Identity',     icon: Fingerprint },
+    { id: 'registration', label: 'Registration',        icon: FileText },
+    { id: 'contact',      label: 'Contact Info',        icon: Phone },
+    { id: 'leadership',   label: 'Leadership',          icon: Users },
+    { id: 'academic',     label: 'Academic Config',     icon: GraduationCap },
+    { id: 'branding',     label: 'Branding Assets',     icon: Palette },
+    { id: 'documents',    label: 'Official Documents',  icon: FileImage },
+    { id: 'public',       label: 'Public Profile',      icon: Globe },
 ] as const;
 type TabId = typeof TABS[number]['id'];
 
@@ -400,8 +406,251 @@ function PublicProfileTab({ school }: { school: SchoolData }) {
     );
 }
 
+/* ═══════════════ Official Documents Tab ═══════════════ */
+
+interface ReportCardTemplateRow {
+    id: number; name: string; description: string | null; status: string; version: number;
+    front_image_path: string | null; back_image_path: string | null;
+    ai_analysis: Record<string, any> | null; template_config: Record<string, any> | null;
+    ai_analyzed_at: string | null; activated_at: string | null;
+    created_at: string; creator?: { name: string };
+}
+
+function OfficialDocumentsTab({ templates: initialTemplates }: { templates: ReportCardTemplateRow[] }) {
+    const [templates, setTemplates] = useState<ReportCardTemplateRow[]>(initialTemplates);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [previewTemplate, setPreviewTemplate] = useState<ReportCardTemplateRow | null>(null);
+    const [analyzingId, setAnalyzingId] = useState<number | null>(null);
+
+    const createForm = useForm({ name: '', description: '', front_image: null as File | null, back_image: null as File | null });
+    const fileRefFront = useRef<HTMLInputElement>(null);
+    const fileRefBack = useRef<HTMLInputElement>(null);
+
+    function refreshTemplates() {
+        router.reload({ only: ['templates'] });
+    }
+
+    function submitCreate(e: React.FormEvent) {
+        e.preventDefault();
+        createForm.post('/school/report-card-templates', {
+            forceFormData: true,
+            onSuccess: () => { setShowCreateModal(false); createForm.reset(); refreshTemplates(); toast.success('Template created successfully.'); },
+        });
+    }
+
+    function toggleStatus(t: ReportCardTemplateRow) {
+        const action = t.status === 'active' ? 'archive' : 'approve';
+        router.patch(`/school/report-card-templates/${t.id}/${action}`, {}, {
+            onSuccess: () => { refreshTemplates(); toast.success(`Template ${action === 'approve' ? 'activated' : 'archived'}.`); },
+        });
+    }
+
+    function duplicateTemplate(t: ReportCardTemplateRow) {
+        router.post(`/school/report-card-templates/${t.id}/duplicate`, {}, {
+            onSuccess: () => { refreshTemplates(); toast.success('Template duplicated.'); },
+        });
+    }
+
+    function deleteTemplate(t: ReportCardTemplateRow) {
+        if (!confirm(`Delete template "${t.name}"? This cannot be undone.`)) return;
+        router.delete(`/school/report-card-templates/${t.id}`, {
+            onSuccess: () => { refreshTemplates(); toast.success('Template deleted.'); },
+        });
+    }
+
+    function analyzeWithAI(t: ReportCardTemplateRow) {
+        setAnalyzingId(t.id);
+        router.post(`/school/report-card-templates/${t.id}/analyze`, {}, {
+            preserveScroll: true,
+            onSuccess: () => { setAnalyzingId(null); refreshTemplates(); toast.success('AI analysis complete!'); },
+            onError: () => { setAnalyzingId(null); toast.error('AI analysis failed.'); },
+        });
+    }
+
+    function statusBadge(status: string) {
+        const map: Record<string, string> = {
+            active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+            draft: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+            archived: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+        };
+        return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${map[status] ?? ''}`}>{status}</span>;
+    }
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="text-base">Official Document Templates</CardTitle>
+                        <CardDescription>Build, manage, and activate report card templates for your school</CardDescription>
+                    </div>
+                    <Button onClick={() => setShowCreateModal(true)} className="gap-2" size="sm">
+                        <Plus className="w-4 h-4" /> New Template
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {templates.length === 0 ? (
+                        <div className="text-center py-10">
+                            <FileImage className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                            <p className="text-sm text-muted-foreground">No templates yet. Create one to get started.</p>
+                            <p className="text-xs text-slate-400 mt-1">Upload a scanned report card and let AI analyze its layout.</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {templates.map(t => (
+                                <div key={t.id} className={cn('rounded-lg border p-4 space-y-3 transition-colors', t.status === 'active' ? 'border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-950/20' : 'border-border hover:border-primary/50')}>
+                                    <div className="flex items-start justify-between">
+                                        <div className="min-w-0">
+                                            <h4 className="font-medium text-sm truncate">{t.name}</h4>
+                                            <p className="text-xs text-muted-foreground mt-0.5">v{t.version} · {statusBadge(t.status)}</p>
+                                        </div>
+                                    </div>
+                                    {t.description && <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>}
+                                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                                        {t.front_image_path && <span className="flex items-center gap-1"><FileImage className="w-3 h-3" /> Front</span>}
+                                        {t.back_image_path && <span className="flex items-center gap-1"><FileImage className="w-3 h-3" /> Back</span>}
+                                        {t.ai_analyzed_at && <span className="flex items-center gap-1 text-green-600"><Brain className="w-3 h-3" /> AI Analyzed</span>}
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setPreviewTemplate(t)}>
+                                            <Eye className="w-3 h-3" /> View
+                                        </Button>
+                                        <Button size="sm" variant="outline" className={cn('h-7 text-xs gap-1', t.status === 'active' && 'text-orange-600 border-orange-300')} onClick={() => toggleStatus(t)}>
+                                            {t.status === 'active' ? <><EyeOff className="w-3 h-3" /> Archive</> : <><Check className="w-3 h-3" /> Activate</>}
+                                        </Button>
+                                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => duplicateTemplate(t)}>
+                                            <Copy className="w-3 h-3" /> Duplicate
+                                        </Button>
+                                        {!t.ai_analyzed_at && (
+                                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-purple-600 border-purple-300" onClick={() => analyzeWithAI(t)} disabled={analyzingId === t.id}>
+                                                {analyzingId === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} Analyze
+                                            </Button>
+                                        )}
+                                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-red-500 hover:text-red-700" onClick={() => deleteTemplate(t)}>
+                                            <Trash2 className="w-3 h-3" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Create Template Modal */}
+            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Create Report Card Template</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={submitCreate} className="space-y-4">
+                        <div>
+                            <Label>Template Name *</Label>
+                            <Input value={createForm.data.name} onChange={e => createForm.setData('name', e.target.value)} placeholder="e.g. Standard Report Card 2025" />
+                            {createForm.errors.name && <p className="text-xs text-red-500 mt-1">{createForm.errors.name}</p>}
+                        </div>
+                        <div>
+                            <Label>Description</Label>
+                            <Textarea rows={2} value={createForm.data.description ?? ''} onChange={e => createForm.setData('description', e.target.value)} placeholder="Brief description..." />
+                        </div>
+                        <div>
+                            <Label>Front Image *</Label>
+                            <input ref={fileRefFront} type="file" accept="image/*,application/pdf" className="hidden" onChange={e => createForm.setData('front_image', e.target.files?.[0] ?? null)} />
+                            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => fileRefFront.current?.click()}>
+                                <Upload className="w-3.5 h-3.5" /> {createForm.data.front_image ? createForm.data.front_image.name : 'Choose file'}
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-1">JPG/PNG/PDF, max 10MB. This is the scanned report card image AI will analyze.</p>
+                            {createForm.errors.front_image && <p className="text-xs text-red-500 mt-1">{createForm.errors.front_image}</p>}
+                        </div>
+                        <div>
+                            <Label>Back Image (optional)</Label>
+                            <input ref={fileRefBack} type="file" accept="image/*,application/pdf" className="hidden" onChange={e => createForm.setData('back_image', e.target.files?.[0] ?? null)} />
+                            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => fileRefBack.current?.click()}>
+                                <Upload className="w-3.5 h-3.5" /> {createForm.data.back_image ? createForm.data.back_image.name : 'Choose file'}
+                            </Button>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                            <Button type="submit" disabled={createForm.processing || !createForm.data.front_image}>
+                                {createForm.processing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                Create Template
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Preview Template Modal — side-by-side original vs AI analysis */}
+            <Dialog open={!!previewTemplate} onOpenChange={open => !open && setPreviewTemplate(null)}>
+                <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {previewTemplate?.name}
+                            {previewTemplate && statusBadge(previewTemplate.status)}
+                        </DialogTitle>
+                    </DialogHeader>
+                    {previewTemplate && (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Original Image</h4>
+                                    <div className="rounded-lg border border-border bg-accent/30 p-2 min-h-[200px] flex items-center justify-center">
+                                        {previewTemplate.front_image_path ? (
+                                            <img src={`/storage/${previewTemplate.front_image_path}`} alt="Front" className="max-w-full max-h-[300px] object-contain rounded" />
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground">No image</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">AI Analysis</h4>
+                                    <div className="rounded-lg border border-border bg-accent/30 p-3 min-h-[200px]">
+                                        {previewTemplate.ai_analysis ? (
+                                            <div className="space-y-2 text-xs">
+                                                {Object.entries(previewTemplate.ai_analysis).map(([key, val]) => (
+                                                    <div key={key}>
+                                                        <span className="font-medium text-muted-foreground">{key.replace(/_/g, ' ')}:</span>
+                                                        <span className="ml-2 text-foreground">
+                                                            {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8">
+                                                <Brain className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                                                <p className="text-xs text-muted-foreground">Not yet analyzed. Click "Analyze" to run AI analysis.</p>
+                                                <Button size="sm" variant="outline" className="mt-2 gap-1 text-purple-600 border-purple-300" onClick={() => { setPreviewTemplate(null); analyzeWithAI(previewTemplate); }}>
+                                                    <Sparkles className="w-3 h-3" /> Analyze Now
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            {previewTemplate.back_image_path && (
+                                <div>
+                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">Back Image</h4>
+                                    <div className="rounded-lg border border-border bg-accent/30 p-2 flex items-center justify-center">
+                                        <img src={`/storage/${previewTemplate.back_image_path}`} alt="Back" className="max-w-full max-h-[300px] object-contain rounded" />
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                <span>Version {previewTemplate.version}</span>
+                                {previewTemplate.creator && <span>Created by {previewTemplate.creator.name}</span>}
+                                <span>{new Date(previewTemplate.created_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}
+
 /* ═══════════════ Main Page ═══════════════ */
-export default function SchoolIdentityIndex({ school, settings }: Props) {
+export default function SchoolIdentityIndex({ school, settings, templates }: Props) {
     const [activeTab, setActiveTab] = useState<TabId>('basic');
 
     return (
@@ -436,6 +685,7 @@ export default function SchoolIdentityIndex({ school, settings }: Props) {
                         {activeTab === 'leadership'   && <LeadershipTab school={school} />}
                         {activeTab === 'academic'     && <AcademicTab school={school} />}
                         {activeTab === 'branding'     && <BrandingTab school={school} />}
+                        {activeTab === 'documents'    && <OfficialDocumentsTab templates={templates} />}
                         {activeTab === 'public'       && <PublicProfileTab school={school} />}
                     </div>
                 </div>
