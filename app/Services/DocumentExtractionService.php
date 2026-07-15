@@ -58,7 +58,7 @@ class DocumentExtractionService
                 'status'               => 'extracted',
                 'extracted_data'       => $extractedData['data'] ?? null,
                 'extraction_metadata'  => [
-                    'model'         => 'gpt-4o',
+                    'model'         => 'gemini-2.0-flash',
                     'confidence'    => $extractedData['confidence'] ?? 0,
                     'extracted_at'  => now()->toIso8601String(),
                     'field_scores'  => $extractedData['field_scores'] ?? [],
@@ -77,53 +77,48 @@ class DocumentExtractionService
     }
 
     /**
-     * Call OpenAI Vision API for document analysis.
+     * Call Google Gemini Vision API for document analysis.
      */
     private function callVisionApi(string $base64Image, string $mimeType, string $documentType): array
     {
-        $apiKey = config('services.openai.api_key');
+        $apiKey = config('services.gemini.api_key');
 
         if (!$apiKey) {
-            // Fallback: return mock data for demo/testing
             return $this->getMockExtraction($documentType);
         }
 
         $prompt = $this->getExtractionPrompt($documentType);
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $apiKey,
-            'Content-Type'  => 'application/json',
-        ])->timeout(120)->post('https://api.openai.com/v1/chat/completions', [
-            'model'  => 'gpt-4o',
-            'messages' => [
+        $model = 'gemini-2.0-flash';
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+
+        $response = Http::timeout(120)->post($url, [
+            'contents' => [
                 [
-                    'role' => 'user',
-                    'content' => [
+                    'parts' => [
+                        ['text' => $prompt],
                         [
-                            'type' => 'text',
-                            'text' => $prompt,
-                        ],
-                        [
-                            'type' => 'image_url',
-                            'image_url' => [
-                                'url'    => 'data:' . $mimeType . ';base64,' . $base64Image,
-                                'detail' => 'high',
+                            'inline_data' => [
+                                'mime_type' => $mimeType,
+                                'data'      => $base64Image,
                             ],
                         ],
                     ],
                 ],
             ],
-            'max_tokens' => 4000,
-            'temperature' => 0.1,
+            'generationConfig' => [
+                'temperature'     => 0.1,
+                'maxOutputTokens' => 4096,
+            ],
         ]);
 
         if ($response->failed()) {
-            throw new \RuntimeException('AI API request failed: ' . $response->body());
+            $error = $response->json('error.message', $response->body());
+            throw new \RuntimeException('Gemini API request failed: ' . $error);
         }
 
-        $content = $response->json('choices.0.message.content', '');
+        $content = $response->json('candidates.0.content.parts.0.text', '');
 
-        // Parse JSON from response
         preg_match('/\{[\s\S]*\}/', $content, $matches);
         if (empty($matches[0])) {
             throw new \RuntimeException('Failed to parse AI response');

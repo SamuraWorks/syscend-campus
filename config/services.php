@@ -85,4 +85,8 @@ return [
         'app_secret' => env('AFRIMONEY_APP_SECRET', ''),
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY', ''),
+    ],
+
 ];
