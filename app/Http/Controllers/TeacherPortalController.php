@@ -491,6 +491,17 @@ class TeacherPortalController extends Controller
         ]);
     }
 
+    /**
+     * Get class IDs where this teacher is the assigned class teacher.
+     */
+    private function getClassTeacherClassIds(Staff $teacher): array
+    {
+        return \App\Models\SchoolClass::where('school_id', $teacher->school_id)
+            ->where('class_teacher_id', $teacher->id)
+            ->pluck('id')
+            ->toArray();
+    }
+
     public function attendanceTake(Request $request)
     {
         $teacher = $this->resolveTeacher();
@@ -499,6 +510,13 @@ class TeacherPortalController extends Controller
         $classId   = $request->query('class_id');
         $sectionId = $request->query('section_id');
         $date      = $request->query('date', Carbon::now()->toDateString());
+
+        // Enforce: class teacher can only take attendance for their assigned class
+        $allowedClassIds = $this->getClassTeacherClassIds($teacher);
+        if (! empty($allowedClassIds) && ! in_array((int) $classId, $allowedClassIds)) {
+            return redirect()->route('teacher.attendance')
+                ->with('error', 'You can only take attendance for your assigned class.');
+        }
 
         $studentQuery = Student::where('school_id', $teacher->school_id)
             ->where('class_id', $classId)
@@ -523,7 +541,8 @@ class TeacherPortalController extends Controller
             ->pluck('status', 'attendable_id')
             ->toArray();
 
-        $classes  = DB::table('classes')->whereIn('id', $this->getTeacherClassIds($teacher))->get(['id', 'name']);
+        // Only show the assigned class in the dropdown
+        $classes  = DB::table('classes')->whereIn('id', ! empty($allowedClassIds) ? $allowedClassIds : $this->getTeacherClassIds($teacher))->get(['id', 'name']);
         $sections = DB::table('sections')->whereIn('id', $this->getTeacherSectionIds($teacher))->get(['id', 'name', 'class_id']);
 
         return Inertia::render('Teacher/AttendanceTake', [
@@ -552,6 +571,12 @@ class TeacherPortalController extends Controller
             'records.*.student_id' => 'required|integer',
             'records.*.status'     => 'required|in:present,absent,late,excused,medical_leave',
         ]);
+
+        // Enforce: class teacher can only save attendance for their assigned class
+        $allowedClassIds = $this->getClassTeacherClassIds($teacher);
+        if (! empty($allowedClassIds) && ! in_array((int) $request->class_id, $allowedClassIds)) {
+            return back()->with('error', 'You can only save attendance for your assigned class.');
+        }
 
         $schoolId = $teacher->school_id;
 

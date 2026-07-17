@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { router, usePage, useForm } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -11,7 +10,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { ClipboardList, CheckCircle2, XCircle, Clock, MinusCircle, Send, Lock, FileEdit } from 'lucide-react';
+import { ClipboardList, CheckCircle2, XCircle, Clock, MinusCircle, Send, FileEdit, Shield } from 'lucide-react';
 import type { SchoolClass, Section, Student, PageProps, AttendanceSession } from '@/Types';
 import { useAttendanceStore } from '@/Stores/useAttendanceStore';
 
@@ -22,6 +21,10 @@ interface ExistingRecord {
     status_draft: string | null;
     remarks: string | null;
     session_id: number | null;
+    submitted_by: number | null;
+    submitted_at: string | null;
+    approved_by: number | null;
+    approved_at: string | null;
 }
 
 interface Props {
@@ -31,6 +34,8 @@ interface Props {
     sessions: AttendanceSession[];
     existing: Record<number, ExistingRecord>;
     filters: { date: string; class_id?: string; section_id?: string; session_id?: string };
+    role: 'class_teacher' | 'admin';
+    canApprove: boolean;
 }
 
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string; color: string; icon: React.ElementType }[] = [
@@ -40,11 +45,12 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string; color: string; i
     { value: 'half_day', label: 'Half Day', color: 'bg-blue-100 text-blue-700 border-blue-300',    icon: MinusCircle  },
 ];
 
-export default function AttendanceIndex({ classes, sections, students, sessions, existing, filters }: Props) {
+export default function AttendanceIndex({ classes, sections, students, sessions, existing, filters, role, canApprove }: Props) {
     const { flash } = usePage<PageProps>().props;
-    const { records, currentDate, currentClassId, currentSectionId,
-            setDate, setClassId, setSectionId, markStudent, markAll, initRecords } = useAttendanceStore();
+    const { records, setDate, setClassId, setSectionId, markStudent, markAll, initRecords } = useAttendanceStore();
     const [currentSessionId, setCurrentSessionId] = useState(filters.session_id ?? '');
+
+    const isClassTeacher = role === 'class_teacher';
 
     useEffect(() => {
         setDate(filters.date);
@@ -79,38 +85,38 @@ export default function AttendanceIndex({ classes, sections, students, sessions,
     const lateCount     = Object.values(records).filter(r => r.status === 'late').length;
     const halfDayCount  = Object.values(records).filter(r => r.status === 'half_day').length;
 
-    function handleSubmit() {
-        if (students.length === 0) return;
+    // Determine if attendance has been submitted or approved
+    const existingArray = Object.values(existing);
+    const isSubmitted = existingArray.some(r => !!r.submitted_at);
+    const isApproved  = existingArray.some(r => !!r.approved_at);
+    const hasExisting = existingArray.length > 0;
 
-        const recordsPayload = students.map(s => ({
+    function getRecordsPayload() {
+        return students.map(s => ({
             student_id: s.id,
             status:     records[s.id]?.status  ?? 'present',
             remarks:    records[s.id]?.remarks ?? '',
         }));
+    }
 
+    function handleSubmit() {
+        if (students.length === 0) return;
         router.post('/school/attendance', {
             date:              filters.date,
             class_id:          filters.class_id,
             session_id:        currentSessionId || undefined,
             submit_immediately: true,
-            records:           recordsPayload,
+            records:           getRecordsPayload(),
         }, { preserveScroll: true });
     }
 
     function handleSaveDraft() {
         if (students.length === 0) return;
-
-        const recordsPayload = students.map(s => ({
-            student_id: s.id,
-            status:     records[s.id]?.status  ?? 'present',
-            remarks:    records[s.id]?.remarks ?? '',
-        }));
-
         router.post('/school/attendance', {
             date:     filters.date,
             class_id: filters.class_id,
             session_id: currentSessionId || undefined,
-            records:  recordsPayload,
+            records:  getRecordsPayload(),
         }, { preserveScroll: true });
     }
 
@@ -137,7 +143,16 @@ export default function AttendanceIndex({ classes, sections, students, sessions,
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Student Attendance</h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Mark daily class-wise attendance</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                            {isClassTeacher
+                                ? 'Mark and submit attendance for your assigned class'
+                                : 'View and manage class attendance'}
+                        </p>
+                        {isClassTeacher && classes.length === 1 && (
+                            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 font-medium">
+                                Class: {classes[0]?.name}
+                            </p>
+                        )}
                     </div>
                     <div className="flex gap-2">
                         <a href="/school/attendance/corrections">
@@ -145,11 +160,13 @@ export default function AttendanceIndex({ classes, sections, students, sessions,
                                 <FileEdit className="w-4 h-4" /> Corrections
                             </Button>
                         </a>
-                        <a href="/school/attendance/staff">
-                            <Button variant="outline" className="inline-flex items-center gap-2">
-                                <ClipboardList className="w-4 h-4" /> Staff Attendance
-                            </Button>
-                        </a>
+                        {!isClassTeacher && (
+                            <a href="/school/attendance/staff">
+                                <Button variant="outline" className="inline-flex items-center gap-2">
+                                    <ClipboardList className="w-4 h-4" /> Staff Attendance
+                                </Button>
+                            </a>
+                        )}
                     </div>
                 </div>
 
@@ -159,7 +176,7 @@ export default function AttendanceIndex({ classes, sections, students, sessions,
                     </div>
                 )}
 
-                {/* Filters */}
+                {/* Filters — class teachers see only their class, no dropdown */}
                 <Card className="border-slate-200 dark:border-slate-800">
                     <CardContent className="p-4">
                         <div className="flex flex-wrap gap-3 items-end">
@@ -172,15 +189,17 @@ export default function AttendanceIndex({ classes, sections, students, sessions,
                                     onChange={e => applyFilter('date', e.target.value)}
                                 />
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Class</label>
-                                <Select value={filters.class_id ?? ''} onValueChange={v => applyFilter('class_id', v)}>
-                                    <SelectTrigger className="w-40"><SelectValue placeholder="Select class" /></SelectTrigger>
-                                    <SelectContent>
-                                        {classes.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            {!isClassTeacher && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Class</label>
+                                    <Select value={filters.class_id ?? ''} onValueChange={v => applyFilter('class_id', v)}>
+                                        <SelectTrigger className="w-40"><SelectValue placeholder="Select class" /></SelectTrigger>
+                                        <SelectContent>
+                                            {classes.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                             {filteredSections.length > 0 && (
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Section</label>
@@ -208,6 +227,24 @@ export default function AttendanceIndex({ classes, sections, students, sessions,
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Status banner for admins/principals viewing submitted attendance */}
+                {!isClassTeacher && hasExisting && (
+                    <div className={`rounded-md px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${
+                        isApproved
+                            ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                            : isSubmitted
+                                ? 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                                : 'bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                    }`}>
+                        {isApproved
+                            ? <><CheckCircle2 className="w-4 h-4" /> Attendance approved</>
+                            : isSubmitted
+                                ? <><Send className="w-4 h-4" /> Attendance submitted — awaiting approval</>
+                                : 'Draft — not yet submitted'
+                        }
+                    </div>
+                )}
 
                 {/* Stats + bulk actions */}
                 {students.length > 0 && (
@@ -315,14 +352,37 @@ export default function AttendanceIndex({ classes, sections, students, sessions,
                             </Table>
                         </div>
 
-                        <div className="flex justify-end gap-2">
-                            <Button onClick={handleSaveDraft} variant="outline" className="px-6">
-                                Save Draft
-                            </Button>
-                            <Button onClick={handleSubmit} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 inline-flex items-center gap-2">
-                                <Send className="w-4 h-4" /> Save & Submit ({students.length} students)
-                            </Button>
-                        </div>
+                        {/* Action buttons */}
+                        {isClassTeacher ? (
+                            /* Class teacher: Save Draft + Submit */
+                            <div className="flex justify-end gap-2">
+                                <Button onClick={handleSaveDraft} variant="outline" className="px-6">
+                                    Save Draft
+                                </Button>
+                                <Button onClick={handleSubmit} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 inline-flex items-center gap-2">
+                                    <Send className="w-4 h-4" /> Submit ({students.length} students)
+                                </Button>
+                            </div>
+                        ) : canApprove ? (
+                            /* Admin/Principal: can save edits + approve submitted */
+                            <div className="flex justify-end gap-2 flex-wrap">
+                                {hasExisting && !isApproved && (
+                                    <Button onClick={handleSaveDraft} variant="outline" className="px-6">
+                                        Save Changes
+                                    </Button>
+                                )}
+                                {hasExisting && isSubmitted && !isApproved && (
+                                    <Button onClick={handleBulkApprove} className="bg-green-600 hover:bg-green-700 text-white px-6 inline-flex items-center gap-2">
+                                        <Shield className="w-4 h-4" /> Approve Attendance
+                                    </Button>
+                                )}
+                                {hasExisting && !isSubmitted && !isApproved && (
+                                    <Button onClick={handleSubmit} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 inline-flex items-center gap-2">
+                                        <Send className="w-4 h-4" /> Submit for Approval
+                                    </Button>
+                                )}
+                            </div>
+                        ) : null}
                     </>
                 )}
             </div>

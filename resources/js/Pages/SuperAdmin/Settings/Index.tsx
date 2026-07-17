@@ -168,7 +168,7 @@ function PaymentTab({ settings }: { settings: Record<string, string> }) {
         stripe_key:       settings.stripe_key       ?? '',
         stripe_secret:    settings.stripe_secret    ?? '',
         stripe_webhook:   settings.stripe_webhook   ?? '',
-        payment_currency: settings.payment_currency ?? 'USD',
+        payment_currency: settings.payment_currency ?? 'SLL',
     });
     const { flash } = usePage<any>().props;
 
@@ -324,7 +324,7 @@ function SmtpTab({ settings }: { settings: Record<string, string> }) {
 function LocalizationTab({ settings }: { settings: Record<string, string> }) {
     const form = useForm({
         default_timezone:    settings.default_timezone    ?? 'UTC',
-        default_currency:    settings.default_currency    ?? 'USD',
+        default_currency:    settings.default_currency    ?? 'SLL',
         default_date_format: settings.default_date_format ?? 'Y-m-d',
         default_language:    settings.default_language    ?? 'en',
     });

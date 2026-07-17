@@ -22,14 +22,74 @@ use Inertia\Response;
 class AttendanceController extends Controller
 {
     /**
+     * Determine the current user's attendance role and assigned classes.
+     *
+     * Returns:
+     *  - role: 'class_teacher' | 'admin' | 'principal'
+     *  - assignedClasses: array of SchoolClass models (for class teachers)
+     */
+    private function resolveAttendanceRole(): array
+    {
+        $user = auth()->user();
+        $schoolId = $this->getSchoolId();
+
+        $staff = Staff::where('school_id', $schoolId)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (! $staff) {
+            return ['role' => 'admin', 'assignedClasses' => []];
+        }
+
+        $isClassTeacher = SchoolClass::where('school_id', $schoolId)
+            ->where('class_teacher_id', $staff->id)
+            ->where('is_active', true)
+            ->exists();
+
+        $isAdminOrPrincipal = $user->hasAnyRole(['school-admin', 'super-admin', 'principal']);
+
+        if ($isClassTeacher && ! $isAdminOrPrincipal) {
+            $assignedClasses = SchoolClass::where('school_id', $schoolId)
+                ->where('class_teacher_id', $staff->id)
+                ->where('is_active', true)
+                ->get(['id', 'name']);
+
+            return ['role' => 'class_teacher', 'assignedClasses' => $assignedClasses];
+        }
+
+        return ['role' => 'admin', 'assignedClasses' => []];
+    }
+
+    /**
+     * Check if the current user can manage (approve) attendance.
+     */
+    private function canApproveAttendance(): bool
+    {
+        return auth()->user()->hasAnyRole(['school-admin', 'super-admin', 'principal']);
+    }
+
+    /**
      * Student attendance — daily mark page with session support.
+     *
+     * Class teachers see only their assigned class(es).
+     * Admins/principals see all classes.
      */
     public function index(Request $request): Response
     {
         $date      = $request->date ?? today()->toDateString();
-        $classId   = $request->class_id;
-        $sectionId = $request->section_id;
         $sessionId = $request->session_id;
+
+        ['role' => $role, 'assignedClasses' => $assignedClasses] = $this->resolveAttendanceRole();
+        $canApprove = $this->canApproveAttendance();
+
+        // For class teachers, auto-select their assigned class
+        if ($role === 'class_teacher' && $assignedClasses->isNotEmpty()) {
+            $classId = (string) $assignedClasses->first()->id;
+        } else {
+            $classId = $request->class_id;
+        }
+
+        $sectionId = $request->section_id;
 
         $students = collect();
         $existing = collect();
@@ -48,17 +108,24 @@ class AttendanceController extends Controller
                 'attendable_type' => Student::class,
             ])->whereIn('attendable_id', $students->pluck('id'))
               ->when($sessionId, fn ($q) => $q->where('session_id', $sessionId))
-              ->get(['attendable_id', 'status', 'remarks', 'session_id', 'status_draft'])
+              ->get(['attendable_id', 'status', 'remarks', 'session_id', 'status_draft', 'submitted_by', 'submitted_at', 'approved_by', 'approved_at'])
               ->keyBy('attendable_id');
         }
 
+        // Class teachers only see their assigned classes; admins see all
+        $classes = $role === 'class_teacher'
+            ? $assignedClasses
+            : SchoolClass::orderBy('numeric_name')->get(['id', 'name']);
+
         return Inertia::render('SchoolAdmin/Attendance/Index', [
-            'classes'  => SchoolClass::orderBy('numeric_name')->get(['id', 'name']),
-            'sections' => Section::orderBy('name')->get(['id', 'class_id', 'name']),
-            'sessions' => AttendanceSession::active()->orderBy('sort_order')->get(['id', 'name', 'slug', 'start_time', 'end_time']),
-            'students' => $students,
-            'existing' => $existing,
-            'filters'  => [
+            'classes'     => $classes,
+            'sections'    => Section::orderBy('name')->get(['id', 'class_id', 'name']),
+            'sessions'    => AttendanceSession::active()->orderBy('sort_order')->get(['id', 'name', 'slug', 'start_time', 'end_time']),
+            'students'    => $students,
+            'existing'    => $existing,
+            'role'        => $role,
+            'canApprove'  => $canApprove,
+            'filters'     => [
                 'date'       => $date,
                 'class_id'   => $classId,
                 'section_id' => $sectionId,
@@ -69,6 +136,9 @@ class AttendanceController extends Controller
 
     /**
      * Bulk upsert student attendance for a class+date with session support.
+     *
+     * Class teachers can only save for their assigned class.
+     * Admins/principals can save for any class.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -82,6 +152,16 @@ class AttendanceController extends Controller
             'records.*.status'     => 'required|in:present,absent,late,half_day',
             'records.*.remarks'    => 'nullable|string|max:200',
         ]);
+
+        // Enforce class teacher restriction
+        ['role' => $role, 'assignedClasses' => $assignedClasses] = $this->resolveAttendanceRole();
+
+        if ($role === 'class_teacher') {
+            $allowedIds = $assignedClasses->pluck('id')->toArray();
+            if (! in_array($data['class_id'], $allowedIds)) {
+                return back()->with('error', 'You can only mark attendance for your assigned class.');
+            }
+        }
 
         $schoolId = $this->getSchoolId();
 
@@ -152,6 +232,9 @@ class AttendanceController extends Controller
 
     /**
      * Submit attendance records for approval (draft → submitted).
+     *
+     * Class teachers can only submit for their assigned class.
+     * Admins/principals can also submit.
      */
     public function submit(Request $request): RedirectResponse
     {
@@ -160,6 +243,16 @@ class AttendanceController extends Controller
             'class_id'   => 'required|exists:classes,id',
             'session_id' => 'nullable|exists:attendance_sessions,id',
         ]);
+
+        // Enforce class teacher restriction
+        ['role' => $role, 'assignedClasses' => $assignedClasses] = $this->resolveAttendanceRole();
+
+        if ($role === 'class_teacher') {
+            $allowedIds = $assignedClasses->pluck('id')->toArray();
+            if (! in_array($data['class_id'], $allowedIds)) {
+                return back()->with('error', 'You can only submit attendance for your assigned class.');
+            }
+        }
 
         $schoolId = $this->getSchoolId();
 
@@ -183,9 +276,15 @@ class AttendanceController extends Controller
 
     /**
      * Bulk approve submitted attendance records.
+     *
+     * Only admins and principals can approve. Class teachers cannot.
      */
     public function bulkApprove(Request $request): RedirectResponse
     {
+        if (! $this->canApproveAttendance()) {
+            return back()->with('error', 'Only administrators and principals can approve attendance.');
+        }
+
         $data = $request->validate([
             'date'         => 'required|date',
             'class_id'     => 'required|exists:classes,id',
