@@ -33,6 +33,7 @@ use App\Http\Controllers\SchoolAdmin\ShiftController;
 use App\Http\Controllers\SchoolAdmin\StaffController;
 use App\Http\Controllers\SchoolAdmin\StudentController;
 use App\Http\Controllers\SchoolAdmin\SubjectController;
+use App\Http\Controllers\SchoolAdmin\SchoolSetupController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SchoolAdmin\SchoolUserController;
 use App\Http\Controllers\SchoolAdmin\SettingsController as SchoolSettingsController;
@@ -177,7 +178,7 @@ Route::middleware('auth')->group(function () {
     | School Admin routes (school-admin, principal)
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:super-admin|school-admin|principal|teacher|accountant|librarian')
+    Route::middleware(['role:super-admin|school-admin|principal|teacher|accountant|librarian', 'school.setup'])
         ->prefix('school')
         ->name('school.')
         ->group(function () {
@@ -559,9 +560,9 @@ Route::middleware('auth')->group(function () {
             Route::post('settings/sierra-leone/levels',                     [SierraLeoneSettingsController::class, 'saveSchoolLevels'])->name('settings.sierra-leone.levels');
 
             // School Setup Hub
-            Route::get('school-setup', function () {
-                return inertia('SchoolAdmin/SchoolSetup/Index');
-            })->name('school-setup');
+            Route::get('school-setup',                              [SchoolSetupController::class, 'index'])->name('school-setup');
+            Route::get('setup/progress',                            [SchoolSetupController::class, 'progress'])->name('setup.progress');
+            Route::post('setup/complete',                           [SchoolSetupController::class, 'markComplete'])->name('setup.complete');
 
             // School Identity & Branding
             Route::get('school-identity',                              [SchoolIdentityController::class, 'index'])->name('school-identity.index');

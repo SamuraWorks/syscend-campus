@@ -32,7 +32,7 @@ class RoleRateLimiter
             return $next($request);
         }
 
-        $role = $user->getFirstRole()?->name ?? 'guest';
+        $role = $user->getRoleNames()->first() ?? 'guest';
         $maxAttempts = $this->limits[$role] ?? 60;
         
         $key = 'rate_limit:' . $role . ':' . ($user->id ?? $request->ip());
