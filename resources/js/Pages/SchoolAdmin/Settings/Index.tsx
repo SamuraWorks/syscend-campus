@@ -284,12 +284,20 @@ function BrandingTab({ logoUrl, settings }: { logoUrl: string | null; settings: 
 
 /* ── Academic Tab ── */
 function AcademicTab({ settings }: { settings: Record<string, string> }) {
+    const bool = (k: string) => settings[k] === '1';
     const form = useForm({
-        academic_year:  settings.academic_year  ?? '',
-        year_start:     settings.year_start     ?? 'January',
-        terms_per_year: settings.terms_per_year ?? '2',
-        grading_scale:  settings.grading_scale  ?? 'percentage',
-        pass_mark:      settings.pass_mark      ?? '40',
+        academic_year:      settings.academic_year      ?? '',
+        year_start:         settings.year_start         ?? 'January',
+        terms_per_year:     settings.terms_per_year     ?? '2',
+        grading_scale:      settings.grading_scale      ?? 'percentage',
+        pass_mark:          settings.pass_mark          ?? '40',
+        result_show_position:           settings.result_show_position ?? 'overall',
+        result_position_type:           settings.result_position_type ?? 'rank',
+        result_show_teacher_comment:    bool('result_show_teacher_comment'),
+        result_show_principal_comment:  bool('result_show_principal_comment'),
+        result_show_form_master_comment: bool('result_show_form_master_comment'),
+        result_show_conduct:            bool('result_show_conduct'),
+        result_show_behaviour:          bool('result_show_behaviour'),
     });
     const { flash } = usePage<any>().props;
 
@@ -304,6 +312,7 @@ function AcademicTab({ settings }: { settings: Record<string, string> }) {
                 </CardHeader>
                 <CardContent className="space-y-5">
                     {flash?.success && <SuccessBanner message={flash.success} />}
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <Label>Current Academic Year</Label>
@@ -345,6 +354,46 @@ function AcademicTab({ settings }: { settings: Record<string, string> }) {
                                 onChange={e => form.setData('pass_mark', e.target.value)} />
                         </div>
                     </div>
+
+                    <div className="border-t border-slate-100 dark:border-slate-800 pt-5">
+                        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Report Card Display</h3>
+                        <p className="text-xs text-slate-500 mb-4">Configure what appears on student report cards.</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <Label>Show Position</Label>
+                                <Select value={form.data.result_show_position} onValueChange={v => form.setData('result_show_position', v)}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="overall">Overall only</SelectItem>
+                                        <SelectItem value="class">Class position</SelectItem>
+                                        <SelectItem value="subject">Subject-level</SelectItem>
+                                        <SelectItem value="none">Hide positions</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-slate-400 mt-1">Controls where class position is displayed on report cards.</p>
+                            </div>
+                            <div>
+                                <Label>Position Type</Label>
+                                <Select value={form.data.result_position_type} onValueChange={v => form.setData('result_position_type', v)}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="rank">Rank (1, 2, 3)</SelectItem>
+                                        <SelectItem value="position">Ordinal (1st, 2nd, 3rd)</SelectItem>
+                                        <SelectItem value="dense">Dense (ties share rank)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-slate-400 mt-1">How student position is numbered and displayed.</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                            <ToggleRow label="Teacher Comments" checked={form.data.result_show_teacher_comment} onChange={v => form.setData('result_show_teacher_comment', v)} />
+                            <ToggleRow label="Form Master Comments" checked={form.data.result_show_form_master_comment} onChange={v => form.setData('result_show_form_master_comment', v)} />
+                            <ToggleRow label="Principal Comments" checked={form.data.result_show_principal_comment} onChange={v => form.setData('result_show_principal_comment', v)} />
+                            <ToggleRow label="Conduct Score" checked={form.data.result_show_conduct} onChange={v => form.setData('result_show_conduct', v)} />
+                            <ToggleRow label="Behaviour Rating" checked={form.data.result_show_behaviour} onChange={v => form.setData('result_show_behaviour', v)} />
+                        </div>
+                    </div>
+
                     <div className="flex justify-end">
                         <Button type="submit" disabled={form.processing} className="gap-2">
                             <Save className="w-4 h-4" /> Save Academic Settings
@@ -353,6 +402,25 @@ function AcademicTab({ settings }: { settings: Record<string, string> }) {
                 </CardContent>
             </Card>
         </form>
+    );
+}
+
+function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+    return (
+        <div className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 px-4 py-2.5">
+            <span className="text-sm text-slate-700 dark:text-slate-300">{label}</span>
+            <button type="button" onClick={() => onChange(!checked)}
+                className={cn(
+                    'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200',
+                    checked ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'
+                )}>
+                <span className={cn(
+                    'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200',
+                    'translate-y-0.5',
+                    checked ? 'translate-x-4' : 'translate-x-0.5'
+                )} />
+            </button>
+        </div>
     );
 }
 

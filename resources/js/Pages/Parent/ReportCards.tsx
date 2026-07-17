@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Award, TrendingUp, User, AlertTriangle, CheckCircle } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+import type { PageProps } from '@/Types';
 
 interface ReportCard {
     id: number; student: string | null; class: string | null;
@@ -13,11 +15,7 @@ interface ReportCard {
 }
 interface Props { linked: boolean; guardian: { name: string } | null; reportCards: ReportCard[]; }
 
-function gradeColor(g: string | null) {
-    if (!g) return 'text-slate-400';
-    const f = g[0].toUpperCase();
-    return f === 'A' ? 'text-green-600' : f === 'B' ? 'text-blue-600' : f === 'C' ? 'text-amber-600' : 'text-red-600';
-}
+import { gradeColor } from '@/lib/gradeColor';
 
 function statusBadge(status: string) {
     const s = status.toLowerCase();
@@ -26,7 +24,15 @@ function statusBadge(status: string) {
     return <Badge className="text-[10px]">{status}</Badge>;
 }
 
+function ordinal(n: number): string {
+    const s = ['th','st','nd','rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 export default function ParentReportCards({ linked, reportCards }: Props) {
+    const { schoolConfig } = usePage<PageProps>().props;
+
     if (!linked) {
         return (
             <AppLayout title="Children Report Cards">
@@ -66,9 +72,9 @@ export default function ParentReportCards({ linked, reportCards }: Props) {
                                                     <p className="text-xs text-slate-500">{rc.academic_year ?? '—'} · {rc.term ?? '—'}</p>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    {rc.rank !== null && (
+                                                    {schoolConfig?.result_show_position !== 'none' && rc.rank !== null && (
                                                         <Badge className="text-[10px] bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
-                                                            #{rc.rank}
+                                                            {schoolConfig?.result_position_type === 'dense' ? ordinal(rc.rank) : `#${rc.rank}`}
                                                         </Badge>
                                                     )}
                                                     {statusBadge(rc.status)}
@@ -97,10 +103,10 @@ export default function ParentReportCards({ linked, reportCards }: Props) {
                                                         <span className={cn('font-bold', gradeColor(rc.grade))}>{rc.grade}</span>
                                                     </div>
                                                 )}
-                                                {rc.rank !== null && (
+                                                {schoolConfig?.result_show_position !== 'none' && rc.rank !== null && (
                                                     <div className="flex items-center gap-1">
                                                         <TrendingUp className="w-3.5 h-3.5 text-slate-400" />
-                                                        <span className="text-slate-600 dark:text-slate-400">Rank: #{rc.rank}</span>
+                                                        <span className="text-slate-600 dark:text-slate-400">Rank: {schoolConfig?.result_position_type === 'dense' ? ordinal(rc.rank) : `#${rc.rank}`}</span>
                                                     </div>
                                                 )}
                                             </div>

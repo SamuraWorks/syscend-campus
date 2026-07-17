@@ -33,6 +33,16 @@ interface ReportCard {
     student?: Student; schoolClass?: SchoolClass; section?: Section; term?: AcademicTerm; academicYear?: AcademicYear;
 }
 
+interface SchoolConfig {
+    result_show_position: string;
+    result_position_type: string;
+    result_show_teacher_comment: boolean;
+    result_show_principal_comment: boolean;
+    result_show_form_master_comment: boolean;
+    result_show_conduct: boolean;
+    result_show_behaviour: boolean;
+}
+
 const STATUS_STYLE: Record<string, string> = {
     draft: 'bg-slate-100 text-slate-600',
     approved: 'bg-blue-100 text-blue-700',
@@ -41,9 +51,26 @@ const STATUS_STYLE: Record<string, string> = {
 
 interface Props extends PageProps { reportCard: ReportCard; gradeScale: GradeScale[]; }
 
+function ordinal(n: number): string {
+    const s = ['th','st','nd','rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 export default function ReportCardsShow({ reportCard, gradeScale }: Props) {
     const rc = reportCard;
     const [editComment, setEditComment] = useState<string | null>(null);
+    const { schoolConfig } = usePage<any>().props;
+    const cfg: SchoolConfig = schoolConfig ?? {
+        result_show_position: 'overall', result_position_type: 'rank',
+        result_show_teacher_comment: false, result_show_principal_comment: false,
+        result_show_form_master_comment: false, result_show_conduct: false, result_show_behaviour: false,
+    };
+
+    const showRank = cfg.result_show_position !== 'none';
+    const rankDisplay = rc.rank != null
+        ? cfg.result_position_type === 'position' ? ordinal(rc.rank) : `#${rc.rank}`
+        : '—';
 
     const commentForm = useForm({
         teacher_comment: rc.teacher_comment ?? '',
@@ -51,6 +78,8 @@ export default function ReportCardsShow({ reportCard, gradeScale }: Props) {
         principal_comment: rc.principal_comment ?? '',
         promotion_status: rc.promotion_status ?? '',
     });
+
+    const hasCommentFields = cfg.result_show_teacher_comment || cfg.result_show_form_master_comment || cfg.result_show_principal_comment;
 
     function saveComment(field: string) {
         commentForm.put(`/school/report-cards/${rc.id}/comments`, {
@@ -83,7 +112,7 @@ export default function ReportCardsShow({ reportCard, gradeScale }: Props) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-5 gap-4">
+                <div className={`grid gap-4 ${showRank ? 'grid-cols-5' : 'grid-cols-4'}`}>
                     <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                         <CardContent className="p-4 text-center">
                             <p className="text-3xl font-bold text-indigo-600">{Number(rc.percentage).toFixed(1)}%</p>
@@ -102,12 +131,14 @@ export default function ReportCardsShow({ reportCard, gradeScale }: Props) {
                             <p className="text-xs text-slate-500">Overall Grade</p>
                         </CardContent>
                     </Card>
-                    <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                        <CardContent className="p-4 text-center">
-                            <p className="text-3xl font-bold text-amber-600">{rc.rank != null ? `#${rc.rank}` : '—'}</p>
-                            <p className="text-xs text-slate-500">Class Rank</p>
-                        </CardContent>
-                    </Card>
+                    {showRank && (
+                        <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                            <CardContent className="p-4 text-center">
+                                <p className="text-3xl font-bold text-amber-600">{rankDisplay}</p>
+                                <p className="text-xs text-slate-500">Class Rank</p>
+                            </CardContent>
+                        </Card>
+                    )}
                     <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                         <CardContent className="p-4 text-center">
                             <p className="text-3xl font-bold text-blue-600">{attendanceRate}%</p>
@@ -156,10 +187,10 @@ export default function ReportCardsShow({ reportCard, gradeScale }: Props) {
                     <CardHeader><CardTitle className="text-sm font-semibold flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Remarks & Comments</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         {[
-                            { field: 'teacher_comment', label: "Class Teacher's Remark" },
-                            { field: 'form_master_comment', label: "Form Master's Remark" },
-                            { field: 'principal_comment', label: "Principal's Remark" },
-                        ].map(({ field, label }) => (
+                            cfg.result_show_teacher_comment     && { field: 'teacher_comment', label: "Class Teacher's Remark" },
+                            cfg.result_show_form_master_comment  && { field: 'form_master_comment', label: "Form Master's Remark" },
+                            cfg.result_show_principal_comment    && { field: 'principal_comment', label: "Principal's Remark" },
+                        ].filter(Boolean).map(({ field, label }: any) => (
                             <div key={field}>
                                 <Label className="text-xs text-slate-500">{label}</Label>
                                 {editComment === field ? (

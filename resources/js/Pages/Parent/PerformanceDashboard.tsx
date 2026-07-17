@@ -6,6 +6,8 @@ import {
     User, GraduationCap, Target, BookOpen, ClipboardCheck, HandHeart, Shield, Award,
     AlertTriangle, TrendingUp, BarChart3, Star, CheckCircle, Trophy, Baby,
 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+import type { PageProps } from '@/Types';
 
 interface ChildScore {
     total_score: number;
@@ -89,6 +91,8 @@ function ProgressBar({ label, value, icon: Icon }: { label: string; value: numbe
 
 export default function PerformanceDashboard({ linked, children: childList }: Props) {
     const [activeChild, setActiveChild] = useState(0);
+    const { schoolConfig } = usePage<PageProps>().props;
+    const posShow = schoolConfig?.result_show_position ?? 'none';
 
     if (!linked) {
         return (
@@ -202,13 +206,13 @@ export default function PerformanceDashboard({ linked, children: childList }: Pr
                                         {classificationLabels[classification] || classification}
                                     </Badge>
                                     <div className="mt-4 w-full space-y-2">
-                                        {score?.class_rank && (
+                                        {(posShow === 'class' || posShow === 'subject') && score?.class_rank && (
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="text-slate-500 dark:text-slate-400">Class Rank</span>
                                                 <span className="font-semibold text-slate-800 dark:text-slate-200">#{score.class_rank}</span>
                                             </div>
                                         )}
-                                        {score?.school_rank && (
+                                        {(posShow === 'overall' || posShow === 'subject') && score?.school_rank && (
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="text-slate-500 dark:text-slate-400">School Rank</span>
                                                 <span className="font-semibold text-slate-800 dark:text-slate-200">#{score.school_rank}</span>
@@ -325,6 +329,7 @@ export default function PerformanceDashboard({ linked, children: childList }: Pr
                         )}
 
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                            {(posShow === 'class' || posShow === 'subject') && (
                             <Card>
                                 <CardContent className="p-4 flex items-center gap-3">
                                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30">
@@ -336,6 +341,8 @@ export default function PerformanceDashboard({ linked, children: childList }: Pr
                                     </div>
                                 </CardContent>
                             </Card>
+                            )}
+                            {(posShow === 'overall' || posShow === 'subject') && (
                             <Card>
                                 <CardContent className="p-4 flex items-center gap-3">
                                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30">
@@ -347,6 +354,7 @@ export default function PerformanceDashboard({ linked, children: childList }: Pr
                                     </div>
                                 </CardContent>
                             </Card>
+                            )}
                             <Card>
                                 <CardContent className="p-4 flex items-center gap-3">
                                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30">

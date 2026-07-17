@@ -521,6 +521,12 @@ Route::middleware('auth')->group(function () {
             Route::get('report-cards/{reportCard}',                [ReportCardController::class, 'show'])->name('report-cards.show');
             Route::get('report-cards/{reportCard}/print',         [ReportCardController::class, 'printPdf'])->name('report-cards.print');
             Route::put('report-cards/{reportCard}/comments',       [ReportCardController::class, 'updateComments'])->name('report-cards.comments');
+            Route::post('report-cards/{reportCard}/unpublish',     [ReportCardController::class, 'unpublish'])->name('report-cards.unpublish');
+            Route::post('report-cards/bulk-submit',                [ReportCardController::class, 'bulkSubmit'])->name('report-cards.bulk-submit');
+            Route::post('report-cards/bulk-approve',               [ReportCardController::class, 'bulkApprove'])->name('report-cards.bulk-approve');
+            Route::post('report-cards/unpublish-all',              [ReportCardController::class, 'unpublishAll'])->name('report-cards.unpublish-all');
+            Route::get('report-cards/history',                     [ReportCardController::class, 'history'])->name('report-cards.history');
+            Route::post('report-cards/bulk-print',                 [ReportCardController::class, 'bulkPrint'])->name('report-cards.bulk-print');
 
             // ── Report Card Templates ──
             Route::get('report-card-templates',                                     [ReportCardTemplateController::class, 'index'])->name('report-card-templates.index');

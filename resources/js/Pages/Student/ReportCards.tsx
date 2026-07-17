@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Award, CheckCircle, XCircle, Clock, Minus, FileText } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+import { PageProps } from '@/Types';
 
 interface ReportCard {
     id: number; academic_year: string | null; term: string | null;
@@ -21,14 +23,7 @@ const statusColor: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 };
 
-function gradeColor(g: string | null) {
-    if (!g) return 'text-slate-400';
-    const first = g[0].toUpperCase();
-    if (first === 'A') return 'text-green-600';
-    if (first === 'B') return 'text-blue-600';
-    if (first === 'C') return 'text-amber-600';
-    return 'text-red-600';
-}
+import { gradeColor } from '@/lib/gradeColor';
 
 function ProgressBar({ pct }: { pct: number }) {
     return (
@@ -42,6 +37,14 @@ function ProgressBar({ pct }: { pct: number }) {
 }
 
 export default function ReportCards({ linked, student, reportCards }: Props) {
+    const { schoolConfig } = usePage<PageProps>().props;
+
+    function ordinal(n: number): string {
+        const s = ['th','st','nd','rd'];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    }
+
     if (!linked) {
         return (
             <AppLayout title="My Report Cards">
@@ -115,7 +118,11 @@ export default function ReportCards({ linked, student, reportCards }: Props) {
                                                     </div>
                                                     <div>
                                                         <p className="text-xs text-slate-500 mb-1">Rank</p>
-                                                        <p className="text-lg font-bold text-slate-800 dark:text-white">{rc.rank != null ? `#${rc.rank}` : '—'}</p>
+                                                        <p className="text-lg font-bold text-slate-800 dark:text-white">
+                                                            {schoolConfig?.result_show_position !== 'none' && rc.rank != null
+                                                                ? (schoolConfig?.result_position_type === 'position' ? ordinal(rc.rank) : `#${rc.rank}`)
+                                                                : '—'}
+                                                        </p>
                                                     </div>
                                                     <div>
                                                         <p className="text-xs text-slate-500 mb-1">GPA</p>

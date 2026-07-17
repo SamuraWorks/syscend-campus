@@ -16,7 +16,7 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children, title, breadcrumbs }: AppLayoutProps) {
-    const { flash, faviconUrl } = usePage<PageProps>().props;
+    const { flash, faviconUrl, schoolBranding } = usePage<PageProps>().props;
     const theme = useAuthStore((s) => s.theme);
     const { sidebarOpen } = useUIStore();
 
@@ -40,6 +40,23 @@ export default function AppLayout({ children, title, breadcrumbs }: AppLayoutPro
                 : root.classList.remove('dark');
         }
     }, [theme]);
+
+    // School colour propagation — inject CSS custom properties
+    useEffect(() => {
+        const root = document.documentElement;
+        const primary = schoolBranding?.primary_color;
+        const secondary = schoolBranding?.secondary_color;
+
+        if (primary) {
+            root.style.setProperty('--school-primary', primary);
+            root.style.setProperty('--school-primary-light', hexToRgb(primary, 0.1));
+            root.style.setProperty('--school-primary-medium', hexToRgb(primary, 0.2));
+        }
+        if (secondary) {
+            root.style.setProperty('--school-secondary', secondary);
+            root.style.setProperty('--school-secondary-light', hexToRgb(secondary, 0.1));
+        }
+    }, [schoolBranding]);
 
     // Flash messages
     useEffect(() => {
@@ -80,4 +97,12 @@ export default function AppLayout({ children, title, breadcrumbs }: AppLayoutPro
             </div>
         </div>
     );
+}
+
+function hexToRgb(hex: string, alpha: number): string {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

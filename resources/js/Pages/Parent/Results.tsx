@@ -7,11 +7,7 @@ interface MarkRow { exam: string | null; type: string | null; subject: string | 
 interface Child { id: number; full_name: string; class: string | null; marks: MarkRow[]; }
 interface Props { linked: boolean; guardian: { name: string } | null; children: Child[]; }
 
-function gradeColor(g: string | null) {
-    if (!g) return 'text-slate-400';
-    const f = g[0].toUpperCase();
-    return f === 'A' ? 'text-green-600' : f === 'B' ? 'text-blue-600' : f === 'C' ? 'text-amber-600' : 'text-red-600';
-}
+import { gradeColor } from '@/lib/gradeColor';
 
 export default function ParentResults({ linked, children }: Props) {
     if (!linked) {

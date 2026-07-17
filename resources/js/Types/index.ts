@@ -71,6 +71,27 @@ export interface PageProps {
         school_mission: string | null;
         school_vision: string | null;
     } | null;
+    schoolConfig: {
+        primary_color: string | null;
+        secondary_color: string | null;
+        currency: string | null;
+        currency_symbol: string | null;
+        language: string;
+        terms_per_year: number;
+        ca_weight: number;
+        exam_weight: number;
+        grading_system: string;
+        pass_mark: number;
+        enable_ece: boolean;
+        enable_primary: boolean;
+        enable_jss: boolean;
+        enable_sss: boolean;
+        section_format: string;
+        school_level: string | null;
+        school_type: string | null;
+        result_show_position: string;
+        result_position_type: string;
+    } | null;
     flash: {
         success?: string;
         error?: string;

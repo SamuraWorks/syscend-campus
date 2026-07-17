@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FeeCategory;
 use App\Models\FeeStructure;
 use App\Models\SchoolClass;
+use App\Models\SchoolSetting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -29,7 +30,7 @@ class FeeStructureController extends Controller
             'classes'      => SchoolClass::where('school_id', $sid)->orderBy('numeric_name')->get(['id', 'name']),
             'categories'   => FeeCategory::where('school_id', $sid)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'type']),
             'filters'      => $request->only('class_id', 'category_id', 'academic_year'),
-            'currentYear'  => '2025-2026',
+            'currentYear'  => SchoolSetting::get($sid, 'academic_year', date('Y')),
         ]);
     }
 

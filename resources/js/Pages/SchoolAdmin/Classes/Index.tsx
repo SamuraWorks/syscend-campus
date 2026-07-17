@@ -21,6 +21,7 @@ interface Staff { id: number; name: string; }
 interface Props extends PageProps {
     classes: PaginatedResponse<SchoolClass & { students_count: number; sections_count: number; sections: { id: number; name: string; students_count: number }[] }>;
     staff: Staff[];
+    enabledLevels: string[];
 }
 
 const levelLabels: Record<string, string> = {
@@ -44,7 +45,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function ClassesIndex() {
-    const { classes, staff, } = usePage<Props>().props;
+    const { classes, staff, enabledLevels } = usePage<Props>().props;
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<SchoolClass | null>(null);
     const [search, setSearch] = useState(new URLSearchParams(window.location.search).get('search') ?? '');
@@ -123,10 +124,10 @@ export default function ClassesIndex() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="_all">All Levels</SelectItem>
-                        <SelectItem value="early_childhood">ECE</SelectItem>
-                        <SelectItem value="primary">Primary</SelectItem>
-                        <SelectItem value="junior_secondary">JSS</SelectItem>
-                        <SelectItem value="senior_secondary">SSS</SelectItem>
+                        {enabledLevels.includes('early_childhood') && <SelectItem value="early_childhood">ECE</SelectItem>}
+                        {enabledLevels.includes('primary') && <SelectItem value="primary">Primary</SelectItem>}
+                        {enabledLevels.includes('junior_secondary') && <SelectItem value="junior_secondary">JSS</SelectItem>}
+                        {enabledLevels.includes('senior_secondary') && <SelectItem value="senior_secondary">SSS</SelectItem>}
                     </SelectContent>
                 </Select>
                 <Select defaultValue={statusFilter} onValueChange={(v) => { setStatusFilter(v === '_all' ? '' : v); }}>
@@ -252,10 +253,10 @@ export default function ClassesIndex() {
                                     <SelectTrigger className="w-full"><SelectValue placeholder="Select level" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="_none">None</SelectItem>
-                                        <SelectItem value="early_childhood">Early Childhood (ECE)</SelectItem>
-                                        <SelectItem value="primary">Primary</SelectItem>
-                                        <SelectItem value="junior_secondary">Junior Secondary (JSS)</SelectItem>
-                                        <SelectItem value="senior_secondary">Senior Secondary (SSS)</SelectItem>
+                                        {enabledLevels.includes('early_childhood') && <SelectItem value="early_childhood">Early Childhood (ECE)</SelectItem>}
+                                        {enabledLevels.includes('primary') && <SelectItem value="primary">Primary</SelectItem>}
+                                        {enabledLevels.includes('junior_secondary') && <SelectItem value="junior_secondary">Junior Secondary (JSS)</SelectItem>}
+                                        {enabledLevels.includes('senior_secondary') && <SelectItem value="senior_secondary">Senior Secondary (SSS)</SelectItem>}
                                     </SelectContent>
                                 </Select>
                             </div>

@@ -23,7 +23,10 @@ class ResultChangeRequestController extends Controller
 
         $requests = $query->latest()->paginate(15);
 
-        return Inertia::render('SchoolAdmin/ResultChangeRequests/Index', ['requests' => $requests]);
+        return Inertia::render('SchoolAdmin/ResultChangeRequests/Index', [
+            'requests' => $requests,
+            'linked' => $user->hasRole(['super-admin', 'school-admin', 'principal']),
+        ]);
     }
 
     public function store(Request $request)

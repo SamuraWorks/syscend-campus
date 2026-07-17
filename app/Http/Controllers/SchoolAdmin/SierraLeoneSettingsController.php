@@ -22,7 +22,7 @@ class SierraLeoneSettingsController extends Controller
         return Inertia::render('SchoolAdmin/Settings/SierraLeone', [
             'school'    => School::findOrFail($sid)->only('id', 'name', 'country', 'currency', 'currency_symbol'),
             'settings'  => $s,
-            'levels'    => SierraLeoneEducation::SCHOOL_LEVELS,
+            'levels'    => array_keys(SierraLeoneEducation::SCHOOL_LEVELS),
             'departments' => Department::where('school_id', $sid)->academic()->get(),
             'examTypes' => SierraLeoneEducation::NATIONAL_EXAMINATIONS,
         ]);

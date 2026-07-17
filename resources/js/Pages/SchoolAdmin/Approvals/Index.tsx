@@ -4,19 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CheckCircle2, XCircle, Send, Clock, FileText, Eye } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, FileText, Eye } from 'lucide-react';
 import type { PageProps } from '@/Types';
 
 interface Exam {
     id: number; name: string; status: string; submitted_at: string | null;
-    school_class?: { name: string }; term?: { name: string };
+    schoolClass?: { name: string }; term?: { name: string };
     submittedByUser?: { name: string };
 }
 
 interface ReportCard {
     id: number; status: string; submitted_at: string | null; percentage: number | null;
     student?: { first_name: string; last_name: string; admission_no: string };
-    school_class?: { name: string }; term?: { name: string };
+    schoolClass?: { name: string }; term?: { name: string };
 }
 
 interface ApprovalLog {
@@ -114,7 +114,7 @@ export default function ApprovalsIndex({ pendingExams, pendingReportCards, recen
                                 ) : pendingExams.map(exam => (
                                     <TableRow key={exam.id}>
                                         <TableCell className="font-medium text-slate-900 dark:text-white">{exam.name}</TableCell>
-                                        <TableCell className="text-sm text-slate-500">{exam.school_class?.name ?? '—'}</TableCell>
+                                        <TableCell className="text-sm text-slate-500">{exam.schoolClass?.name ?? '—'}</TableCell>
                                         <TableCell className="text-sm text-slate-500">{exam.term?.name ?? '—'}</TableCell>
                                         <TableCell className="text-sm text-slate-500">{exam.submittedByUser?.name ?? '—'}</TableCell>
                                         <TableCell className="text-sm text-slate-500">{exam.submitted_at ? new Date(exam.submitted_at).toLocaleDateString() : '—'}</TableCell>
@@ -154,7 +154,7 @@ export default function ApprovalsIndex({ pendingExams, pendingReportCards, recen
                                     {pendingReportCards.map(rc => (
                                         <TableRow key={rc.id}>
                                             <TableCell className="font-medium text-slate-900 dark:text-white">{rc.student?.first_name} {rc.student?.last_name}</TableCell>
-                                            <TableCell className="text-sm text-slate-500">{rc.school_class?.name ?? '—'}</TableCell>
+                                            <TableCell className="text-sm text-slate-500">{rc.schoolClass?.name ?? '—'}</TableCell>
                                             <TableCell className="text-sm">{rc.percentage ? `${rc.percentage}%` : '—'}</TableCell>
                                             <TableCell><Badge className={`border-0 text-xs ${ACTION_COLORS[rc.status] ?? 'bg-slate-100 text-slate-600'}`}>{rc.status}</Badge></TableCell>
                                             <TableCell>

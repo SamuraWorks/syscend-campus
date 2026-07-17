@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\NationalExamination;
 use App\Models\SchoolClass;
+use App\Models\GradeScale;
 use App\Models\Student;
+use App\Services\GradingService;
 use App\Services\NotificationDispatchService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -205,13 +207,19 @@ class NationalExaminationController extends Controller
             $schoolId = $this->getSchoolId();
             $imported = 0;
 
-            DB::transaction(function () use ($request, $schoolId, &$imported) {
+            $gradeScales = GradeScale::where('school_id', $schoolId)->orderByDesc('min_marks')->get();
+
+            DB::transaction(function () use ($request, $schoolId, $gradeScales, &$imported) {
                 foreach ($request->results as $row) {
-                    $scale = SierraLeoneEducation::getGradeForScore($request->exam_type, (float) $row['total_score']);
+                    $scorePercentage = (float) $row['total_score'];
+                    $matchedScale = $gradeScales->first(fn ($gs) => $scorePercentage >= (float) $gs->min_marks);
+
+                    $overallGrade = $matchedScale?->grade ?? null;
+                    $gpa = (float) ($matchedScale?->gpa ?? 0);
                     $result = match(true) {
-                        ($scale['grade'] ?? '') === 'A1' || ($scale['grade'] ?? '') === 'A' => 'distinction',
-                        in_array($scale['grade'] ?? '', ['B2', 'B3', 'C4', 'C5', 'C6']) => 'credit',
-                        in_array($scale['grade'] ?? '', ['D7', 'E8']) => 'pass',
+                        $gpa >= 4.0 => 'distinction',
+                        $gpa >= 3.0 => 'credit',
+                        $gpa >= 1.0 => 'pass',
                         default => 'fail',
                     };
 
@@ -224,7 +232,7 @@ class NationalExaminationController extends Controller
                         ],
                         [
                             'total_score'    => $row['total_score'],
-                            'overall_grade'  => $scale['grade'] ?? null,
+                            'overall_grade'  => $overallGrade,
                             'overall_result' => $result,
                             'subject_scores' => $row['subject_scores'] ?? null,
                             'status'         => 'results_pending',

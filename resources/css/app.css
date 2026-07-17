@@ -145,3 +145,13 @@
         @apply font-sans;
     }
 }
+
+/* School branding — dynamic sidebar active state */
+.sidebar-active {
+    background-color: var(--school-primary-light, oklch(0.42 0.09 152 / 10%));
+    color: var(--school-primary, oklch(0.42 0.09 152));
+}
+.dark .sidebar-active {
+    background-color: var(--school-primary-light, rgba(255, 255, 255, 0.08));
+    color: var(--school-primary, oklch(0.488 0.243 264.376));
+}

@@ -296,6 +296,59 @@ class ReportCardController extends Controller
         }
     }
 
+    public function unpublish(ReportCard $reportCard): RedirectResponse
+    {
+        if ($reportCard->status !== 'published') {
+            return back()->with('error', 'Only published report cards can be unpublished.');
+        }
+
+        try {
+            $previousState = ['status' => $reportCard->status, 'published_at' => $reportCard->published_at?->toISOString()];
+            $reportCard->update([
+                'status'       => 'approved',
+                'published_at' => null,
+            ]);
+
+            ResultApprovalLog::log(
+                $this->getSchoolId(),
+                $reportCard,
+                auth()->id(),
+                'unpublished',
+                null,
+                $previousState,
+                ['status' => 'approved', 'published_at' => null]
+            );
+
+            return back()->with('success', 'Report card unpublished. Visible only to staff.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Failed to unpublish: ' . $e->getMessage());
+        }
+    }
+
+    public function unpublishAll(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'class_id'  => 'required|exists:classes,id',
+            'term_id'   => 'required|exists:academic_terms,id',
+        ]);
+
+        try {
+            $schoolId = $this->getSchoolId();
+            $count = ReportCard::where('school_id', $schoolId)
+                ->where('class_id', $data['class_id'])
+                ->where('term_id', $data['term_id'])
+                ->where('status', 'published')
+                ->update([
+                    'status'       => 'approved',
+                    'published_at' => null,
+                ]);
+
+            return back()->with('success', "{$count} report cards unpublished.");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Failed to unpublish: ' . $e->getMessage());
+        }
+    }
+
     public function bulkPublish(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -321,6 +374,117 @@ class ReportCardController extends Controller
         }
     }
 
+    public function bulkSubmit(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'class_id'  => 'required|exists:classes,id',
+            'term_id'   => 'required|exists:academic_terms,id',
+        ]);
+
+        try {
+            $schoolId = $this->getSchoolId();
+            $count = ReportCard::where('school_id', $schoolId)
+                ->where('class_id', $data['class_id'])
+                ->where('term_id', $data['term_id'])
+                ->where('status', 'draft')
+                ->update([
+                    'status'       => 'submitted',
+                    'submitted_by' => auth()->id(),
+                    'submitted_at' => now(),
+                ]);
+
+            return back()->with('success', "{$count} report cards submitted for approval.");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Failed to bulk submit: ' . $e->getMessage());
+        }
+    }
+
+    public function bulkApprove(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'class_id'  => 'required|exists:classes,id',
+            'term_id'   => 'required|exists:academic_terms,id',
+        ]);
+
+        try {
+            $schoolId = $this->getSchoolId();
+            $count = ReportCard::where('school_id', $schoolId)
+                ->where('class_id', $data['class_id'])
+                ->where('term_id', $data['term_id'])
+                ->where('status', 'submitted')
+                ->update([
+                    'status'      => 'approved',
+                    'approved_by' => auth()->id(),
+                    'approved_at' => now(),
+                ]);
+
+            return back()->with('success', "{$count} report cards approved.");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Failed to bulk approve: ' . $e->getMessage());
+        }
+    }
+
+    public function history(Request $request): Response
+    {
+        $schoolId = $this->getSchoolId();
+
+        $logs = ResultApprovalLog::where('school_id', $schoolId)
+            ->where('approvable_type', ReportCard::class)
+            ->with('user:id,name')
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
+
+        return Inertia::render('SchoolAdmin/ReportCards/History', [
+            'history' => [
+                'data' => $logs->items(),
+                'meta' => [
+                    'total'        => $logs->total(),
+                    'current_page' => $logs->currentPage(),
+                    'last_page'    => $logs->lastPage(),
+                ],
+                'links' => ['prev' => $logs->previousPageUrl(), 'next' => $logs->nextPageUrl()],
+            ],
+        ]);
+    }
+
+    public function bulkPrint(Request $request)
+    {
+        $data = $request->validate([
+            'class_id'  => 'required|exists:classes,id',
+            'term_id'   => 'required|exists:academic_terms,id',
+            'section_id' => 'nullable|exists:sections,id',
+        ]);
+
+        $schoolId = $this->getSchoolId();
+
+        $reportCards = ReportCard::where('school_id', $schoolId)
+            ->where('class_id', $data['class_id'])
+            ->where('term_id', $data['term_id'])
+            ->where('status', 'published')
+            ->when($data['section_id'] ?? null, fn ($q) => $q->where('section_id', $data['section_id']))
+            ->with(['student:id,first_name,last_name,admission_no', 'schoolClass:id,name', 'section:id,name', 'term:id,name', 'academicYear:id,name'])
+            ->get();
+
+        $school = \App\Models\School::findOrFail($schoolId);
+        $gradeScale = GradeScale::where('school_id', $schoolId)->orderByDesc('min_marks')->get();
+        $activeTemplate = ReportCardTemplate::where('school_id', $schoolId)->where('status', 'active')->first();
+
+        $pdf = Pdf::loadView('report-cards.print-bulk', [
+            'reportCards'  => $reportCards,
+            'school'       => $school,
+            'gradeScale'   => $gradeScale,
+            'template'     => $activeTemplate,
+            'templateConfig' => $activeTemplate?->template_config,
+        ])->setPaper('a4', 'portrait');
+
+        $className = $reportCards->first()?->schoolClass?->name ?? 'class';
+        $termName  = $reportCards->first()?->term?->name ?? 'term';
+        $filename  = "report-cards-{$className}-{$termName}.pdf";
+
+        return $pdf->download($filename);
+    }
+
     public function promoteStudents(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -340,7 +504,13 @@ class ReportCardController extends Controller
             ->first();
 
         if (!$nextClass) {
-            $levels = ['early_childhood', 'primary', 'junior_secondary', 'senior_secondary'];
+            $settings = SchoolSetting::allFor($schoolId);
+            $levels = [];
+            if (($settings['enable_ece'] ?? '1') === '1')     $levels[] = 'early_childhood';
+            if (($settings['enable_primary'] ?? '1') === '1')  $levels[] = 'primary';
+            if (($settings['enable_jss'] ?? '1') === '1')      $levels[] = 'junior_secondary';
+            if (($settings['enable_sss'] ?? '1') === '1')      $levels[] = 'senior_secondary';
+
             $currentIdx = array_search($currentClass->school_level, $levels);
             if ($currentIdx !== false && $currentIdx < count($levels) - 1) {
                 $nextLevel = $levels[$currentIdx + 1];

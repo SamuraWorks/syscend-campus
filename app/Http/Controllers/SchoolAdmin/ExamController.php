@@ -8,6 +8,7 @@ use App\Models\ExamAssessmentLink;
 use App\Models\AssessmentType;
 use App\Models\GradeScale;
 use App\Models\Mark;
+use App\Models\SchoolSetting;
 use App\Models\ResultApprovalLog;
 use App\Models\SchoolClass;
 use App\Models\Section;
@@ -86,18 +87,22 @@ class ExamController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($data) {
+            $schoolId = $this->getSchoolId();
+            $defaultCa = (float) SchoolSetting::get($schoolId, 'ca_weight', 40);
+            $defaultExam = (float) SchoolSetting::get($schoolId, 'exam_weight', 60);
+
+            DB::transaction(function () use ($data, $schoolId, $defaultCa, $defaultExam) {
                 $exam = Exam::create(array_merge($data, [
-                    'school_id'    => $this->getSchoolId(),
+                    'school_id'    => $schoolId,
                     'max_score'    => $data['max_score'] ?? 100,
-                    'ca_weight'    => $data['ca_weight'] ?? 40,
-                    'exam_weight'  => $data['exam_weight'] ?? 60,
+                    'ca_weight'    => $data['ca_weight'] ?? $defaultCa,
+                    'exam_weight'  => $data['exam_weight'] ?? $defaultExam,
                 ]));
 
                 if (!empty($data['assessment_links'])) {
                     foreach ($data['assessment_links'] as $link) {
                         ExamAssessmentLink::create(array_merge($link, [
-                            'school_id' => $this->getSchoolId(),
+                            'school_id' => $schoolId,
                             'exam_id'   => $exam->id,
                         ]));
                     }

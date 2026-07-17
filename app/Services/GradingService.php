@@ -10,9 +10,10 @@ class GradingService
 {
     private Collection $scales;
 
-    public function __construct(int $schoolId)
+    public function __construct(int $schoolId, ?string $schoolLevel = null)
     {
         $this->scales = GradeScale::where('school_id', $schoolId)
+            ->forLevel($schoolLevel)
             ->orderByDesc('min_marks')
             ->get();
     }
@@ -31,7 +32,16 @@ class GradingService
             }
         }
 
-        return ['grade' => 'F', 'gpa' => 0.00, 'remarks' => 'Fail'];
+        if ($this->scales->isNotEmpty()) {
+            $lowest = $this->scales->last();
+            return [
+                'grade'   => $lowest->grade,
+                'gpa'     => (float) $lowest->gpa,
+                'remarks' => $lowest->remarks,
+            ];
+        }
+
+        return ['grade' => 'N/A', 'gpa' => 0.00, 'remarks' => 'No grade scale configured'];
     }
 
     public static function calculateWassce(float $score): array
@@ -118,5 +128,22 @@ class GradingService
             'remarks' => $g['remark'],
             'sort_order' => $i + 1,
         ], SierraLeoneEducation::NPSE_GRADE_SCALE, array_keys(SierraLeoneEducation::NPSE_GRADE_SCALE));
+    }
+
+    public static function seederDefaults(string $schoolLevel): array
+    {
+        return match ($schoolLevel) {
+            'early_childhood' => [
+                ['grade' => 'Excellent',    'gpa' => 5.00, 'min_marks' => 90, 'max_marks' => 100, 'remarks' => 'Excellent',              'sort_order' => 1],
+                ['grade' => 'Very Good',    'gpa' => 4.00, 'min_marks' => 75, 'max_marks' => 89,  'remarks' => 'Very Good',              'sort_order' => 2],
+                ['grade' => 'Good',         'gpa' => 3.00, 'min_marks' => 60, 'max_marks' => 74,  'remarks' => 'Good',                   'sort_order' => 3],
+                ['grade' => 'Fair',         'gpa' => 2.00, 'min_marks' => 40, 'max_marks' => 59,  'remarks' => 'Fair',                   'sort_order' => 4],
+                ['grade' => 'Needs Improvement', 'gpa' => 1.00, 'min_marks' => 0, 'max_marks' => 39, 'remarks' => 'Needs Improvement', 'sort_order' => 5],
+            ],
+            'primary' => self::defaultScales(),
+            'junior_secondary' => self::wassceScales(),
+            'senior_secondary' => self::wassceScales(),
+            default => self::defaultScales(),
+        };
     }
 }

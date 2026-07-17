@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\FeePayment;
+use App\Models\School;
 use App\Models\SchoolSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -42,12 +43,14 @@ class PaymentGatewayService
 
             $accessToken = $tokenResponse->json('access_token');
 
+            $currency = School::find($this->schoolId)?->currency ?? 'SLL';
+
             // Step 2: Initiate payment
             $paymentResponse = Http::withToken($accessToken)
                 ->timeout(15)
                 ->post('https://api.orange.com/orange-money-webpay/dev/v1/webpayment', [
                     'merchant_key'   => $merchantKey,
-                    'currency'       => 'SLL',
+                    'currency'       => $currency,
                     'order_id'       => $reference,
                     'amount'         => $amount,
                     'return_url'     => url("/school/fees/payments/callback?method=orange_money&ref={$reference}"),
@@ -91,6 +94,8 @@ class PaymentGatewayService
         }
 
         try {
+            $currency = School::find($this->schoolId)?->currency ?? 'SLL';
+
             $response = Http::withHeaders([
                 'Authorization' => 'Basic ' . base64_encode("{$appId}:{$appSecret}"),
                 'apikey'        => $apiKey,
@@ -98,7 +103,7 @@ class PaymentGatewayService
             ])->timeout(15)->post('https://openapi.africastalking.com/mobilemoney/checkout/v1/request', [
                 'productName'     => 'SchoolFees',
                 'provider'        => 'OrangeMoneySL',
-                'paymentCurrency' => 'SLL',
+                'paymentCurrency' => $currency,
                 'paymentPhone'    => $phone,
                 'paymentAmount'   => (string) $amount,
                 'narration'       => $description ?: "School fees payment - {$reference}",

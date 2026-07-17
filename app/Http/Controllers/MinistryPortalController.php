@@ -553,7 +553,7 @@ class MinistryPortalController extends Controller
                 'app_name'     => config('app.name'),
                 'app_env'      => config('app.env'),
                 'timezone'     => config('app.timezone'),
-                'currency'     => config('app.currency', 'SLL'),
+                'currency'     => School::first()?->currency ?? 'SLL',
             ],
         ]);
     }

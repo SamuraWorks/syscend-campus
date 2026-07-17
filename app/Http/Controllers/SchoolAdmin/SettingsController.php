@@ -72,6 +72,10 @@ class SettingsController extends Controller
                 $school->update(['logo' => $path]);
             }
 
+            if ($request->has('primary_color')) {
+                $school->update(['primary_color' => $request->input('primary_color')]);
+            }
+
             if ($request->hasFile('favicon')) {
                 $old = SchoolSetting::get($sid, 'favicon');
                 if ($old) Storage::disk('public')->delete($old);
@@ -79,7 +83,7 @@ class SettingsController extends Controller
                 SchoolSetting::set($sid, 'favicon', $path, 'branding');
             }
 
-            foreach (['tagline', 'footer_text', 'primary_color'] as $key) {
+            foreach (['tagline', 'footer_text'] as $key) {
                 if ($request->has($key)) {
                     SchoolSetting::set($sid, $key, $request->input($key), 'branding');
                 }
@@ -101,11 +105,30 @@ class SettingsController extends Controller
             'terms_per_year' => 'nullable|integer|min:1|max:4',
             'grading_scale'  => 'nullable|string|in:percentage,letter,gpa',
             'pass_mark'      => 'nullable|integer|min:0|max:100',
+            'result_show_position'           => 'nullable|string|in:overall,class,subject,none',
+            'result_position_type'           => 'nullable|string|in:rank,position,dense',
+            'result_show_teacher_comment'     => 'nullable|boolean',
+            'result_show_principal_comment'   => 'nullable|boolean',
+            'result_show_form_master_comment' => 'nullable|boolean',
+            'result_show_conduct'            => 'nullable|boolean',
+            'result_show_behaviour'          => 'nullable|boolean',
         ]);
 
         try {
             foreach (['academic_year','year_start','terms_per_year','grading_scale','pass_mark'] as $key) {
                 SchoolSetting::set($sid, $key, $request->input($key), 'academic');
+            }
+
+            $resultSettings = [
+                'result_show_position', 'result_position_type',
+                'result_show_teacher_comment', 'result_show_principal_comment',
+                'result_show_form_master_comment', 'result_show_conduct', 'result_show_behaviour',
+            ];
+            foreach ($resultSettings as $key) {
+                if ($request->has($key)) {
+                    $value = $request->input($key);
+                    SchoolSetting::set($sid, $key, is_bool($value) ? ($value ? '1' : '0') : $value, 'results');
+                }
             }
 
             return back()->with('success', 'Academic settings saved.');

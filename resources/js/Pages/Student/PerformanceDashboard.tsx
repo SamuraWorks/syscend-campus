@@ -5,6 +5,8 @@ import {
     User, GraduationCap, Target, BookOpen, ClipboardCheck, HandHeart, Shield, Award,
     AlertTriangle, TrendingUp, BarChart3, Star, CheckCircle, Trophy, Zap, Sparkles,
 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+import { PageProps } from '@/Types';
 
 interface Props {
     linked: boolean;
@@ -95,6 +97,16 @@ function ProgressBar({ label, value, icon: Icon }: { label: string; value: numbe
 }
 
 export default function PerformanceDashboard({ linked, profile }: Props) {
+    const { schoolConfig } = usePage<PageProps>().props;
+
+    function ordinal(n: number): string {
+        const s = ['th','st','nd','rd'];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    }
+
+    const showPos = schoolConfig?.result_show_position ?? 'none';
+
     if (!linked) {
         return (
             <AppLayout title="My Performance">
@@ -188,18 +200,24 @@ export default function PerformanceDashboard({ linked, profile }: Props) {
                                 {classificationLabels[classification] || classification}
                             </Badge>
                             <div className="mt-4 w-full space-y-2">
-                                {score.class_rank && (
+                                {showPos !== 'none' && showPos !== 'overall' && score.class_rank && (
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-slate-500 dark:text-slate-400">Class Rank</span>
                                         <span className="font-semibold text-slate-800 dark:text-slate-200">
-                                            #{score.class_rank} of {score.total_students_in_class ?? '—'}
+                                            {showPos === 'class' && schoolConfig?.result_position_type === 'position'
+                                                ? `${ordinal(score.class_rank)} of ${score.total_students_in_class ?? '—'}`
+                                                : `#${score.class_rank} of ${score.total_students_in_class ?? '—'}`}
                                         </span>
                                     </div>
                                 )}
-                                {score.school_rank && (
+                                {showPos !== 'none' && showPos !== 'class' && score.school_rank && (
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-slate-500 dark:text-slate-400">School Rank</span>
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200">#{score.school_rank}</span>
+                                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                            {schoolConfig?.result_position_type === 'position'
+                                                ? ordinal(score.school_rank)
+                                                : `#${score.school_rank}`}
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -224,8 +242,12 @@ export default function PerformanceDashboard({ linked, profile }: Props) {
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                        { label: 'Class Rank', value: score?.class_rank ? `#${score.class_rank}` : '—', icon: TrendingUp, color: 'bg-indigo-100 dark:bg-indigo-900/30', iconColor: 'text-indigo-600' },
-                        { label: 'School Rank', value: score?.school_rank ? `#${score.school_rank}` : '—', icon: Trophy, color: 'bg-yellow-100 dark:bg-yellow-900/30', iconColor: 'text-yellow-600' },
+                        ...(showPos !== 'none' && showPos !== 'overall' ? [
+                            { label: 'Class Rank', value: score?.class_rank ? `#${score.class_rank}` : '—', icon: TrendingUp, color: 'bg-indigo-100 dark:bg-indigo-900/30', iconColor: 'text-indigo-600' },
+                        ] : []),
+                        ...(showPos !== 'none' && showPos !== 'class' ? [
+                            { label: 'School Rank', value: score?.school_rank ? `#${score.school_rank}` : '—', icon: Trophy, color: 'bg-yellow-100 dark:bg-yellow-900/30', iconColor: 'text-yellow-600' },
+                        ] : []),
                         { label: 'Alerts', value: pending_alerts, icon: AlertTriangle, color: 'bg-orange-100 dark:bg-orange-900/30', iconColor: 'text-orange-600' },
                         { label: 'Achievements', value: achievements.length, icon: Award, color: 'bg-green-100 dark:bg-green-900/30', iconColor: 'text-green-600' },
                     ].map((item) => (
@@ -387,7 +409,7 @@ export default function PerformanceDashboard({ linked, profile }: Props) {
                                             <th className="text-left py-2 font-medium">Period</th>
                                             <th className="text-center py-2 font-medium">Score</th>
                                             <th className="text-center py-2 font-medium">Classification</th>
-                                            <th className="text-center py-2 font-medium">Class Rank</th>
+                                            {showPos !== 'none' && showPos !== 'overall' && <th className="text-center py-2 font-medium">Class Rank</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -400,7 +422,7 @@ export default function PerformanceDashboard({ linked, profile }: Props) {
                                                         {classificationLabels[h.classification] || h.classification || '—'}
                                                     </Badge>
                                                 </td>
-                                                <td className="py-2 text-center text-slate-600 dark:text-slate-400">{h.class_rank ? `#${h.class_rank}` : '—'}</td>
+                                                {showPos !== 'none' && showPos !== 'overall' && <td className="py-2 text-center text-slate-600 dark:text-slate-400">{h.class_rank ? `#${h.class_rank}` : '—'}</td>}
                                             </tr>
                                         ))}
                                     </tbody>

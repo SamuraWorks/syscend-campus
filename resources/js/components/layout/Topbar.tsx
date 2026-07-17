@@ -28,13 +28,14 @@ interface TopbarProps {
 }
 
 export default function Topbar({ title, breadcrumbs }: TopbarProps) {
-    const { auth } = usePage<PageProps>().props;
+    const { auth, schoolBranding } = usePage<PageProps>().props;
     const { theme, setTheme } = useAuthStore();
     const { toggleSidebar } = useUIStore();
 
     const user = auth.user;
     const roleLabel = user?.role?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) ?? '';
     const roleClass = roleColors[user?.role ?? ''] ?? 'bg-secondary text-secondary-foreground';
+    const primaryColor = schoolBranding?.primary_color;
 
     useEffect(() => {
         const root = document.documentElement;
@@ -48,7 +49,11 @@ export default function Topbar({ title, breadcrumbs }: TopbarProps) {
     }, [theme]);
 
     return (
-        <header className="h-16 flex items-center justify-between px-4 border-b border-border bg-card shrink-0">
+        <header className="relative h-16 flex items-center justify-between px-4 border-b border-border bg-card shrink-0">
+            {/* School branding accent line */}
+            {primaryColor && (
+                <div className="absolute top-0 left-0 right-0 h-0.5" style={{ backgroundColor: primaryColor }} />
+            )}
             {/* Left */}
             <div className="flex items-center gap-3">
                 <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleSidebar}>

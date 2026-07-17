@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\PlatformSetting;
 use App\Models\School;
+use App\Models\SchoolSetting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -64,6 +65,39 @@ class HandleInertiaRequests extends Middleware
                 $school = School::find($user->school_id);
                 if (!$school) return null;
                 return $school->branding;
+            }),
+            'schoolConfig' => fn () => once(function () use ($request) {
+                $user = $request->user();
+                if (!$user || !$user->school_id) return null;
+                $schoolId = $user->school_id;
+                $settings = SchoolSetting::allFor($schoolId);
+                return [
+                    'primary_color'     => School::find($schoolId)?->primary_color,
+                    'secondary_color'   => School::find($schoolId)?->secondary_color,
+                    'currency'          => $settings['currency'] ?? School::find($schoolId)?->currency,
+                    'currency_symbol'   => School::find($schoolId)?->currency_symbol,
+                    'language'          => $settings['language'] ?? 'en',
+                    'terms_per_year'    => (int) ($settings['terms_per_year'] ?? 3),
+                    'ca_weight'         => (float) ($settings['ca_weight'] ?? 40),
+                    'exam_weight'       => (float) ($settings['exam_weight'] ?? 60),
+                    'grading_system'    => $settings['grading_system'] ?? 'wassce',
+                    'pass_mark'         => (int) ($settings['pass_mark'] ?? 50),
+                    'enable_ece'        => ($settings['enable_ece'] ?? '1') === '1',
+                    'enable_primary'    => ($settings['enable_primary'] ?? '1') === '1',
+                    'enable_jss'        => ($settings['enable_jss'] ?? '1') === '1',
+                    'enable_sss'        => ($settings['enable_sss'] ?? '1') === '1',
+                    'section_format'    => $settings['section_format'] ?? 'letter',
+                    'school_level'      => School::find($schoolId)?->school_level,
+                    'school_type'       => School::find($schoolId)?->school_type,
+                    // Result display settings
+                    'result_show_position'            => $settings['result_show_position'] ?? 'overall',
+                    'result_position_type'            => $settings['result_position_type'] ?? 'rank',
+                    'result_show_teacher_comment'     => ($settings['result_show_teacher_comment'] ?? '0') === '1',
+                    'result_show_principal_comment'   => ($settings['result_show_principal_comment'] ?? '0') === '1',
+                    'result_show_form_master_comment' => ($settings['result_show_form_master_comment'] ?? '0') === '1',
+                    'result_show_conduct'            => ($settings['result_show_conduct'] ?? '0') === '1',
+                    'result_show_behaviour'          => ($settings['result_show_behaviour'] ?? '0') === '1',
+                ];
             }),
         ];
     }

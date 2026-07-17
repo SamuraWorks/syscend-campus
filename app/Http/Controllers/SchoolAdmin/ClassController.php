@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SchoolAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SchoolClass;
+use App\Models\SchoolSetting;
 use App\Models\Staff;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,8 +14,21 @@ use Inertia\Response;
 
 class ClassController extends Controller
 {
+    private function getEnabledLevels(int $schoolId): array
+    {
+        $settings = SchoolSetting::allFor($schoolId);
+        $levels = [];
+        if (($settings['enable_ece'] ?? '1') === '1')     $levels[] = 'early_childhood';
+        if (($settings['enable_primary'] ?? '1') === '1')  $levels[] = 'primary';
+        if (($settings['enable_jss'] ?? '1') === '1')      $levels[] = 'junior_secondary';
+        if (($settings['enable_sss'] ?? '1') === '1')      $levels[] = 'senior_secondary';
+        return $levels;
+    }
+
     public function index(Request $request): Response
     {
+        $schoolId = auth()->user()->school_id;
+
         $query = SchoolClass::withCount(['sections', 'subjects', 'students'])
             ->with(['sections' => function ($q) {
                 $q->withCount('students')->orderBy('name');
@@ -50,21 +64,23 @@ class ClassController extends Controller
             ->map(fn ($s) => ['id' => $s->id, 'name' => $s->full_name]);
 
         return Inertia::render('SchoolAdmin/Classes/Index', [
-            'classes' => $classes,
-            'staff'   => $staff,
+            'classes'       => $classes,
+            'staff'         => $staff,
+            'enabledLevels' => $this->getEnabledLevels($schoolId),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $schoolId = auth()->user()->school_id;
+        $enabledLevels = $this->getEnabledLevels($schoolId);
 
         $data = $request->validate([
             'name'            => 'required|string|max:100',
             'short_name'      => 'nullable|string|max:20',
             'numeric_name'    => 'nullable|integer|min:1',
             'capacity'        => 'nullable|integer|min:0',
-            'school_level'    => 'nullable|string|in:early_childhood,primary,junior_secondary,senior_secondary',
+            'school_level'    => ['nullable', 'string', Rule::in($enabledLevels ?: ['early_childhood','primary','junior_secondary','senior_secondary'])],
             'level_order'     => 'nullable|integer|min:0',
             'department_id'   => 'nullable|exists:departments,id',
             'class_teacher_id'=> 'nullable|exists:staff,id',
@@ -79,6 +95,7 @@ class ClassController extends Controller
             return back()->withErrors(['name' => 'A class with this name already exists.'])->withInput();
         }
 
+        $data['school_id'] = $schoolId;
         SchoolClass::create($data);
 
         return back()->with('success', 'Class created.');
@@ -87,13 +104,14 @@ class ClassController extends Controller
     public function update(Request $request, SchoolClass $class): RedirectResponse
     {
         $schoolId = auth()->user()->school_id;
+        $enabledLevels = $this->getEnabledLevels($schoolId);
 
         $data = $request->validate([
             'name'            => 'required|string|max:100',
             'short_name'      => 'nullable|string|max:20',
             'numeric_name'    => 'nullable|integer|min:1',
             'capacity'        => 'nullable|integer|min:0',
-            'school_level'    => 'nullable|string|in:early_childhood,primary,junior_secondary,senior_secondary',
+            'school_level'    => ['nullable', 'string', Rule::in($enabledLevels ?: ['early_childhood','primary','junior_secondary','senior_secondary'])],
             'level_order'     => 'nullable|integer|min:0',
             'department_id'   => 'nullable|exists:departments,id',
             'class_teacher_id'=> 'nullable|exists:staff,id',

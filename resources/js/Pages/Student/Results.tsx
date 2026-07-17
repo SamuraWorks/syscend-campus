@@ -12,14 +12,7 @@ interface Props {
     exams: ExamResult[];
 }
 
-function gradeColor(g: string | null) {
-    if (!g) return 'text-slate-400';
-    const first = g[0].toUpperCase();
-    if (first === 'A') return 'text-green-600';
-    if (first === 'B') return 'text-blue-600';
-    if (first === 'C') return 'text-amber-600';
-    return 'text-red-600';
-}
+import { gradeColor } from '@/lib/gradeColor';
 
 export default function Results({ linked, student, exams }: Props) {
     if (!linked) {

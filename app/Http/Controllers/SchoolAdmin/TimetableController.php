@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\SchoolAdmin;
 
 use App\Http\Controllers\Controller;
-use App\Models\{AcademicYear, SchedulePeriod, SchoolClass, Section, Staff, Subject, Timetable};
+use App\Models\{AcademicYear, SchedulePeriod, School, SchoolClass, Section, Staff, Subject, Timetable};
 use Illuminate\Http\{JsonResponse, RedirectResponse, Request};
 use Inertia\Inertia;
 use Inertia\Response;
@@ -52,6 +52,11 @@ class TimetableController extends Controller
             $grid[$p->day_of_week][$p->start_time] = $p;
         }
 
+        $school = School::find($schoolId);
+        $days = !empty($school->working_days)
+            ? array_map('trim', explode(',', $school->working_days))
+            : ['monday','tuesday','wednesday','thursday','friday'];
+
         return Inertia::render('SchoolAdmin/Timetable/Index', [
             'classes'      => SchoolClass::orderBy('numeric_name')->get(['id', 'name']),
             'sections'     => Section::orderBy('name')->get(['id', 'class_id', 'name']),
@@ -60,7 +65,7 @@ class TimetableController extends Controller
             'periods'      => $timetableEntries,
             'schedulePeriods' => $periods,
             'grid'         => $grid,
-            'days'         => ['monday','tuesday','wednesday','thursday','friday','saturday'],
+            'days'         => $days,
             'filters'      => ['class_id' => $classId, 'section_id' => $sectionId],
             'hasConfiguredPeriods' => $periods->isNotEmpty() && $periods->first()->id > 0,
         ]);

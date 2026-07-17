@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, CheckCircle, XCircle, Clock, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { usePage } from '@inertiajs/react';
+import { PageProps } from '@/Types';
 
 interface ReportCardSummary {
     id: number; academic_year: string | null; term: string | null;
@@ -16,14 +18,7 @@ interface Props {
     reportCards: ReportCardSummary[]; marksByTerm: TermMarks[][];
 }
 
-function gradeColor(g: string | null) {
-    if (!g) return 'text-slate-400';
-    const first = g[0].toUpperCase();
-    if (first === 'A') return 'text-green-600';
-    if (first === 'B') return 'text-blue-600';
-    if (first === 'C') return 'text-amber-600';
-    return 'text-red-600';
-}
+import { gradeColor } from '@/lib/gradeColor';
 
 function ProgressBar({ pct }: { pct: number }) {
     return (
@@ -37,6 +32,14 @@ function ProgressBar({ pct }: { pct: number }) {
 }
 
 export default function AcademicProgress({ linked, student, reportCards, marksByTerm }: Props) {
+    const { schoolConfig } = usePage<PageProps>().props;
+
+    function ordinal(n: number): string {
+        const s = ['th','st','nd','rd'];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    }
+
     if (!linked) {
         return (
             <AppLayout title="Academic Progress">
@@ -100,7 +103,11 @@ export default function AcademicProgress({ linked, student, reportCards, marksBy
                                         <CardTitle className="flex items-center justify-between text-sm font-semibold">
                                             <span>{rc.academic_year} — {rc.term ?? '—'}</span>
                                             <div className="flex items-center gap-3">
-                                                {rc.rank != null && <span className="text-xs text-slate-500">Rank #{rc.rank}</span>}
+                                                {schoolConfig?.result_show_position !== 'none' && rc.rank != null && (
+                                                    <span className="text-xs text-slate-500">
+                                                        {schoolConfig?.result_position_type === 'position' ? ordinal(rc.rank) : `Rank #${rc.rank}`}
+                                                    </span>
+                                                )}
                                                 <span className={cn('text-sm font-bold', gradeColor(rc.grade))}>{rc.grade ?? '—'}</span>
                                             </div>
                                         </CardTitle>

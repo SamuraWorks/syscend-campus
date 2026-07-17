@@ -23,14 +23,7 @@ const statusColor: Record<string, string> = {
     cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
-function gradeColor(g: string | null) {
-    if (!g) return 'text-slate-400';
-    const first = g[0].toUpperCase();
-    if (first === 'A') return 'text-green-600';
-    if (first === 'B') return 'text-blue-600';
-    if (first === 'C') return 'text-amber-600';
-    return 'text-red-600';
-}
+import { gradeColor } from '@/lib/gradeColor';
 
 export default function ExaminationCentre({ linked, student, exams }: Props) {
     if (!linked) {
