@@ -10,7 +10,10 @@ class EnsureSchoolIsConfigured
 {
     private array $allowedPaths = [
         'school-setup',
+        'school/school-setup',
         'school-setup/*',
+        'school/school-setup/*',
+        'school/setup/*',
         'logout',
         'super-admin/*',
     ];
