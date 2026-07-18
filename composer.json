@@ -6,7 +6,7 @@
     "keywords": ["school", "management", "sierra-leone", "education"],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.4",
         "barryvdh/laravel-dompdf": "^3.1",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/framework": "^13.0",
@@ -85,7 +85,7 @@
             "php-http/discovery": true
         },
         "platform": {
-            "php": "8.2.12"
+            "php": "8.4.0"
         }
     },
     "minimum-stability": "stable",
