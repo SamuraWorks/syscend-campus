@@ -106,9 +106,10 @@ class StudentController extends Controller
 
         try {
             $schoolId = $this->getSchoolId();
-            $guardianUser = null;
+            $parentTempPassword = null;
+            $parentUserId = null;
 
-            DB::transaction(function () use ($data, $schoolId) {
+            DB::transaction(function () use ($data, $schoolId, &$parentTempPassword, &$parentUserId) {
                 $guardian = Guardian::create(array_merge(
                     $data['guardian'],
                     ['school_id' => $schoolId],
@@ -130,6 +131,8 @@ class StudentController extends Controller
                         ['parent']
                     );
                     $guardian->update(['user_id' => $result['user']->id]);
+                    $parentTempPassword = $result['temp_password'] ?? null;
+                    $parentUserId = $result['user']->id ?? null;
                 }
             });
 
@@ -151,7 +154,23 @@ class StudentController extends Controller
                 '/school/students'
             );
 
-            return redirect()->route('school.students.index')->with('success', 'Student admitted successfully.');
+            $studentName = $data['first_name'] . ' ' . ($data['last_name'] ?? '');
+            $msg = 'Student admitted successfully.';
+            if ($parentUserId) {
+                $msg .= " Parent account created for {$data['guardian']['name']}. Credentials shown below.";
+            } else {
+                $msg .= ' No parent email provided — guardian contact saved without login access.';
+            }
+
+            $redirect = $parentUserId
+                ? redirect()->route('school.users.show', $parentUserId)
+                : redirect()->route('school.students.index');
+
+            return $redirect
+                ->with('success', $msg)
+                ->with('temp_password', $parentTempPassword)
+                ->with('show_credentials', (bool) $parentTempPassword)
+                ->with('parent_name', $data['guardian']['name']);
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', 'Failed to admit student: ' . $e->getMessage());
         }

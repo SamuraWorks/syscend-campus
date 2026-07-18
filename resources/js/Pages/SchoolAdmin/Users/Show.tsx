@@ -126,7 +126,10 @@ export default function ShowUser({ user, staff, student, auditLogs, allRoles }: 
     }
 
     function handleCopyCredentials() {
-        const text = `Username: ${user.username}\nPassword: ${(flash as Record<string, unknown>)?.temp_password ?? '(check server flash)'}`;
+        const email = user.email ?? '';
+        const username = user.username ?? '';
+        const pwd = String((flash as Record<string, unknown>)?.temp_password ?? '');
+        const text = `Name: ${user.name}\nEmail: ${email}\nUsername: ${username}\nPassword: ${pwd}\n\nLogin: ${window.location.origin}/login\n\nPlease change your password after first login.`;
         navigator.clipboard.writeText(text);
     }
 
@@ -134,12 +137,14 @@ export default function ShowUser({ user, staff, student, auditLogs, allRoles }: 
         const pwd = (flash as Record<string, unknown>)?.temp_password ?? '********';
         const w = window.open('', '_blank');
         if (!w) return;
-        w.document.write(`<html><head><title>Login Credentials</title><style>body{font-family:sans-serif;padding:40px}h2{margin-bottom:8px}p{margin:4px 0;font-size:14px}.label{font-weight:bold}</style></head><body>
-            <h2>School Management System</h2>
-            <p class="label">Login Credentials</p>
-            <p>Username: <strong>${user.username ?? '—'}</strong></p>
-            <p>Password: <strong>${pwd}</strong></p>
-            <p style="margin-top:24px;color:#666;font-size:12px">Please change your password after first login.</p>
+        w.document.write(`<html><head><title>Login Credentials — ${user.name}</title><style>body{font-family:sans-serif;padding:40px}h2{margin-bottom:4px}h3{margin:0 0 16px;color:#666;font-weight:normal}p{margin:4px 0;font-size:14px}.label{font-weight:bold;width:80px;display:inline-block}.note{margin-top:24px;padding:12px;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;font-size:13px;color:#92400e}</style></head><body>
+            <h2>Login Credentials</h2>
+            <h3>${user.name}</h3>
+            <p><span class="label">Email:</span> ${user.email ?? '—'}</p>
+            <p><span class="label">Username:</span> ${user.username ?? '—'}</p>
+            <p><span class="label">Password:</span> <strong>${pwd}</strong></p>
+            <p><span class="label">Login URL:</span> ${window.location.origin}/login</p>
+            <div class="note">Please change your password after first login. Do not share this password.</div>
         </body></html>`);
         w.document.close();
         w.print();
@@ -190,8 +195,13 @@ export default function ShowUser({ user, staff, student, auditLogs, allRoles }: 
                                 <div className="space-y-2 flex-1">
                                     <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
                                         <KeyRound className="w-5 h-5" />
-                                        <h3 className="font-semibold text-sm">Temporary Credentials</h3>
+                                        <h3 className="font-semibold text-sm">
+                                            {flash?.parent_name ? `Parent Credentials — ${flash.parent_name}` : 'Temporary Credentials'}
+                                        </h3>
                                     </div>
+                                    <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
+                                        Copy, print, or email these credentials to the parent. They will be asked to change this password on first login.
+                                    </p>
                                     <div className="space-y-1.5">
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase w-20">Username</span>
@@ -209,6 +219,9 @@ export default function ShowUser({ user, staff, student, auditLogs, allRoles }: 
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-2 shrink-0">
+                                    <Button variant="outline" size="sm" onClick={handleSendWelcome} className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30">
+                                        <Mail className="w-3.5 h-3.5" /> Email
+                                    </Button>
                                     <Button variant="outline" size="sm" onClick={handlePrintCredentials} className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30">
                                         <Printer className="w-3.5 h-3.5" /> Print
                                     </Button>
