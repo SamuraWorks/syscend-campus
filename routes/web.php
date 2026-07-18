@@ -34,6 +34,7 @@ use App\Http\Controllers\SchoolAdmin\StaffController;
 use App\Http\Controllers\SchoolAdmin\StudentController;
 use App\Http\Controllers\SchoolAdmin\SubjectController;
 use App\Http\Controllers\SchoolAdmin\SchoolSetupController;
+use App\Http\Controllers\SchoolAdmin\SetupWizardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SchoolAdmin\SchoolUserController;
 use App\Http\Controllers\SchoolAdmin\SettingsController as SchoolSettingsController;
@@ -559,10 +560,12 @@ Route::middleware('auth')->group(function () {
             Route::post('settings/sierra-leone/education',                  [SierraLeoneSettingsController::class, 'saveEducationSystem'])->name('settings.sierra-leone.education');
             Route::post('settings/sierra-leone/levels',                     [SierraLeoneSettingsController::class, 'saveSchoolLevels'])->name('settings.sierra-leone.levels');
 
-            // School Setup Hub
-            Route::get('school-setup',                              [SchoolSetupController::class, 'index'])->name('school-setup');
-            Route::get('setup/progress',                            [SchoolSetupController::class, 'progress'])->name('setup.progress');
-            Route::post('setup/complete',                           [SchoolSetupController::class, 'markComplete'])->name('setup.complete');
+            // School Setup Wizard (9-step)
+            Route::get('school-setup',                              [SetupWizardController::class, 'index'])->name('school-setup');
+            Route::get('setup/progress',                            [SetupWizardController::class, 'progress'])->name('setup.progress');
+            Route::post('setup/complete',                           [SetupWizardController::class, 'complete'])->name('setup.complete');
+            Route::get('setup/{step}',                              [SetupWizardController::class, 'showStep'])->name('setup.show');
+            Route::post('setup/{step}',                             [SetupWizardController::class, 'saveStep'])->name('setup.save');
 
             // School Identity & Branding
             Route::get('school-identity',                              [SchoolIdentityController::class, 'index'])->name('school-identity.index');
