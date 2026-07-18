@@ -252,14 +252,14 @@ export default function SetupWizardIndex() {
         <AppLayout title="School Setup Wizard">
             <Head title="School Setup Wizard" />
             <div className="max-w-7xl mx-auto">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold">School Setup</h1>
-                        <p className="text-sm text-muted-foreground mt-1">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                    <div className="min-w-0">
+                        <h1 className="text-xl sm:text-2xl font-bold">School Setup</h1>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                             {progress?.required_done ?? 0} of {progress?.required_total ?? 0} required steps completed
                         </p>
                     </div>
-                    <Button variant="outline" size="sm" className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                    <Button variant="outline" size="sm" className="md:hidden shrink-0 ml-3" onClick={() => setSidebarOpen(!sidebarOpen)}>
                         Menu
                     </Button>
                 </div>
@@ -268,8 +268,15 @@ export default function SetupWizardIndex() {
                     <aside className={cn(
                         "w-64 shrink-0",
                         "md:block",
-                        sidebarOpen ? "block fixed inset-0 z-40 bg-background p-4 pt-20 overflow-y-auto" : "hidden"
+                        sidebarOpen ? "block fixed inset-y-0 left-0 z-40 bg-background p-4 pt-16 overflow-y-auto shadow-xl" : "hidden"
                     )}>
+                        <div className="flex items-center justify-between mb-4 md:hidden">
+                            <span className="text-sm font-semibold">Steps</span>
+                            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)} className="h-8 w-8">
+                                <span className="sr-only">Close</span>
+                                &times;
+                            </Button>
+                        </div>
                         <nav className="space-y-1">
                             {STEPS.map((step, idx) => {
                                 const done = isCompleted(step.id);
@@ -326,7 +333,7 @@ export default function SetupWizardIndex() {
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-6">
+                            <CardContent className="p-4 sm:p-6">
                                 {stepContent()}
                             </CardContent>
                         </Card>
@@ -336,12 +343,13 @@ export default function SetupWizardIndex() {
                                 variant="outline"
                                 onClick={goBack}
                                 disabled={currentIdx === 0}
+                                size="sm"
                             >
                                 <ChevronLeft className="w-4 h-4 mr-1" /> Back
                             </Button>
                             <div className="flex gap-2">
                                 {!currentStep.required && currentStep.id !== 'ready' && (
-                                    <Button variant="ghost" onClick={goNext}>
+                                    <Button variant="ghost" size="sm" onClick={goNext}>
                                         Skip <SkipForward className="w-4 h-4 ml-1" />
                                     </Button>
                                 )}
@@ -558,7 +566,7 @@ function ProfileStep({ data, onSaved, goNext }: StepProps) {
             </div>
 
             <SectionHeader>Operations</SectionHeader>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Field label="Working Days" error={errors.working_days?.message}>
                     <Input {...register('working_days')} placeholder="Mon,Tue,Wed,Thu,Fri" />
                 </Field>
@@ -788,8 +796,8 @@ function AcademicStructureStep({ data, onSaved, goNext }: StepProps) {
                                     const isFirst = globalIdx === 0;
                                     const isLast = globalIdx === classes.length - 1;
                                     return (
-                                        <div key={cls._key} className="flex items-center gap-1.5 group">
-                                            <div className="flex flex-col shrink-0">
+                                        <div key={cls._key} className="p-2 sm:p-0 sm:flex sm:items-center sm:gap-1.5 group">
+                                            <div className="hidden sm:flex flex-col shrink-0">
                                                 <button
                                                     type="button"
                                                     onClick={() => moveClass(cls._key, 'up')}
@@ -807,27 +815,37 @@ function AcademicStructureStep({ data, onSaved, goNext }: StepProps) {
                                                     <ArrowDown className="w-3 h-3" />
                                                 </button>
                                             </div>
-                                            <Input
-                                                value={cls.name}
-                                                onChange={(e) => updateClass(cls._key, 'name', e.target.value)}
-                                                placeholder="Class name (e.g. Class 1, Grade 1, Form 1)"
-                                                className="flex-1"
-                                            />
-                                            <Input
-                                                value={cls.short_name}
-                                                onChange={(e) => updateClass(cls._key, 'short_name', e.target.value)}
-                                                placeholder="Short name"
-                                                className="w-28"
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => removeClass(cls._key)}
-                                                className="shrink-0 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
+                                            <div className="flex items-center gap-2 sm:flex-1">
+                                                <div className="flex items-center gap-1 sm:hidden shrink-0">
+                                                    <button type="button" onClick={() => moveClass(cls._key, 'up')} disabled={isFirst} className={cn("p-1 rounded", isFirst && "opacity-30")}>
+                                                        <ArrowUp className="w-3 h-3" />
+                                                    </button>
+                                                    <button type="button" onClick={() => moveClass(cls._key, 'down')} disabled={isLast} className={cn("p-1 rounded", isLast && "opacity-30")}>
+                                                        <ArrowDown className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                                <Input
+                                                    value={cls.name}
+                                                    onChange={(e) => updateClass(cls._key, 'name', e.target.value)}
+                                                    placeholder="Class name (e.g. Class 1, Grade 1, Form 1)"
+                                                    className="flex-1 min-w-0"
+                                                />
+                                                <Input
+                                                    value={cls.short_name}
+                                                    onChange={(e) => updateClass(cls._key, 'short_name', e.target.value)}
+                                                    placeholder="Short"
+                                                    className="w-20 sm:w-28 shrink-0"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => removeClass(cls._key)}
+                                                    className="shrink-0 text-destructive hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -912,12 +930,14 @@ function StreamsStep({ data, onSaved, goNext }: StepProps) {
                 </div>
                 <div className="space-y-2">
                     {departments.map((dept) => (
-                        <div key={dept._key} className="flex items-center gap-2">
+                        <div key={dept._key} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                             <Input value={dept.name} onChange={(e) => updateDept(dept._key, 'name', e.target.value)} placeholder="Department name" className="flex-1" />
-                            <Input value={dept.code} onChange={(e) => updateDept(dept._key, 'code', e.target.value)} placeholder="Code" className="w-24" />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removeDept(dept._key)} className="shrink-0 text-destructive hover:text-destructive">
-                                <Trash2 className="w-4 h-4" />
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Input value={dept.code} onChange={(e) => updateDept(dept._key, 'code', e.target.value)} placeholder="Code" className="w-full sm:w-24" />
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeDept(dept._key)} className="shrink-0 text-destructive hover:text-destructive">
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -929,27 +949,29 @@ function StreamsStep({ data, onSaved, goNext }: StepProps) {
                         <SectionHeader>Class Sections</SectionHeader>
                         <div className="flex gap-2">
                             <Button type="button" variant="outline" size="sm" onClick={autoFillSections}>
-                                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Auto-fill
+                                <RotateCcw className="w-3.5 h-3.5 mr-1 hidden sm:inline" /> Auto-fill
                             </Button>
                             <Button type="button" variant="outline" size="sm" onClick={addSection}>
                                 <Plus className="w-3.5 h-3.5 mr-1" /> Add
                             </Button>
                         </div>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         {sections.map((sec) => (
-                            <div key={sec._key} className="flex items-center gap-2">
+                            <div key={sec._key} className="p-3 border rounded-lg space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
                                 <Select value={String(sec.class_id)} onValueChange={(v) => updateSection(sec._key, 'class_id', Number(v))}>
-                                    <SelectTrigger className="w-48"><SelectValue placeholder="Class" /></SelectTrigger>
+                                    <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Class" /></SelectTrigger>
                                     <SelectContent>
                                         {sssClasses.map((c: any) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <Input value={sec.name} onChange={(e) => updateSection(sec._key, 'name', e.target.value)} placeholder="Section name" className="flex-1" />
-                                <Input value={sec.section_code} onChange={(e) => updateSection(sec._key, 'section_code', e.target.value)} placeholder="Code" className="w-20" />
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeSection(sec._key)} className="shrink-0 text-destructive hover:text-destructive">
-                                    <Trash2 className="w-4 h-4" />
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Input value={sec.section_code} onChange={(e) => updateSection(sec._key, 'section_code', e.target.value)} placeholder="Code" className="w-full sm:w-20" />
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeSection(sec._key)} className="shrink-0 text-destructive hover:text-destructive">
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -1035,9 +1057,15 @@ function AcademicYearStep({ data, onSaved, goNext }: StepProps) {
                                 <Trash2 className="w-4 h-4" />
                             </Button>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <Input type="date" value={term.start_date} onChange={(e) => updateTerm(term._key, 'start_date', e.target.value)} />
-                            <Input type="date" value={term.end_date} onChange={(e) => updateTerm(term._key, 'end_date', e.target.value)} />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <span className="text-xs text-muted-foreground">Start</span>
+                                <Input type="date" value={term.start_date} onChange={(e) => updateTerm(term._key, 'start_date', e.target.value)} className="mt-1" />
+                            </div>
+                            <div>
+                                <span className="text-xs text-muted-foreground">End</span>
+                                <Input type="date" value={term.end_date} onChange={(e) => updateTerm(term._key, 'end_date', e.target.value)} className="mt-1" />
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -1119,21 +1147,23 @@ function AssessmentStep({ data, onSaved, goNext }: StepProps) {
             </div>
 
             <SectionHeader>Coursework Components</SectionHeader>
-            <div className="space-y-2">
+            <div className="space-y-3">
                 {coursework.map((comp) => (
-                    <div key={comp._key} className="flex items-center gap-2">
+                    <div key={comp._key} className="p-3 border rounded-lg space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
                         <Input value={comp.name} onChange={(e) => updateComponent(comp._key, 'name', e.target.value)} placeholder="Name" className="flex-1" />
-                        <div className="flex items-center gap-1 w-24">
-                            <Input type="number" min={0} max={100} value={comp.weight_percentage} onChange={(e) => updateComponent(comp._key, 'weight_percentage', Number(e.target.value))} className="w-16" />
-                            <span className="text-xs text-muted-foreground">%</span>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                                <Input type="number" min={0} max={100} value={comp.weight_percentage} onChange={(e) => updateComponent(comp._key, 'weight_percentage', Number(e.target.value))} className="w-16" />
+                                <span className="text-xs text-muted-foreground">%</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <Input type="number" min={1} value={comp.max_marks} onChange={(e) => updateComponent(comp._key, 'max_marks', Number(e.target.value))} className="w-16" />
+                                <span className="text-xs text-muted-foreground hidden sm:inline">marks</span>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeComponent(comp._key)} className="shrink-0 text-destructive hover:text-destructive">
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
                         </div>
-                        <div className="flex items-center gap-1 w-24">
-                            <Input type="number" min={1} value={comp.max_marks} onChange={(e) => updateComponent(comp._key, 'max_marks', Number(e.target.value))} className="w-16" />
-                            <span className="text-xs text-muted-foreground">marks</span>
-                        </div>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeComponent(comp._key)} className="shrink-0 text-destructive hover:text-destructive">
-                            <Trash2 className="w-4 h-4" />
-                        </Button>
                     </div>
                 ))}
                 <Button type="button" variant="outline" size="sm" onClick={() => addComponent('coursework')}>
@@ -1142,21 +1172,23 @@ function AssessmentStep({ data, onSaved, goNext }: StepProps) {
             </div>
 
             <SectionHeader>Examination Components</SectionHeader>
-            <div className="space-y-2">
+            <div className="space-y-3">
                 {examination.map((comp) => (
-                    <div key={comp._key} className="flex items-center gap-2">
+                    <div key={comp._key} className="p-3 border rounded-lg space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
                         <Input value={comp.name} onChange={(e) => updateComponent(comp._key, 'name', e.target.value)} placeholder="Name" className="flex-1" />
-                        <div className="flex items-center gap-1 w-24">
-                            <Input type="number" min={0} max={100} value={comp.weight_percentage} onChange={(e) => updateComponent(comp._key, 'weight_percentage', Number(e.target.value))} className="w-16" />
-                            <span className="text-xs text-muted-foreground">%</span>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                                <Input type="number" min={0} max={100} value={comp.weight_percentage} onChange={(e) => updateComponent(comp._key, 'weight_percentage', Number(e.target.value))} className="w-16" />
+                                <span className="text-xs text-muted-foreground">%</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <Input type="number" min={1} value={comp.max_marks} onChange={(e) => updateComponent(comp._key, 'max_marks', Number(e.target.value))} className="w-16" />
+                                <span className="text-xs text-muted-foreground hidden sm:inline">marks</span>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeComponent(comp._key)} className="shrink-0 text-destructive hover:text-destructive">
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
                         </div>
-                        <div className="flex items-center gap-1 w-24">
-                            <Input type="number" min={1} value={comp.max_marks} onChange={(e) => updateComponent(comp._key, 'max_marks', Number(e.target.value))} className="w-16" />
-                            <span className="text-xs text-muted-foreground">marks</span>
-                        </div>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeComponent(comp._key)} className="shrink-0 text-destructive hover:text-destructive">
-                            <Trash2 className="w-4 h-4" />
-                        </Button>
                     </div>
                 ))}
                 <Button type="button" variant="outline" size="sm" onClick={() => addComponent('examination')}>
@@ -1257,30 +1289,34 @@ function SubjectsStep({ data, onSaved, goNext }: StepProps) {
             {filteredSubjects.length === 0 ? (
                 <EmptyState message={`No subjects for this class. Click "Add Subject" to create one.`} />
             ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                     {filteredSubjects.map((sub) => (
-                        <div key={sub._key} className="flex items-center gap-2">
+                        <div key={sub._key} className="p-3 border rounded-lg space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
                             <Input value={sub.name} onChange={(e) => updateSubject(sub._key, 'name', e.target.value)} placeholder="Subject name" className="flex-1" />
-                            <Input value={sub.code} onChange={(e) => updateSubject(sub._key, 'code', e.target.value)} placeholder="Code" className="w-20" />
-                            {departments.length > 0 && (
-                                <Select value={String(sub.department_id || '')} onValueChange={(v) => updateSubject(sub._key, 'department_id', v ? Number(v) : null)}>
-                                    <SelectTrigger className="w-40"><SelectValue placeholder="Dept" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="">None</SelectItem>
-                                        {departments.map((d: any) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                <Checkbox
-                                    checked={sub.is_core}
-                                    onCheckedChange={(v) => updateSubject(sub._key, 'is_core', !!v)}
-                                />
-                                <span className="text-xs text-muted-foreground">Core</span>
+                            <div className="flex items-center gap-2">
+                                <Input value={sub.code} onChange={(e) => updateSubject(sub._key, 'code', e.target.value)} placeholder="Code" className="w-full sm:w-20" />
+                                {departments.length > 0 && (
+                                    <Select value={String(sub.department_id || '')} onValueChange={(v) => updateSubject(sub._key, 'department_id', v ? Number(v) : null)}>
+                                        <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Dept" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="">None</SelectItem>
+                                            {departments.map((d: any) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             </div>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => removeSubject(sub._key)} className="shrink-0 text-destructive hover:text-destructive">
-                                <Trash2 className="w-4 h-4" />
-                            </Button>
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5">
+                                    <Checkbox
+                                        checked={sub.is_core}
+                                        onCheckedChange={(v) => updateSubject(sub._key, 'is_core', !!v)}
+                                    />
+                                    <span className="text-xs text-muted-foreground">Core</span>
+                                </div>
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeSubject(sub._key)} className="shrink-0 text-destructive hover:text-destructive">
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -1366,7 +1402,7 @@ function GradingStep({ data, onSaved, goNext }: StepProps) {
                 </Button>
             </div>
             <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm hidden md:table">
                     <thead>
                         <tr className="border-b text-muted-foreground">
                             <th className="text-left py-2 pr-2">Grade</th>
@@ -1394,6 +1430,26 @@ function GradingStep({ data, onSaved, goNext }: StepProps) {
                         ))}
                     </tbody>
                 </table>
+                <div className="md:hidden space-y-3">
+                    {gradeScale.map((g) => (
+                        <div key={g._key} className="p-3 border rounded-lg space-y-2">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Input value={g.grade} onChange={(e) => updateGrade(g._key, 'grade', e.target.value)} className="w-16 text-center font-bold" placeholder="A" />
+                                    <Input type="number" step="0.1" min={0} max={5} value={g.gpa} onChange={(e) => updateGrade(g._key, 'gpa', Number(e.target.value))} className="w-16" placeholder="GPA" />
+                                </div>
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeGrade(g._key)} className="text-destructive hover:text-destructive">
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Input type="number" min={0} max={100} value={g.min_marks} onChange={(e) => updateGrade(g._key, 'min_marks', Number(e.target.value))} placeholder="Min %" />
+                                <Input type="number" min={0} max={100} value={g.max_marks} onChange={(e) => updateGrade(g._key, 'max_marks', Number(e.target.value))} placeholder="Max %" />
+                            </div>
+                            <Input value={g.remarks} onChange={(e) => updateGrade(g._key, 'remarks', e.target.value)} placeholder="Remarks (e.g. Excellent)" />
+                        </div>
+                    ))}
+                </div>
             </div>
 
             <SubmitButton saving={saving} />
@@ -1462,17 +1518,17 @@ function BrandingStep({ data, onSaved, goNext }: StepProps) {
     return (
         <form onSubmit={onSubmit} className="space-y-6">
             <SectionHeader>School Colors</SectionHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Primary Color">
                     <div className="flex items-center gap-3">
-                        <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-10 h-10 rounded cursor-pointer" />
-                        <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-32" />
+                        <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-10 h-10 rounded cursor-pointer shrink-0" />
+                        <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="flex-1 sm:w-32" />
                     </div>
                 </Field>
                 <Field label="Secondary Color">
                     <div className="flex items-center gap-3">
-                        <input type="color" value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)} className="w-10 h-10 rounded cursor-pointer" />
-                        <Input value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)} className="w-32" />
+                        <input type="color" value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)} className="w-10 h-10 rounded cursor-pointer shrink-0" />
+                        <Input value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)} className="flex-1 sm:w-32" />
                     </div>
                 </Field>
             </div>
@@ -1485,7 +1541,7 @@ function BrandingStep({ data, onSaved, goNext }: StepProps) {
             </div>
 
             <SectionHeader>Documents & Images</SectionHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FileUpload label="School Logo" file={logoFile} setFile={setLogoFile} inputRef={logoRef} existingUrl={existing.logo} />
                 <FileUpload label="School Badge" file={badgeFile} setFile={setBadgeFile} inputRef={badgeRef} existingUrl={existing.badge} />
                 <FileUpload label="Official Stamp" file={stampFile} setFile={setStampFile} inputRef={stampRef} existingUrl={existing.official_stamp} />
