@@ -4,20 +4,25 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class AdminSeeder extends Seeder
 {
     public function run(): void
     {
+        $password = Str::random(16);
+
         // ── Super Admin (platform owner) ──────────────────────────
         $superAdmin = User::firstOrCreate(
             ['email' => 'syscend@gmail.com'],
             [
                 'name'     => 'Super Admin',
-                'password' => bcrypt('password'),
+                'password' => bcrypt($password),
                 'phone'    => '+23279630777',
                 'status'   => 'active',
+                'is_temporary_password' => true,
+                'must_change_password' => true,
             ]
         );
         $superAdmin->assignRole('super-admin');
@@ -27,9 +32,11 @@ class AdminSeeder extends Seeder
             ['email' => 'ministry@syscend.com'],
             [
                 'name'     => 'Ministry Admin',
-                'password' => bcrypt('password'),
+                'password' => bcrypt($password),
                 'phone'    => '+23279630777',
                 'status'   => 'active',
+                'is_temporary_password' => true,
+                'must_change_password' => true,
             ]
         );
         $ministryAdmin->assignRole('ministry-admin');
@@ -39,9 +46,11 @@ class AdminSeeder extends Seeder
             ['email' => 'district@syscend.com'],
             [
                 'name'     => 'District Officer',
-                'password' => bcrypt('password'),
+                'password' => bcrypt($password),
                 'phone'    => '+23279630777',
                 'status'   => 'active',
+                'is_temporary_password' => true,
+                'must_change_password' => true,
             ]
         );
         $districtOfficer->assignRole('district-officer');
@@ -50,6 +59,7 @@ class AdminSeeder extends Seeder
         $this->command->info('  Super Admin       : syscend@gmail.com');
         $this->command->info('  Ministry Admin    : ministry@syscend.com');
         $this->command->info('  District Officer  : district@syscend.com');
-        $this->command->info('  Password for all  : password');
+        $this->command->info('  Temporary password: ' . $password);
+        $this->command->warn('  IMPORTANT: Users must change their password on first login.');
     }
 }

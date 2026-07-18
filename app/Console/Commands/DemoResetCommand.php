@@ -12,6 +12,11 @@ class DemoResetCommand extends Command
 
     public function handle(): int
     {
+        if (app()->environment('production')) {
+            $this->error('This command cannot be run in production.');
+            return self::FAILURE;
+        }
+
         $this->info('');
         $this->info('╔══════════════════════════════════════════════╗');
         $this->info('║   Syscend Campus — Demo Environment Reset   ║');

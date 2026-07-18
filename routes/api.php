@@ -28,7 +28,11 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/payments/webhook/orange-money', function (Request $request) {
-        \Log::info('Orange Money webhook received', $request->all());
+        \Log::info('Orange Money webhook received', [
+            'transaction_id' => $request->input('data?.transactionId') ?? 'unknown',
+            'status' => $request->input('data?.status') ?? 'unknown',
+            'timestamp' => now()->toIso8601String(),
+        ]);
         return response()->json(['status' => 'received']);
     });
 

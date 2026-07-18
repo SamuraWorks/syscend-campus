@@ -3,6 +3,7 @@
 Thumbs.db
 .env
 .env.backup
+.env.production
 
 auth.json
 /.claude
@@ -25,3 +26,6 @@ auth.json
 /vendor
 /phpunit.xml
 /tests
+/deploy
+/deploy.sh
+/geniusSchoolManagement
