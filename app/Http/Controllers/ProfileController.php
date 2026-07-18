@@ -125,10 +125,14 @@ class ProfileController extends Controller
             'password'         => ['required', 'confirmed', Password::min(8)],
         ]);
 
-        auth()->user()->update([
-            'password' => Hash::make($data['password']),
+        $user = auth()->user();
+        $user->update([
+            'password'              => Hash::make($data['password']),
+            'is_temporary_password' => false,
+            'must_change_password'  => false,
+            'password_changed_at'   => now(),
         ]);
 
-        return back()->with('success', 'Password changed successfully.');
+        return back()->with('success', 'Password changed successfully. You can now access the full dashboard.');
     }
 }

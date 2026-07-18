@@ -178,7 +178,7 @@ class UserCreationService
 
         try {
             $loginUrl = url('/login');
-            $schoolName = 'Syscend Campus';
+            $schoolName = \App\Models\School::where('id', $this->schoolId)->value('name') ?? config('app.name', 'Syscend Campus');
 
             Mail::raw(
                 "Welcome to {$schoolName}\n\n" .
