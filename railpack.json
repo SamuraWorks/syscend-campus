@@ -5,7 +5,8 @@
         "libpng-dev",
         "libjpeg-dev",
         "libfreetype6-dev",
-        "libgd-dev"
+        "libgd-dev",
+        "libpq-dev"
     ],
     "steps": {
         "build": {
