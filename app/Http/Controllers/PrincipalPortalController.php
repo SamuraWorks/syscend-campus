@@ -687,7 +687,7 @@ class PrincipalPortalController extends Controller
         $conflicts = Timetable::where('school_id', $schoolId)
             ->select('teacher_id', 'day_of_week', 'start_time', 'end_time', DB::raw('count(*) as cnt'))
             ->groupBy('teacher_id', 'day_of_week', 'start_time', 'end_time')
-            ->having('cnt', '>', 1)
+            ->havingRaw('count(*) > ?', [1])
             ->with('teacher:id,first_name,last_name')
             ->get()
             ->map(fn ($c) => [
@@ -1081,6 +1081,126 @@ class PrincipalPortalController extends Controller
                 'file_url'  => $d->file_url,
                 'date'      => $d->created_at->format('d M Y'),
             ]),
+        ]);
+    }
+
+    /* ─────────────────────────────────────────────
+       APPROVALS
+    ───────────────────────────────────────────── */
+
+    public function approvals()
+    {
+        $principal = $this->resolvePrincipal();
+        if (! $principal) return $this->notLinked('Principal/Approvals');
+
+        $schoolId = $principal->school_id;
+
+        $pendingExams = Exam::where('school_id', $schoolId)
+            ->where('status', 'published')
+            ->whereNotNull('submitted_at')
+            ->whereNull('approved_at')
+            ->with(['schoolClass:id,name', 'submittedByUser:id,name'])
+            ->orderByDesc('submitted_at')
+            ->get()
+            ->map(fn ($e) => [
+                'id'            => $e->id,
+                'name'          => $e->name,
+                'type'          => $e->type,
+                'class'         => $e->schoolClass?->name,
+                'start_date'    => $e->start_date?->format('d M Y'),
+                'end_date'      => $e->end_date?->format('d M Y'),
+                'submitted_by'  => $e->submittedByUser?->name,
+                'submitted_at'  => $e->submitted_at?->format('d M Y H:i'),
+            ]);
+
+        $approvalHistory = Exam::where('school_id', $schoolId)
+            ->whereIn('status', ['approved', 'rejected'])
+            ->with(['schoolClass:id,name', 'approvedByUser:id,name'])
+            ->orderByDesc('updated_at')
+            ->limit(20)
+            ->get()
+            ->map(fn ($e) => [
+                'id'           => $e->id,
+                'name'         => $e->name,
+                'type'         => $e->type,
+                'class'        => $e->schoolClass?->name,
+                'status'       => $e->status,
+                'approved_by'  => $e->approvedByUser?->name,
+                'approved_at'  => $e->approved_at?->format('d M Y H:i'),
+            ]);
+
+        return Inertia::render('Principal/Approvals', [
+            'linked'           => true,
+            'pendingExams'     => $pendingExams,
+            'approvalHistory'  => $approvalHistory,
+        ]);
+    }
+
+    public function approveExam(Request $request, Exam $exam)
+    {
+        $principal = $this->resolvePrincipal();
+        if (! $principal) return back()->with('error', 'Account not linked');
+
+        abort_unless($exam->school_id === $principal->school_id, 403);
+
+        $exam->update([
+            'status'      => 'approved',
+            'approved_by' => auth()->id(),
+            'approved_at' => now(),
+        ]);
+
+        return back()->with('success', "Exam \"{$exam->name}\" approved.");
+    }
+
+    public function rejectExam(Request $request, Exam $exam)
+    {
+        $principal = $this->resolvePrincipal();
+        if (! $principal) return back()->with('error', 'Account not linked');
+
+        abort_unless($exam->school_id === $principal->school_id, 403);
+
+        $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $exam->update([
+            'status'        => 'rejected',
+            'approved_by'   => null,
+            'approved_at'   => null,
+            'submitted_by'  => null,
+            'submitted_at'  => null,
+        ]);
+
+        return back()->with('success', "Exam \"{$exam->name}\" rejected. It has been returned to draft status.");
+    }
+
+    /* ─────────────────────────────────────────────
+       AUDIT LOG
+    ───────────────────────────────────────────── */
+
+    public function auditLog()
+    {
+        $principal = $this->resolvePrincipal();
+        if (! $principal) return $this->notLinked('Principal/AuditLog');
+
+        $schoolId = $principal->school_id;
+
+        $logs = \App\Models\AuditLog::where('school_id', $schoolId)
+            ->with('user:id,name')
+            ->orderByDesc('created_at')
+            ->limit(200)
+            ->get()
+            ->map(fn ($l) => [
+                'id'         => $l->id,
+                'action'     => $l->event,
+                'description'=> $l->event,
+                'user'       => $l->user?->name ?? 'System',
+                'created_at' => $l->created_at->format('d M Y H:i'),
+            ]);
+
+        return Inertia::render('Principal/AuditLog', [
+            'linked' => true,
+            'logs'   => $logs,
         ]);
     }
 }

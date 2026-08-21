@@ -6,6 +6,9 @@ export interface User {
     avatar: string | null;
     avatar_url: string | null;
     role: string | null;
+    roles: string[];
+    activeRole: string;
+    permissions: string[];
     school_id: number | null;
     status: string;
     last_login_at: string | null;

@@ -1,18 +1,41 @@
 import { Link } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { User, ChevronRight, Mail, Phone, Building, Shield, Key } from 'lucide-react';
+import { User, ChevronRight, Mail, Phone, Building, Shield, FileText } from 'lucide-react';
+
+interface PrincipalDocument {
+    id: number;
+    title: string;
+    file_type: string;
+    file_size: string;
+    file_url: string;
+    date: string;
+}
 
 interface Props {
     linked: boolean;
-    profile: {
-        id: number; name: string; email: string | null; phone: string | null;
-        role: string; school_name: string | null; photo_url: string | null;
-        created_at: string;
+    principal: {
+        id: number;
+        full_name: string;
+        emp_id: string;
+        photo_url: string | null;
+        gender: string | null;
+        date_of_birth: string | null;
+        blood_group: string | null;
+        religion: string | null;
+        nationality: string | null;
+        phone: string | null;
+        email: string | null;
+        address: string | null;
+        joining_date: string | null;
+        status: string | null;
+        department: string | null;
+        designation: string | null;
     };
+    documents: PrincipalDocument[];
 }
 
-export default function Profile({ linked, profile }: Props) {
+export default function Profile({ linked, principal, documents }: Props) {
     if (!linked) {
         return (
             <AppLayout title="Profile">
@@ -37,19 +60,19 @@ export default function Profile({ linked, profile }: Props) {
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <User className="w-5 h-5 text-indigo-500" /> My Profile
                     </h1>
-                    <p className="text-sm text-slate-500 mt-0.5">Your account information</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Your personal and professional information</p>
                 </div>
 
                 <div className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white flex items-center gap-5">
                     <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
-                        {profile.photo_url
-                            ? <img src={profile.photo_url} alt={profile.name} className="w-full h-full object-cover" />
+                        {principal.photo_url
+                            ? <img src={principal.photo_url} alt={principal.full_name} className="w-full h-full object-cover" />
                             : <User className="w-10 h-10 text-white/80" />}
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold">{profile.name}</h2>
-                        <p className="text-white/80 text-sm capitalize">{profile.role}</p>
-                        {profile.school_name && <p className="text-white/70 text-xs mt-0.5">{profile.school_name}</p>}
+                        <h2 className="text-xl font-bold">{principal.full_name}</h2>
+                        {principal.designation && <p className="text-white/80 text-sm">{principal.designation}</p>}
+                        <p className="text-white/70 text-xs mt-0.5">Emp ID: {principal.emp_id}</p>
                     </div>
                 </div>
 
@@ -64,21 +87,63 @@ export default function Profile({ linked, profile }: Props) {
                                     <User className="w-4 h-4 text-slate-400 shrink-0" />
                                     <div>
                                         <p className="text-xs text-slate-500">Full Name</p>
-                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{profile.name}</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.full_name}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <User className="w-4 h-4 text-slate-400 shrink-0" />
                                     <div>
-                                        <p className="text-xs text-slate-500">Email</p>
-                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{profile.email ?? '—'}</p>
+                                        <p className="text-xs text-slate-500">Gender</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 capitalize">{principal.gender ?? '—'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Shield className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <div>
+                                        <p className="text-xs text-slate-500">Date of Birth</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.date_of_birth ?? '—'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Shield className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <div>
+                                        <p className="text-xs text-slate-500">Blood Group</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.blood_group ?? '—'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Shield className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <div>
+                                        <p className="text-xs text-slate-500">Religion</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.religion ?? '—'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Building className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <div>
+                                        <p className="text-xs text-slate-500">Nationality</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.nationality ?? '—'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <Phone className="w-4 h-4 text-slate-400 shrink-0" />
                                     <div>
                                         <p className="text-xs text-slate-500">Phone</p>
-                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{profile.phone ?? '—'}</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.phone ?? '—'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <div>
+                                        <p className="text-xs text-slate-500">Email</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.email ?? '—'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Building className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <div>
+                                        <p className="text-xs text-slate-500">Address</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.address ?? '—'}</p>
                                     </div>
                                 </div>
                             </div>
@@ -88,34 +153,80 @@ export default function Profile({ linked, profile }: Props) {
                     <Card>
                         <CardContent className="p-5 space-y-4">
                             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                <Shield className="w-4 h-4 text-violet-500" /> Account Details
+                                <Shield className="w-4 h-4 text-violet-500" /> Professional Information
                             </h3>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-3">
                                     <Shield className="w-4 h-4 text-slate-400 shrink-0" />
                                     <div>
-                                        <p className="text-xs text-slate-500">Role</p>
-                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 capitalize">{profile.role}</p>
+                                        <p className="text-xs text-slate-500">Employee ID</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.emp_id}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <Building className="w-4 h-4 text-slate-400 shrink-0" />
                                     <div>
-                                        <p className="text-xs text-slate-500">School</p>
-                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{profile.school_name ?? '—'}</p>
+                                        <p className="text-xs text-slate-500">Department</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.department ?? '—'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <Key className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <User className="w-4 h-4 text-slate-400 shrink-0" />
                                     <div>
-                                        <p className="text-xs text-slate-500">Member Since</p>
-                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{profile.created_at}</p>
+                                        <p className="text-xs text-slate-500">Designation</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.designation ?? '—'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <div>
+                                        <p className="text-xs text-slate-500">Joining Date</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{principal.joining_date ?? '—'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Shield className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <div>
+                                        <p className="text-xs text-slate-500">Status</p>
+                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 capitalize">{principal.status ?? '—'}</p>
                                     </div>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                 </div>
+
+                <Card>
+                    <CardContent className="p-5 space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-indigo-500" /> Documents
+                        </h3>
+                        {documents.length === 0 ? (
+                            <p className="text-sm text-slate-500">No documents uploaded.</p>
+                        ) : (
+                            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {documents.map((doc) => (
+                                    <a
+                                        key={doc.id}
+                                        href={doc.file_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg px-2 -mx-2 transition-colors"
+                                    >
+                                        <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                                            <FileText className="w-4 h-4 text-indigo-500" />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{doc.title}</p>
+                                            <p className="text-xs text-slate-500">{doc.file_type} · {doc.file_size} · {doc.date}</p>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                                    </a>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
         </AppLayout>
     );

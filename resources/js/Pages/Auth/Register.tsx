@@ -1,208 +1,86 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useState, useMemo } from 'react';
 import { router, usePage, Head, Link } from '@inertiajs/react';
-import { toast } from 'sonner';
-import { useEffect } from 'react';
-
 import AuthLayout from '@/Layouts/AuthLayout';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Search, GraduationCap, ArrowRight } from 'lucide-react';
 import type { PageProps } from '@/Types';
 
-const registerSchema = z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Please enter a valid email address'),
-    phone: z.string().optional(),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    password_confirmation: z.string(),
-}).refine((data) => data.password === data.password_confirmation, {
-    message: 'Passwords do not match',
-    path: ['password_confirmation'],
-});
-
-type RegisterFormData = z.infer<typeof registerSchema>;
+interface School {
+    id: number;
+    name: string;
+    slug: string;
+}
 
 interface RegisterProps extends PageProps {
-    errors?: Record<string, string>;
+    schools: School[];
 }
 
 export default function Register() {
-    const { errors: serverErrors } = usePage<RegisterProps>().props;
+    const { schools, schoolBranding } = usePage<RegisterProps>().props;
+    const [search, setSearch] = useState('');
 
-    const {
-        register,
-        handleSubmit,
-        setError,
-        formState: { errors, isSubmitting },
-    } = useForm<RegisterFormData>({
-        resolver: zodResolver(registerSchema),
-        defaultValues: { name: '', email: '', phone: '', password: '', password_confirmation: '' },
-    });
-
-    useEffect(() => {
-        if (serverErrors) {
-            Object.entries(serverErrors).forEach(([field, message]) => {
-                setError(field as keyof RegisterFormData, { message });
-            });
-        }
-    }, [serverErrors, setError]);
-
-    const onSubmit = (data: RegisterFormData) => {
-        router.post('/register', data, {
-            onError: (errs) => {
-                Object.entries(errs).forEach(([field, message]) => {
-                    setError(field as keyof RegisterFormData, { message });
-                });
-                if (errs.message) toast.error(errs.message);
-            },
-        });
-    };
+    const filtered = useMemo(() => {
+        if (!search.trim()) return schools;
+        const q = search.toLowerCase();
+        return schools.filter((s) => s.name.toLowerCase().includes(q));
+    }, [search, schools]);
 
     return (
         <AuthLayout>
-            <Head title="Create Account" />
+            <Head title="Register" />
 
             <div className="w-full max-w-md">
-                {/* Logo / Branding — tap to go home */}
                 <Link href="/" className="block text-center mb-8">
                     <img
-                        src="/images/logo.jpeg"
-                        alt="Syscend Campus"
+                        src={schoolBranding?.logo_url || "/images/logo.png"}
+                        alt={schoolBranding?.name || "Syscend Campus"}
                         className="inline-block w-16 h-16 rounded-2xl object-cover mb-4 shadow-lg"
                     />
                     <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                        Create your account
+                        Find Your School
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Join Syscend Campus today
+                        Search for your school to register
                     </p>
                 </Link>
 
                 <Card className="shadow-xl border-0 bg-card">
-                    <CardHeader className="space-y-1 pb-4">
-                        <CardTitle className="text-xl font-semibold text-foreground">
-                            Get started
-                        </CardTitle>
-                        <CardDescription className="text-muted-foreground">
-                            Fill in your details to create an account
-                        </CardDescription>
-                    </CardHeader>
+                    <CardContent className="p-6 space-y-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                                type="text"
+                                placeholder="Type your school name..."
+                                className="pl-9 h-10"
+                                autoFocus
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
 
-                    <CardContent>
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-                            {/* Name */}
-                            <div className="space-y-1.5">
-                                <Label htmlFor="name" className="text-sm font-medium text-foreground">
-                                    Full name
-                                </Label>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    autoComplete="name"
-                                    autoFocus
-                                    placeholder="John Doe"
-                                    className="h-10"
-                                    {...register('name')}
-                                />
-                                {errors.name && (
-                                    <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
-                                )}
-                            </div>
-
-                            {/* Email */}
-                            <div className="space-y-1.5">
-                                <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                                    Email address
-                                </Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    placeholder="you@example.com"
-                                    className="h-10"
-                                    {...register('email')}
-                                />
-                                {errors.email && (
-                                    <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
-                                )}
-                            </div>
-
-                            {/* Phone */}
-                            <div className="space-y-1.5">
-                                <Label htmlFor="phone" className="text-sm font-medium text-foreground">
-                                    Phone number <span className="text-muted-foreground font-normal">(optional)</span>
-                                </Label>
-                                <Input
-                                    id="phone"
-                                    type="tel"
-                                    autoComplete="tel"
-                                    placeholder="+232 XX XXX XXXX"
-                                    className="h-10"
-                                    {...register('phone')}
-                                />
-                                {errors.phone && (
-                                    <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>
-                                )}
-                            </div>
-
-                            {/* Password */}
-                            <div className="space-y-1.5">
-                                <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                                    Password
-                                </Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    placeholder="••••••••"
-                                    className="h-10"
-                                    {...register('password')}
-                                />
-                                {errors.password && (
-                                    <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
-                                )}
-                            </div>
-
-                            {/* Confirm Password */}
-                            <div className="space-y-1.5">
-                                <Label htmlFor="password_confirmation" className="text-sm font-medium text-foreground">
-                                    Confirm password
-                                </Label>
-                                <Input
-                                    id="password_confirmation"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    placeholder="••••••••"
-                                    className="h-10"
-                                    {...register('password_confirmation')}
-                                />
-                                {errors.password_confirmation && (
-                                    <p className="text-xs text-red-500 mt-1">{errors.password_confirmation.message}</p>
-                                )}
-                            </div>
-
-                            {/* Submit */}
-                            <Button
-                                type="submit"
-                                className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors mt-2"
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? (
-                                    <span className="flex items-center gap-2">
-                                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                        </svg>
-                                        Creating account…
+                        <div className="space-y-2 max-h-80 overflow-y-auto">
+                            {filtered.length === 0 && (
+                                <p className="text-sm text-muted-foreground text-center py-6">
+                                    No schools found. Try a different search.
+                                </p>
+                            )}
+                            {filtered.map((school) => (
+                                <button
+                                    key={school.id}
+                                    onClick={() => router.get(`/${school.slug}/register`)}
+                                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 transition-all text-left group"
+                                >
+                                    <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:text-indigo-600 transition-colors">
+                                        <GraduationCap className="w-5 h-5" />
+                                    </div>
+                                    <span className="flex-1 text-sm font-medium text-slate-900 dark:text-white truncate">
+                                        {school.name}
                                     </span>
-                                ) : (
-                                    'Create account'
-                                )}
-                            </Button>
-                        </form>
+                                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                                </button>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
 

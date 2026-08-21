@@ -23,6 +23,7 @@ class Staff extends Model
         'phone', 'email', 'address', 'photo',
         'joining_date', 'salary_type', 'salary', 'status', 'notes',
         'teacher_type', 'form_master_section_id', 'form_master_class_id',
+        'claimed_by', 'claimed_at', 'registration_status',
     ];
 
     protected $casts = [
@@ -81,6 +82,25 @@ class Staff extends Model
     public function formMasterClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class, 'form_master_class_id');
+    }
+
+    public function subjectAssignments(): HasMany
+    {
+        return $this->hasMany(TeacherSubjectAssignment::class, 'staff_id');
+    }
+
+    public function activeSubjectAssignments(): HasMany
+    {
+        return $this->hasMany(TeacherSubjectAssignment::class, 'staff_id')
+            ->where('is_active', true);
+    }
+
+    public function assignedSubjects()
+    {
+        return Subject::query()
+            ->whereHas('subjectOfferings.teacherAssignments', fn ($q) => $q
+                ->where('staff_id', $this->id)
+                ->where('is_active', true));
     }
 
     public function isFormMaster(): bool

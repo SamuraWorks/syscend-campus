@@ -2,15 +2,11 @@ import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Megaphone } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { Megaphone, ChevronRight } from 'lucide-react';
 
-interface Announcement {
-    id: number; title: string; body: string;
-    pinned: boolean; date: string | null; author: string | null;
-}
-interface Props {
-    linked: boolean; announcements: Announcement[];
-}
+interface Ann { id: number; title: string; body: string; pinned: boolean; audience: string; author: string | null; date: string | null; }
+interface Props { linked: boolean; announcements: Ann[]; }
 
 export default function WardenAnnouncements({ linked, announcements }: Props) {
     if (!linked) {
@@ -27,6 +23,12 @@ export default function WardenAnnouncements({ linked, announcements }: Props) {
     return (
         <AppLayout title="Announcements">
             <div className="space-y-6">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <Link href="/school/warden/dashboard" className="hover:text-slate-700 dark:hover:text-slate-300">Warden</Link>
+                    <ChevronRight className="w-3 h-3" />
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">Announcements</span>
+                </div>
+
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white">Announcements</h1>
                     <p className="text-sm text-slate-500">{announcements.length} announcement{announcements.length !== 1 ? 's' : ''}</p>
@@ -50,6 +52,7 @@ export default function WardenAnnouncements({ linked, announcements }: Props) {
                                             </div>
                                             <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3">{a.body}</p>
                                             <div className="flex items-center gap-3 mt-2 flex-wrap">
+                                                <Badge variant="secondary" className="text-[10px]">{a.audience}</Badge>
                                                 {a.author && <span className="text-xs text-slate-500">{a.author}</span>}
                                                 {a.date && <span className="text-xs text-slate-400">{a.date}</span>}
                                             </div>

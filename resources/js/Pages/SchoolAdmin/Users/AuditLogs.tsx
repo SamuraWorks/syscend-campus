@@ -24,10 +24,10 @@ export default function AuditLogs({ user, logs }: PageProps) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Date</TableHead>
+                                    <TableHead className="hidden sm:table-cell">Date</TableHead>
                                     <TableHead>Action</TableHead>
                                     <TableHead>Description</TableHead>
-                                    <TableHead>Performer</TableHead>
+                                    <TableHead className="hidden md:table-cell">Performer</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -35,10 +35,10 @@ export default function AuditLogs({ user, logs }: PageProps) {
                                     <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No audit logs found.</TableCell></TableRow>
                                 ) : logs.data.map(log => (
                                     <TableRow key={log.id}>
-                                        <TableCell className="text-sm text-muted-foreground">{new Date(log.created_at).toLocaleString()}</TableCell>
+                                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{new Date(log.created_at).toLocaleString()}</TableCell>
                                         <TableCell><Badge variant="outline">{log.action}</Badge></TableCell>
                                         <TableCell className="text-sm max-w-md truncate">{log.description}</TableCell>
-                                        <TableCell className="text-sm">{log.performer?.name ?? 'System'}</TableCell>
+                                        <TableCell className="hidden md:table-cell text-sm">{log.performer?.name ?? 'System'}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

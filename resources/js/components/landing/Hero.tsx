@@ -16,7 +16,7 @@ export default function Hero() {
             {/* Background image */}
             <div className="absolute inset-0 -z-10">
                 <img
-                    src="/images/hero-bg.jpg"
+                    src="/images/hero-bg.jpeg"
                     alt=""
                     aria-hidden="true"
                     className="size-full object-cover brightness-125 saturate-110"
@@ -25,6 +25,11 @@ export default function Hero() {
             </div>
 
             <div className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-6 pb-16 pt-28 text-center lg:px-10">
+                <img
+                    src="/images/logo.png"
+                    alt="Syscend Campus"
+                    className="h-20 w-auto rounded-2xl object-contain mb-6 shadow-2xl sm:h-24 lg:h-28"
+                />
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-background/35 bg-background/15 px-3 py-1 text-xs font-medium text-background backdrop-blur-sm">
                     <ShieldCheck className="size-3.5" aria-hidden="true" />
                     Secure, cloud-ready school management

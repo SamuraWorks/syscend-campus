@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\BelongsToSchool;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Subject extends Model
@@ -24,5 +25,17 @@ class Subject extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function subjectOfferings(): HasMany
+    {
+        return $this->hasMany(SubjectOffering::class);
+    }
+
+    public function offeringsForYear(int $academicYearId)
+    {
+        return $this->subjectOfferings()
+            ->where('academic_year_id', $academicYearId)
+            ->active();
     }
 }

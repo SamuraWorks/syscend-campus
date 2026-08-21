@@ -145,6 +145,7 @@ class StudentPortalController extends Controller
             ->where('class_id', $student->class_id)
             ->where('section_id', $student->section_id)
             ->where('day_of_week', $dayOfWeek)
+            ->where('status', 'published')
             ->with('subject:id,name')
             ->orderBy('start_time')
             ->get()
@@ -206,6 +207,72 @@ class StudentPortalController extends Controller
             ->first();
     }
 
+    public function subjects()
+    {
+        $student = $this->resolveStudent();
+        if (! $student) return $this->notLinked('Student/Subjects');
+
+        $user = auth()->user();
+        $currentYear = \App\Models\AcademicYear::where('school_id', $user->school_id)
+            ->where('is_current', true)->first();
+
+        $enrollments = \App\Models\StudentSubjectEnrollment::where('school_id', $user->school_id)
+            ->where('student_id', $student->id)
+            ->when($currentYear, fn ($q) => $q->where('academic_year_id', $currentYear->id))
+            ->where('status', 'enrolled')
+            ->with(['subjectOffering' => function ($q) {
+                $q->with(['subject:id,name,code', 'section:id,name']);
+            }])
+            ->get();
+
+        $subjects = $enrollments->map(function ($enrollment) use ($user) {
+            $offering = $enrollment->subjectOffering;
+            if (! $offering) return null;
+
+            $teacherAssignment = \App\Models\TeacherSubjectAssignment::where('school_id', $user->school_id)
+                ->where('subject_offering_id', $offering->id)
+                ->where('is_active', true)
+                ->with(['staff:id,first_name,last_name,phone,email,department_id'])
+                ->first();
+
+            $timetable = \App\Models\Timetable::where('school_id', $user->school_id)
+                ->where('class_id', $offering->class_id)
+                ->where('subject_id', $offering->subject_id)
+                ->where('status', 'published')
+                ->when($offering->section_id, fn ($q) => $q->where('section_id', $offering->section_id))
+                ->get(['day_of_week', 'start_time', 'end_time', 'room']);
+
+            return [
+                'id'            => $offering->id,
+                'subject_name'  => $offering->subject_name,
+                'subject_code'  => $offering->subject_code,
+                'subject_type'  => $offering->subject_type,
+                'class_name'    => $offering->schoolClass?->name,
+                'section_name'  => $offering->section?->name,
+                'teacher'       => $teacherAssignment?->staff ? [
+                    'full_name' => $teacherAssignment->staff->full_name,
+                    'email'     => $teacherAssignment->staff->email,
+                ] : null,
+                'timetable'     => $timetable->map(fn ($t) => [
+                    'day'        => $t->day_of_week,
+                    'start_time' => $t->start_time,
+                    'end_time'   => $t->end_time,
+                    'room'       => $t->room,
+                ]),
+            ];
+        })->filter()->values();
+
+        return Inertia::render('Student/Subjects', [
+            'linked'   => true,
+            'student'  => [
+                'full_name' => $student->full_name,
+                'class'     => $student->schoolClass?->name,
+                'section'   => $student->section?->name,
+            ],
+            'subjects' => $subjects,
+        ]);
+    }
+
     public function timetable()
     {
         $student = $this->resolveStudent();
@@ -218,6 +285,7 @@ class StudentPortalController extends Controller
                 ->where('class_id', $student->class_id)
                 ->where('section_id', $student->section_id)
                 ->where('day_of_week', $day)
+                ->where('status', 'published')
                 ->with('subject:id,name')
                 ->orderBy('start_time')
                 ->get()

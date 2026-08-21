@@ -1,12 +1,13 @@
+import { useEffect } from 'react';
 import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     GraduationCap, Users, ClipboardCheck, BookOpen, BarChart3, Bell,
     Calendar, CheckCircle, FileText, Megaphone, TrendingUp, Wallet,
-    AlertTriangle, Clock, ChevronRight,
+    AlertTriangle, Clock, ChevronRight, RefreshCw,
 } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
 
@@ -33,6 +34,18 @@ export default function PrincipalDashboard({
     linked, staff, academicYear, academicTerm, stats, todayAttendance,
     recentAnnouncements, pendingLeaveCount, feeOverview,
 }: Props) {
+    // Real-time polling — refresh dashboard data every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({
+                only: ['stats', 'todayAttendance', 'recentAnnouncements', 'pendingLeaveCount', 'feeOverview'],
+                preserveScroll: true,
+                preserveState: true,
+            });
+        }, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
     if (!linked || !staff) {
         return (
             <AppLayout title="Principal Dashboard">
@@ -59,10 +72,15 @@ export default function PrincipalDashboard({
     return (
         <AppLayout title="Principal Dashboard">
             <div className="space-y-6">
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <Link href="/school/principal/dashboard" className="hover:text-slate-700 dark:hover:text-slate-300">Principal</Link>
-                    <ChevronRight className="w-3 h-3" />
-                    <span className="text-slate-700 dark:text-slate-300 font-medium">Dashboard</span>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <Link href="/school/principal/dashboard" className="hover:text-slate-700 dark:hover:text-slate-300">Principal</Link>
+                        <ChevronRight className="w-3 h-3" />
+                        <span className="text-slate-700 dark:text-slate-300 font-medium">Dashboard</span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400">
+                        <RefreshCw className="w-3 h-3 animate-spin" /> Live
+                    </span>
                 </div>
 
                 <div className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white flex items-center gap-5">

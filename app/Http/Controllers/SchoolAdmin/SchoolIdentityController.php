@@ -31,7 +31,8 @@ class SchoolIdentityController extends Controller
     }
 
     /**
-     * Save basic school identity (name, short name, motto, colors, type, level, year).
+     * Save school identity fields not covered by the Settings page (motto, type, level, ownership).
+     * Name, email, phone, address, colors are managed by SettingsController.
      */
     public function saveBasic(Request $request)
     {
@@ -39,10 +40,8 @@ class SchoolIdentityController extends Controller
         $school = School::findOrFail($sid);
 
         $data = $request->validate([
-            'name'            => 'required|string|max:200',
             'short_name'      => 'nullable|string|max:50',
             'motto'           => 'nullable|string|max:200',
-            'primary_color'   => 'nullable|string|max:20',
             'secondary_color' => 'nullable|string|max:20',
             'year_established'=> 'nullable|digits:4|integer|min:1800|max:' . date('Y'),
             'school_level'    => 'nullable|in:nursery,primary,junior_secondary,senior_secondary,combined',
@@ -85,7 +84,8 @@ class SchoolIdentityController extends Controller
     }
 
     /**
-     * Save contact information.
+     * Save location-specific contact fields not on the Settings page.
+     * Core contact (email, phone, address) is managed by SettingsController.
      */
     public function saveContact(Request $request)
     {
@@ -93,10 +93,7 @@ class SchoolIdentityController extends Controller
         $school = School::findOrFail($sid);
 
         $data = $request->validate([
-            'email'          => 'nullable|email|max:150',
-            'phone'          => 'nullable|string|max:25',
             'whatsapp_number'=> 'nullable|string|max:25',
-            'address'        => 'nullable|string|max:500',
             'district_name'  => 'nullable|string|max:100',
             'chiefdom'       => 'nullable|string|max:100',
             'province'       => 'nullable|string|max:100',
@@ -151,7 +148,8 @@ class SchoolIdentityController extends Controller
     }
 
     /**
-     * Save academic configuration.
+     * Save school time fields not managed by SchoolTimeSettingsController.
+     * CA/exam weights are managed via SierraLeone settings.
      */
     public function saveAcademic(Request $request)
     {
@@ -162,8 +160,6 @@ class SchoolIdentityController extends Controller
             'working_days'          => 'nullable|string|max:100',
             'school_opening_time'   => 'nullable|string|max:10',
             'school_closing_time'   => 'nullable|string|max:10',
-            'ca_weight'             => 'nullable|numeric|between:0,100',
-            'exam_weight'           => 'nullable|numeric|between:0,100',
         ]);
 
         $old = $school->only(array_keys($data));
@@ -175,7 +171,8 @@ class SchoolIdentityController extends Controller
     }
 
     /**
-     * Save branding assets (logo, badge, banner, signature, stamp).
+     * Save identity-specific branding assets (badge, banner, signature, stamp).
+     * Logo/favicon are managed by SettingsController.
      */
     public function saveBranding(Request $request)
     {
@@ -183,7 +180,6 @@ class SchoolIdentityController extends Controller
         $school = School::findOrFail($sid);
 
         $request->validate([
-            'logo'               => 'nullable|image|max:2048',
             'badge'              => 'nullable|image|max:2048',
             'banner'             => 'nullable|image|max:4096',
             'official_signature' => 'nullable|image|max:1024',
@@ -192,7 +188,7 @@ class SchoolIdentityController extends Controller
 
         $changed = [];
 
-        foreach (['logo', 'badge', 'banner', 'official_signature', 'official_stamp'] as $field) {
+        foreach (['badge', 'banner', 'official_signature', 'official_stamp'] as $field) {
             if ($request->hasFile($field)) {
                 $oldPath = $school->{$field};
                 if ($oldPath) Storage::disk('public')->delete($oldPath);

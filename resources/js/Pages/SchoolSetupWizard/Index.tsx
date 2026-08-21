@@ -134,7 +134,6 @@ export default function SetupWizardIndex() {
     const [stepData, setStepData] = useState<Record<string, unknown>>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const currentStep = STEPS[currentIdx];
 
@@ -176,7 +175,7 @@ export default function SetupWizardIndex() {
         })();
     }, [currentIdx, currentStep, loadStepData]);
 
-    const isCompleted = (id: string) => progress?.steps.find((s) => s.id === id)?.completed ?? false;
+    const isCompleted = (id: string) => progress?.steps?.find((s) => s.id === id)?.completed ?? false;
     const isRequired = (id: string) => STEPS.find((s) => s.id === id)?.required ?? false;
     const canReach = (idx: number) => {
         if (idx <= currentIdx) return true;
@@ -189,7 +188,6 @@ export default function SetupWizardIndex() {
     const goTo = (idx: number) => {
         if (idx >= 0 && idx < STEPS.length) {
             setCurrentIdx(idx);
-            setSidebarOpen(false);
         }
     };
 
@@ -206,7 +204,7 @@ export default function SetupWizardIndex() {
         try {
             await postJson('/school/setup/complete', {});
             toast.success('School setup complete!');
-            router.get('/school/dashboard');
+            router.get('/school/reports/dashboard');
         } catch (e: any) {
             toast.error(e.message);
         } finally {
@@ -259,30 +257,16 @@ export default function SetupWizardIndex() {
                             {progress?.required_done ?? 0} of {progress?.required_total ?? 0} required steps completed
                         </p>
                     </div>
-                    <Button variant="outline" size="sm" className="md:hidden shrink-0 ml-3" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                        Menu
-                    </Button>
                 </div>
 
-                <div className="flex gap-6 relative">
-                    <aside className={cn(
-                        "w-64 shrink-0",
-                        "md:block",
-                        sidebarOpen ? "block fixed inset-y-0 left-0 z-40 bg-background p-4 pt-16 overflow-y-auto shadow-xl" : "hidden"
-                    )}>
-                        <div className="flex items-center justify-between mb-4 md:hidden">
-                            <span className="text-sm font-semibold">Steps</span>
-                            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)} className="h-8 w-8">
-                                <span className="sr-only">Close</span>
-                                &times;
-                            </Button>
-                        </div>
-                        <nav className="space-y-1">
+                <div className="flex gap-6">
+                    {/* Desktop sidebar - always visible */}
+                    <aside className="w-64 shrink-0 hidden md:block">
+                        <nav className="space-y-1 sticky top-4">
                             {STEPS.map((step, idx) => {
                                 const done = isCompleted(step.id);
                                 const active = idx === currentIdx;
                                 const locked = !canReach(idx) && idx !== currentIdx;
-                                const Icon = step.icon;
                                 return (
                                     <button
                                         key={step.id}
@@ -312,11 +296,35 @@ export default function SetupWizardIndex() {
                         </nav>
                     </aside>
 
-                    {sidebarOpen && (
-                        <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
-                    )}
+                    {/* Mobile step indicator - horizontal scrollable pills */}
+                    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border p-3 shadow-lg">
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                            {STEPS.map((step, idx) => {
+                                const done = isCompleted(step.id);
+                                const active = idx === currentIdx;
+                                const locked = !canReach(idx) && idx !== currentIdx;
+                                return (
+                                    <button
+                                        key={step.id}
+                                        onClick={() => !locked && goTo(idx)}
+                                        disabled={locked}
+                                        className={cn(
+                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-colors",
+                                            active && "bg-primary text-primary-foreground",
+                                            !active && done && "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400",
+                                            !active && !done && !locked && "bg-muted text-muted-foreground",
+                                            locked && "opacity-40 cursor-not-allowed",
+                                        )}
+                                    >
+                                        {done && <Check className="w-3 h-3" />}
+                                        {step.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
 
-                    <main className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pb-16 md:pb-0">
                         <Card>
                             <CardHeader className="border-b">
                                 <div className="flex items-center gap-3">
@@ -333,7 +341,7 @@ export default function SetupWizardIndex() {
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-4 sm:p-6">
+                            <CardContent className="p-4 sm:p-6" key={currentStep.id}>
                                 {stepContent()}
                             </CardContent>
                         </Card>
@@ -355,7 +363,7 @@ export default function SetupWizardIndex() {
                                 )}
                             </div>
                         </div>
-                    </main>
+                    </div>
                 </div>
             </div>
         </AppLayout>
@@ -864,7 +872,11 @@ function StreamsStep({ data, onSaved, goNext }: StepProps) {
     const existingDepts = (data as any)?.departments || [];
     const existingSections = (data as any)?.sections || [];
     const sssClasses = (data as any)?.sss_classes || [];
-    const defaults = (data as any)?.defaults || { departments: ['Science', 'Arts', 'Commercial'], sections: ['A', 'B', 'C'] };
+    const rawDefaults = (data as any)?.defaults;
+    const defaults = {
+        departments: (rawDefaults?.departments ?? ['Science', 'Arts', 'Commercial']) as string[],
+        sections: (rawDefaults?.sections ?? ['A', 'B', 'C']) as string[],
+    };
 
     const [departments, setDepartments] = useState<any[]>(
         existingDepts.length > 0

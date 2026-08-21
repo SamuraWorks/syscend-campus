@@ -95,6 +95,7 @@ class TeacherPortalController extends Controller
 
         $assignedSubjects = Timetable::where('school_id', $schoolId)
             ->where('teacher_id', $teacher->id)
+            ->where('status', 'published')
             ->with('subject:id,name')
             ->get()
             ->pluck('subject')
@@ -103,6 +104,7 @@ class TeacherPortalController extends Controller
 
         $assignedClasses = Timetable::where('school_id', $schoolId)
             ->where('teacher_id', $teacher->id)
+            ->where('status', 'published')
             ->with(['schoolClass:id,name', 'section:id,name'])
             ->get()
             ->map(fn ($t) => ['class' => $t->schoolClass?->name, 'section' => $t->section?->name])
@@ -141,6 +143,7 @@ class TeacherPortalController extends Controller
         $timetableToday = Timetable::where('school_id', $schoolId)
             ->where('teacher_id', $teacher->id)
             ->where('day_of_week', strtolower($now->format('l')))
+            ->where('status', 'published')
             ->with(['subject:id,name', 'schoolClass:id,name', 'section:id,name'])
             ->orderBy('start_time')
             ->get()
@@ -231,6 +234,7 @@ class TeacherPortalController extends Controller
 
         $assignedSubjects = Timetable::where('school_id', $schoolId)
             ->where('teacher_id', $teacher->id)
+            ->where('status', 'published')
             ->with('subject:id,name,code')
             ->get()
             ->pluck('subject')
@@ -239,6 +243,7 @@ class TeacherPortalController extends Controller
 
         $teachingLoad = Timetable::where('school_id', $schoolId)
             ->where('teacher_id', $teacher->id)
+            ->where('status', 'published')
             ->with(['subject:id,name', 'schoolClass:id,name', 'section:id,name'])
             ->get()
             ->groupBy(fn ($t) => $t->schoolClass?->name . ' - ' . $t->section?->name)
@@ -277,6 +282,73 @@ class TeacherPortalController extends Controller
             'studentsPerClass' => $studentsPerClass,
             'academicYear'     => $academicYear?->name,
             'academicTerm'     => $academicTerm?->name,
+        ]);
+    }
+
+    /* ─────────────────────────────────────────────
+       MY CLASSES
+    ───────────────────────────────────────────── */
+
+    public function classes()
+    {
+        $teacher = $this->resolveTeacher();
+        if (! $teacher) return $this->notLinked('Teacher/MyClasses');
+
+        $schoolId   = $teacher->school_id;
+        $classIds   = $this->getTeacherClassIds($teacher);
+        $sectionIds = $this->getTeacherSectionIds($teacher);
+
+        $classSections = Timetable::where('school_id', $schoolId)
+            ->where('teacher_id', $teacher->id)
+            ->where('status', 'published')
+            ->with(['schoolClass:id,name', 'section:id,name', 'subject:id,name'])
+            ->get()
+            ->groupBy(fn ($t) => $t->class_id . '-' . $t->section_id)
+            ->map(function ($slots, $key) use ($schoolId) {
+                $first      = $slots->first();
+                $classId    = $first->class_id;
+                $sectionId  = $first->section_id;
+                $studentCount = Student::where('school_id', $schoolId)
+                    ->where('class_id', $classId)
+                    ->where('section_id', $sectionId)
+                    ->count();
+
+                return [
+                    'class_id'      => $classId,
+                    'section_id'    => $sectionId,
+                    'class_name'    => $first->schoolClass?->name ?? '—',
+                    'section_name'  => $first->section?->name ?? '—',
+                    'subjects'      => $slots->pluck('subject')->filter()->unique('id')->values(),
+                    'student_count' => $studentCount,
+                    'slots'         => $slots->count(),
+                ];
+            })
+            ->values();
+
+        $formMasterInfo = null;
+        if ($teacher->isFormMaster() && $teacher->form_master_class_id) {
+            $fmStudentCount = Student::where('school_id', $schoolId)
+                ->where('class_id', $teacher->form_master_class_id)
+                ->where('section_id', $teacher->form_master_section_id)
+                ->count();
+
+            $formMasterInfo = [
+                'class_id'      => $teacher->form_master_class_id,
+                'section_id'    => $teacher->form_master_section_id,
+                'class_name'    => $teacher->formMasterClass?->name ?? '—',
+                'section_name'  => $teacher->formMasterSection?->name ?? '—',
+                'student_count' => $fmStudentCount,
+            ];
+        }
+
+        return Inertia::render('Teacher/MyClasses', [
+            'linked'           => true,
+            'teacher'          => [
+                'full_name'    => $teacher->full_name,
+                'teacher_type' => $teacher->teacher_type,
+            ],
+            'classes'          => $classSections,
+            'formMasterInfo'   => $formMasterInfo,
         ]);
     }
 
@@ -418,6 +490,7 @@ class TeacherPortalController extends Controller
 
         $slots = Timetable::where('school_id', $teacher->school_id)
             ->where('teacher_id', $teacher->id)
+            ->where('status', 'published')
             ->with(['subject:id,name', 'schoolClass:id,name', 'section:id,name'])
             ->orderBy('start_time')
             ->get();
@@ -664,6 +737,7 @@ class TeacherPortalController extends Controller
         $subjects = Timetable::where('school_id', $teacher->school_id)
             ->where('teacher_id', $teacher->id)
             ->where('class_id', $exam->class_id)
+            ->where('status', 'published')
             ->with('subject:id,name')
             ->get()
             ->pluck('subject')
@@ -1135,7 +1209,7 @@ class TeacherPortalController extends Controller
             ->toArray();
 
         $examPerformance = Mark::where('school_id', $schoolId)
-            ->whereIn('subject_id', Timetable::where('teacher_id', $teacher->id)->pluck('subject_id'))
+            ->whereIn('subject_id', Timetable::where('teacher_id', $teacher->id)->where('status', 'published')->pluck('subject_id'))
             ->with('exam:id,name')
             ->get()
             ->groupBy(fn ($m) => $m->exam?->name ?? 'Unknown')
@@ -1216,6 +1290,7 @@ class TeacherPortalController extends Controller
 
         $assignedSubjects = Timetable::where('school_id', $teacher->school_id)
             ->where('teacher_id', $teacher->id)
+            ->where('status', 'published')
             ->with('subject:id,name')
             ->get()
             ->pluck('subject')
@@ -1224,6 +1299,7 @@ class TeacherPortalController extends Controller
 
         $assignedClasses = Timetable::where('school_id', $teacher->school_id)
             ->where('teacher_id', $teacher->id)
+            ->where('status', 'published')
             ->with(['schoolClass:id,name', 'section:id,name'])
             ->get()
             ->map(fn ($t) => ['class' => $t->schoolClass?->name, 'section' => $t->section?->name])

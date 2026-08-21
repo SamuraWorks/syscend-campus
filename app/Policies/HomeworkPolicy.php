@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Homework;
 use App\Models\User;
+use App\Services\RoleRegistry;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class HomeworkPolicy
@@ -12,7 +13,7 @@ class HomeworkPolicy
 
     public function before(User $user, string $ability): ?bool
     {
-        if ($user->hasRole('super-admin')) {
+        if ($user->hasRole(RoleRegistry::SUPER_ADMIN)) {
             return true;
         }
 
@@ -31,11 +32,11 @@ class HomeworkPolicy
 
     public function create(User $user): bool
     {
-        if ($user->hasRole(['school-admin'])) {
+        if ($user->hasRole([RoleRegistry::SCHOOL_ADMIN])) {
             return true;
         }
 
-        if ($user->hasRole('teacher')) {
+        if ($user->hasRole(RoleRegistry::TEACHER)) {
             return true;
         }
 
@@ -44,11 +45,11 @@ class HomeworkPolicy
 
     public function update(User $user, Homework $homework): bool
     {
-        if ($user->hasRole(['school-admin'])) {
+        if ($user->hasRole([RoleRegistry::SCHOOL_ADMIN])) {
             return true;
         }
 
-        if ($user->hasRole('teacher')) {
+        if ($user->hasRole(RoleRegistry::TEACHER)) {
             return $user->id === $homework->teacher->user_id;
         }
 
@@ -57,11 +58,11 @@ class HomeworkPolicy
 
     public function delete(User $user, Homework $homework): bool
     {
-        if ($user->hasRole(['school-admin'])) {
+        if ($user->hasRole([RoleRegistry::SCHOOL_ADMIN])) {
             return true;
         }
 
-        if ($user->hasRole('teacher')) {
+        if ($user->hasRole(RoleRegistry::TEACHER)) {
             return $user->id === $homework->teacher->user_id;
         }
 

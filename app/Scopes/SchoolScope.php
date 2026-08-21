@@ -2,6 +2,7 @@
 
 namespace App\Scopes;
 
+use App\Services\RoleRegistry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
@@ -10,13 +11,20 @@ class SchoolScope implements Scope
 {
     public function apply(Builder $builder, Model $model): void
     {
-        // Super-admin sees all schools — skip the scope
-        if (auth()->check() && auth()->user()->hasRole('super-admin')) {
+        if (!auth()->check()) {
             return;
         }
 
-        if (auth()->check() && auth()->user()->school_id) {
-            $builder->where($model->getTable() . '.school_id', auth()->user()->school_id);
+        $user = auth()->user();
+
+        // Platform-level roles see everything — skip the scope
+        if ($user->hasAnyRole(RoleRegistry::PORTAL_ROLES)) {
+            return;
+        }
+
+        // School-scoped users: filter by their school_id
+        if ($user->school_id) {
+            $builder->where($model->getTable() . '.school_id', $user->school_id);
         }
     }
 }

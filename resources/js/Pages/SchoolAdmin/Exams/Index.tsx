@@ -180,7 +180,7 @@ export default function ExamsIndex({ exams, classes, allSections, allSubjects, f
                         <SelectTrigger className="w-40"><SelectValue placeholder="All Classes" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="">All Classes</SelectItem>
-                            {classes.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                            {(classes ?? []).map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <Select value={filters.status ?? ''} onValueChange={v => applyFilter('status', v)}>
@@ -209,9 +209,9 @@ export default function ExamsIndex({ exams, classes, allSections, allSubjects, f
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {exams.data.length === 0 ? (
+                            {(exams?.data ?? []).length === 0 ? (
                                 <TableRow><TableCell colSpan={7} className="text-center py-16 text-slate-400">No exams yet. Create one to get started.</TableCell></TableRow>
-                            ) : exams.data.map((exam) => (
+                            ) : (exams?.data ?? []).map((exam) => (
                                 <TableRow key={exam.id}>
                                     <TableCell className="font-medium text-slate-900 dark:text-white">{exam.name}</TableCell>
                                     <TableCell className="text-slate-500 text-sm">{exam.school_class?.name ?? '—'}</TableCell>
@@ -294,7 +294,7 @@ export default function ExamsIndex({ exams, classes, allSections, allSubjects, f
                                 <Select value={data.class_id} onValueChange={v => setData('class_id', v)}>
                                     <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
                                     <SelectContent>
-                                        {classes.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                            {(classes ?? []).map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 {errors.class_id && <p className="text-xs text-red-500">{errors.class_id}</p>}
@@ -353,7 +353,7 @@ export default function ExamsIndex({ exams, classes, allSections, allSubjects, f
                                 <div className="space-y-1.5">
                                     <Label className="text-xs text-slate-500">Sections</Label>
                                     <div className="flex flex-wrap gap-1.5">
-                                        {allSections.filter(s => String(s.class_id) === data.class_id).map(s => {
+                                        {(allSections ?? []).filter(s => String(s.class_id) === data.class_id).map(s => {
                                             const checked = data.eligible_section_ids.includes(s.id);
                                             return (
                                                 <label key={s.id} className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors ${checked ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-950 dark:border-indigo-700' : 'border-slate-200 dark:border-slate-800 text-slate-600 hover:bg-slate-50'}`}>
@@ -369,7 +369,7 @@ export default function ExamsIndex({ exams, classes, allSections, allSubjects, f
                                 <div className="space-y-1.5">
                                     <Label className="text-xs text-slate-500">Subjects</Label>
                                     <div className="flex flex-wrap gap-1.5">
-                                        {allSubjects.filter(s => String(s.class_id) === data.class_id).map(s => {
+                                        {(allSubjects ?? []).filter(s => String(s.class_id) === data.class_id).map(s => {
                                             const checked = data.eligible_subject_ids.includes(s.id);
                                             return (
                                                 <label key={s.id} className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors ${checked ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-950 dark:border-indigo-700' : 'border-slate-200 dark:border-slate-800 text-slate-600 hover:bg-slate-50'}`}>

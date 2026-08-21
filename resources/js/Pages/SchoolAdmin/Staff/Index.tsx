@@ -15,8 +15,9 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import {
     Plus, Search, MoreHorizontal, Eye, Pencil, Trash2,
-    UserCog, Users, UserCheck, UserMinus,
+    UserCog, Users, UserCheck, UserMinus, Upload,
 } from 'lucide-react';
+import ImportUploadDialog from '@/components/ImportUploadDialog';
 import type { Staff, Department, Designation, PaginatedResponse, PageProps } from '@/Types';
 import { useState } from 'react';
 
@@ -52,6 +53,7 @@ const statusLabels: Record<string, string> = {
 export default function StaffIndex({ staff, filters, departments, designations, stats }: Props) {
     const { flash } = usePage<PageProps>().props;
     const [search, setSearch] = useState(filters.search ?? '');
+    const [importOpen, setImportOpen] = useState(false);
 
     function applyFilter(key: string, value: string) {
         router.get('/school/staff', { ...filters, [key]: value || undefined, page: undefined }, { preserveScroll: true, preserveState: true });
@@ -83,12 +85,17 @@ export default function StaffIndex({ staff, filters, departments, designations, 
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Staff</h1>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{stats.total} staff members registered</p>
                     </div>
-                    <Link href="/school/staff/create">
-                        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white inline-flex items-center gap-2">
-                            <Plus className="w-4 h-4" />
-                            Add Staff
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="inline-flex items-center gap-2">
+                            <Upload className="w-4 h-4" /> Import Staff
                         </Button>
-                    </Link>
+                        <Link href="/school/staff/create">
+                            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white inline-flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                Add Staff
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 {flash?.success && (
@@ -188,7 +195,7 @@ export default function StaffIndex({ staff, filters, departments, designations, 
                                                 <img src={s.photo_url} alt={s.full_name} className="w-8 h-8 rounded-full object-cover" />
                                             ) : (
                                                 <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                                                    {s.first_name[0]}{s.last_name?.[0] ?? ''}
+                                                    {(s.first_name?.[0] ?? '')}{s.last_name?.[0] ?? ''}
                                                 </div>
                                             )}
                                             <div>
@@ -260,6 +267,8 @@ export default function StaffIndex({ staff, filters, departments, designations, 
                     )}
                 </div>
             </div>
+
+            <ImportUploadDialog open={importOpen} onOpenChange={setImportOpen} type="staff" label="Staff" />
         </AppLayout>
     );
 }

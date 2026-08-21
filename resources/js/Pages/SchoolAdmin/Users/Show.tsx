@@ -13,7 +13,7 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
-    ArrowLeft, MoreHorizontal, KeyRound, ShieldCheck, RotateCcw,
+    ArrowLeft, MoreHorizontal, KeyRound, ShieldCheck, RotateCcw, Pencil, Trash2,
     Mail, Copy, Printer, Eye, EyeOff, User, Briefcase, GraduationCap,
     ClipboardList, Save, Loader2, CheckCircle2,
 } from 'lucide-react';
@@ -121,6 +121,9 @@ export default function ShowUser({ user, staff, student, auditLogs, allRoles }: 
         setRoleSaving(true);
         router.put(`/school/users/${user.id}/roles`, { roles: selectedRoles }, {
             preserveScroll: true,
+            onSuccess: () => {
+                router.reload({ only: ['auth'] });
+            },
             onFinish: () => { setRoleSaving(false); setEditingRoles(false); },
         });
     }
@@ -167,6 +170,11 @@ export default function ShowUser({ user, staff, student, auditLogs, allRoles }: 
                             <MoreHorizontal className="w-4 h-4" /> Actions
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                                <Link href={`/school/users/${user.id}/edit`} className="flex items-center gap-2 text-sm">
+                                    <Pencil className="w-4 h-4" /> Edit User
+                                </Link>
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={handleSendWelcome} className="flex items-center gap-2 text-sm">
                                 <Mail className="w-4 h-4" /> Send Welcome Email
                             </DropdownMenuItem>
@@ -175,6 +183,13 @@ export default function ShowUser({ user, staff, student, auditLogs, allRoles }: 
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setResetDialogOpen(true)} className="flex items-center gap-2 text-sm">
                                 <RotateCcw className="w-4 h-4" /> Reset Password
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                                if (confirm(`Delete "${user.name}"? This cannot be undone.`)) {
+                                    router.delete(`/school/users/${user.id}`);
+                                }
+                            }} className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                                <Trash2 className="w-4 h-4" /> Delete User
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

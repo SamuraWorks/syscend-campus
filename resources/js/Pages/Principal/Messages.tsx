@@ -7,16 +7,24 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, ChevronRight, Send, User } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MessageSquare, ChevronRight, Send, Inbox, Mail } from 'lucide-react';
 
-interface Contact { id: number; name: string; role: string; last_message: string | null; last_time: string | null; unread_count: number; }
-interface Thread { id: number; contact_name: string; contact_role: string; messages: MessageItem[]; }
-interface MessageItem { id: number; sender: string; content: string; time: string; is_mine: boolean; }
-interface Props { linked: boolean; contacts: Contact[]; activeThread: Thread | null; }
+interface InboxMessage { id: number; subject: string; body: string; sender: string; is_read: boolean; created_at: string; }
+interface SentMessage { id: number; subject: string; recipient: string; is_read: boolean; created_at: string; }
+interface UserOption { id: number; name: string; }
+interface Props { linked: boolean; inbox: InboxMessage[]; sent: SentMessage[]; users: UserOption[]; }
 
-export default function Messages({ linked, contacts, activeThread }: Props) {
-    const [selectedContact, setSelectedContact] = useState<number | null>(activeThread?.id ?? null);
-    const { data, setData, post, processing, reset } = useForm({ content: '' });
+type Tab = 'inbox' | 'sent';
+
+export default function Messages({ linked, inbox, sent, users }: Props) {
+    const [tab, setTab] = useState<Tab>('inbox');
+    const [composing, setComposing] = useState(false);
+    const { data, setData, post, processing, reset } = useForm({
+        recipient_id: '',
+        subject: '',
+        body: '',
+    });
 
     if (!linked) {
         return (
@@ -29,10 +37,16 @@ export default function Messages({ linked, contacts, activeThread }: Props) {
         );
     }
 
+    const unreadCount = inbox.filter(m => !m.is_read).length;
+
     const handleSend = () => {
-        if (!data.content.trim() || !selectedContact) return;
-        post(`/school/principal/messages/${selectedContact}`, {
-            onSuccess: () => { reset(); },
+        if (!data.recipient_id || !data.subject.trim() || !data.body.trim()) return;
+        post('/school/principal/messages/send', {
+            onSuccess: () => {
+                reset();
+                setComposing(false);
+                setTab('sent');
+            },
         });
     };
 
@@ -45,90 +59,159 @@ export default function Messages({ linked, contacts, activeThread }: Props) {
                     <span className="text-slate-700 dark:text-slate-300 font-medium">Messages</span>
                 </div>
 
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5 text-blue-500" /> Messages
-                    </h1>
-                    <p className="text-sm text-slate-500 mt-0.5">Internal messaging</p>
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <MessageSquare className="w-5 h-5 text-blue-500" /> Messages
+                        </h1>
+                        <p className="text-sm text-slate-500 mt-0.5">Internal messaging</p>
+                    </div>
+                    <Button size="sm" onClick={() => setComposing(c => !c)}>
+                        <Send className="w-4 h-4 mr-1.5" /> {composing ? 'Cancel' : 'New Message'}
+                    </Button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[500px]">
-                    <Card className="lg:col-span-1">
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-                            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contacts</h2>
+                {composing && (
+                    <Card>
+                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                            <Send className="w-4 h-4 text-blue-500" />
+                            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Compose Message</h2>
                         </div>
+                        <CardContent className="p-4 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Recipient</label>
+                                    <Select value={data.recipient_id} onValueChange={v => setData('recipient_id', v)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={users.length ? 'Select a recipient…' : 'No users available'} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {users.map(u => (
+                                                <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Subject</label>
+                                    <Input
+                                        placeholder="Message subject…"
+                                        value={data.subject}
+                                        onChange={e => setData('subject', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Message</label>
+                                <Textarea
+                                    placeholder="Type your message…"
+                                    className="min-h-[120px] max-h-[280px] resize-none"
+                                    value={data.body}
+                                    onChange={e => setData('body', e.target.value)}
+                                />
+                            </div>
+                            <div className="flex justify-end">
+                                <Button onClick={handleSend} disabled={!data.recipient_id || !data.subject.trim() || !data.body.trim() || processing}>
+                                    <Send className="w-4 h-4 mr-1.5" /> {processing ? 'Sending…' : 'Send'}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                <div className="flex items-center gap-1 border-b border-slate-100 dark:border-slate-800">
+                    <button
+                        onClick={() => setTab('inbox')}
+                        className={cn(
+                            'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2',
+                            tab === 'inbox'
+                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300',
+                        )}
+                    >
+                        <Inbox className="w-4 h-4" /> Inbox
+                        {unreadCount > 0 && (
+                            <Badge variant="destructive" className="h-5 min-w-5 px-1 text-[10px]">{unreadCount}</Badge>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setTab('sent')}
+                        className={cn(
+                            'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-2',
+                            tab === 'sent'
+                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300',
+                        )}
+                    >
+                        <Mail className="w-4 h-4" /> Sent
+                    </button>
+                </div>
+
+                {tab === 'inbox' ? (
+                    <Card>
                         <CardContent className="p-0">
-                            {contacts.length === 0 ? (
-                                <div className="py-12 text-center"><p className="text-sm text-slate-400">No contacts.</p></div>
+                            {inbox.length === 0 ? (
+                                <div className="py-16 text-center">
+                                    <Inbox className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                                    <p className="text-sm text-slate-400">Your inbox is empty.</p>
+                                </div>
                             ) : (
                                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                                    {contacts.map(c => (
-                                        <button key={c.id} onClick={() => setSelectedContact(c.id)}
-                                            className={cn('w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors', selectedContact === c.id && 'bg-indigo-50 dark:bg-indigo-950/20 border-r-2 border-indigo-500')}>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                                                    <User className="w-4 h-4 text-slate-500" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between">
-                                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{c.name}</p>
-                                                        {c.unread_count > 0 && <Badge className="ml-1 h-5 min-w-5 text-[10px] px-1">{c.unread_count}</Badge>}
+                                    {inbox.map(m => (
+                                        <div key={m.id} className={cn('px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors', !m.is_read && 'bg-blue-50/50 dark:bg-blue-950/10')}>
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        {!m.is_read && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
+                                                        <p className={cn('truncate', m.is_read ? 'text-sm font-medium text-slate-700 dark:text-slate-300' : 'text-sm font-semibold text-slate-900 dark:text-white')}>{m.subject}</p>
                                                     </div>
-                                                    <p className="text-xs text-slate-400 capitalize">{c.role}</p>
-                                                    {c.last_message && <p className="text-xs text-slate-400 truncate mt-0.5">{c.last_message}</p>}
+                                                    <p className="text-xs text-slate-400 mt-0.5 truncate">{m.sender}</p>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{m.body}</p>
+                                                </div>
+                                                <div className="shrink-0 text-right space-y-1">
+                                                    <p className="text-[11px] text-slate-400">{m.created_at}</p>
+                                                    {m.is_read
+                                                        ? <Badge variant="secondary" className="text-[10px]">Read</Badge>
+                                                        : <Badge className="text-[10px]">Unread</Badge>}
                                                 </div>
                                             </div>
-                                        </button>
+                                        </div>
                                     ))}
                                 </div>
                             )}
                         </CardContent>
                     </Card>
-
-                    <Card className="lg:col-span-2 flex flex-col">
-                        {!selectedContact ? (
-                            <div className="flex-1 flex items-center justify-center">
-                                <div className="text-center">
-                                    <MessageSquare className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-                                    <p className="text-sm text-slate-400">Select a contact to start chatting</p>
+                ) : (
+                    <Card>
+                        <CardContent className="p-0">
+                            {sent.length === 0 ? (
+                                <div className="py-16 text-center">
+                                    <Mail className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                                    <p className="text-sm text-slate-400">You haven&apos;t sent any messages.</p>
                                 </div>
-                            </div>
-                        ) : activeThread && selectedContact === activeThread.id ? (
-                            <>
-                                <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-                                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{activeThread.contact_name}</h3>
-                                    <p className="text-xs text-slate-400 capitalize">{activeThread.contact_role}</p>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[400px]">
-                                    {activeThread.messages.length === 0 ? (
-                                        <p className="text-center text-sm text-slate-400 py-8">No messages yet. Start the conversation.</p>
-                                    ) : (
-                                        activeThread.messages.map(m => (
-                                            <div key={m.id} className={cn('flex', m.is_mine ? 'justify-end' : 'justify-start')}>
-                                                <div className={cn('max-w-[75%] rounded-xl px-3 py-2', m.is_mine ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200')}>
-                                                    <p className="text-sm">{m.content}</p>
-                                                    <p className={cn('text-[10px] mt-1', m.is_mine ? 'text-white/60' : 'text-slate-400')}>{m.time}</p>
+                            ) : (
+                                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {sent.map(m => (
+                                        <div key={m.id} className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{m.subject}</p>
+                                                    <p className="text-xs text-slate-400 mt-0.5">To: {m.recipient}</p>
+                                                </div>
+                                                <div className="shrink-0 text-right space-y-1">
+                                                    <p className="text-[11px] text-slate-400">{m.created_at}</p>
+                                                    {m.is_read
+                                                        ? <Badge variant="secondary" className="text-[10px]">Read</Badge>
+                                                        : <Badge variant="outline" className="text-[10px]">Delivered</Badge>}
                                                 </div>
                                             </div>
-                                        ))
-                                    )}
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-                                    <div className="flex items-end gap-2">
-                                        <Textarea placeholder="Type a message…" className="min-h-[40px] max-h-[120px] resize-none" value={data.content} onChange={e => setData('content', e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
-                                        <Button size="icon" className="shrink-0 h-10 w-10" onClick={handleSend} disabled={!data.content.trim() || processing}>
-                                            <Send className="w-4 h-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="flex-1 flex items-center justify-center">
-                                <p className="text-sm text-slate-400">Loading thread…</p>
-                            </div>
-                        )}
+                            )}
+                        </CardContent>
                     </Card>
-                </div>
+                )}
             </div>
         </AppLayout>
     );

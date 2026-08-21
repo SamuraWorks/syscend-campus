@@ -6,7 +6,7 @@ import { Megaphone } from 'lucide-react';
 
 interface Announcement {
     id: number; title: string; body: string;
-    pinned: boolean; date: string | null; author: string | null;
+    pinned: boolean; audience: string; date: string | null; author: string | null;
 }
 interface Props {
     linked: boolean; announcements: Announcement[];
@@ -50,6 +50,7 @@ export default function DriverAnnouncements({ linked, announcements }: Props) {
                                             </div>
                                             <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3">{a.body}</p>
                                             <div className="flex items-center gap-3 mt-2 flex-wrap">
+                                                <Badge variant="secondary" className="text-[10px]">{a.audience}</Badge>
                                                 {a.author && <span className="text-xs text-slate-500">{a.author}</span>}
                                                 {a.date && <span className="text-xs text-slate-400">{a.date}</span>}
                                             </div>

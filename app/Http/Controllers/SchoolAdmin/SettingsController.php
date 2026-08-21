@@ -3,8 +3,7 @@
 namespace App\Http\Controllers\SchoolAdmin;
 
 use App\Http\Controllers\Controller;
-use App\Models\School;
-use App\Models\SchoolSetting;
+use App\Models\{AcademicYear, SchedulePeriod, School, SchoolSetting, SchoolSetupProgress, SchoolTimeSetting};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -17,10 +16,28 @@ class SettingsController extends Controller
         $school = School::findOrFail($sid);
         $s      = SchoolSetting::allFor($sid);
 
+        $completedSteps = SchoolSetupProgress::getCompletedSteps($sid);
+        $isConfigured   = $school->is_configured;
+
+        $currentYear = AcademicYear::where('school_id', $sid)->where('is_current', true)->first();
+        $timeSettings = SchoolTimeSetting::where('school_id', $sid)
+            ->when($currentYear, fn ($q) => $q->where('academic_year_id', $currentYear->id))
+            ->first();
+        $periods = SchedulePeriod::where('school_id', $sid)
+            ->when($currentYear, fn ($q) => $q->where('academic_year_id', $currentYear->id))
+            ->with('eventType')
+            ->ordered()
+            ->get();
+
         return Inertia::render('SchoolAdmin/Settings/Index', [
-            'school'   => $school->only('id','name','email','phone','address','city','state','country','timezone','currency','language','logo'),
-            'logoUrl'  => $school->logo_url,
-            'settings' => $s,
+            'school'          => $school->only('id','name','email','phone','address','city','state','country','timezone','currency','language','logo','is_configured'),
+            'logoUrl'         => $school->logo_url,
+            'settings'        => $s,
+            'setupProgress'   => $completedSteps,
+            'isConfigured'    => $isConfigured,
+            'timeSettings'    => $timeSettings,
+            'periods'         => $periods,
+            'academicYear'    => $currentYear,
         ]);
     }
 

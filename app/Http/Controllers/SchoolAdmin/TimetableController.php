@@ -52,6 +52,14 @@ class TimetableController extends Controller
             $grid[$p->day_of_week][$p->start_time] = $p;
         }
 
+        // Compute overall status
+        $statusCounts = $timetableEntries->groupBy('status')->map(fn ($g) => $g->count())->toArray();
+        $overallStatus = empty($timetableEntries) ? 'empty' : (
+            ($statusCounts['published'] ?? 0) === $timetableEntries->count() ? 'published' : (
+                ($statusCounts['draft'] ?? 0) === $timetableEntries->count() ? 'draft' : 'mixed'
+            )
+        );
+
         $school = School::find($schoolId);
         $days = !empty($school->working_days)
             ? array_map('trim', explode(',', $school->working_days))
@@ -68,6 +76,7 @@ class TimetableController extends Controller
             'days'         => $days,
             'filters'      => ['class_id' => $classId, 'section_id' => $sectionId],
             'hasConfiguredPeriods' => $periods->isNotEmpty() && $periods->first()->id > 0,
+            'overallStatus' => $overallStatus,
         ]);
     }
 
@@ -85,16 +94,40 @@ class TimetableController extends Controller
             'notes'       => 'nullable|string|max:200',
         ]);
 
-        // Teacher conflict check
+        // Teacher conflict check — detect any overlapping period for same teacher on same day
         if (!empty($data['teacher_id'])) {
             $conflict = Timetable::where('school_id', $this->getSchoolId())
                 ->where('teacher_id', $data['teacher_id'])
                 ->where('day_of_week', $data['day_of_week'])
-                ->where('start_time', $data['start_time'])
+                ->where('start_time', '<', $data['end_time'])
+                ->where('end_time', '>', $data['start_time'])
                 ->exists();
 
             if ($conflict) {
-                return back()->withErrors(['teacher_id' => 'This teacher already has a class at this time.']);
+                return back()->withErrors(['teacher_id' => 'This teacher already has a class during this time slot.']);
+            }
+        }
+
+        // Warn if teacher is not assigned to this subject (soft validation)
+        if (!empty($data['teacher_id']) && !empty($data['subject_id'])) {
+            $subject = Subject::find($data['subject_id']);
+            if ($subject) {
+                $offering = \App\Models\SubjectOffering::where('school_id', $this->getSchoolId())
+                    ->where('subject_id', $data['subject_id'])
+                    ->where('class_id', $data['class_id'])
+                    ->first();
+
+                if ($offering) {
+                    $isAssigned = \App\Models\TeacherSubjectAssignment::where('school_id', $this->getSchoolId())
+                        ->where('staff_id', $data['teacher_id'])
+                        ->where('subject_offering_id', $offering->id)
+                        ->where('is_active', true)
+                        ->exists();
+
+                    if (!$isAssigned) {
+                        return back()->withErrors(['teacher_id' => 'This teacher is not assigned to this subject. Assign them in Teacher Assignments first.']);
+                    }
+                }
             }
         }
 
@@ -118,6 +151,32 @@ class TimetableController extends Controller
         return back()->with('success', 'Period removed.');
     }
 
+    public function publish(Request $request): RedirectResponse
+    {
+        $schoolId = $this->getSchoolId();
+        $classId = $request->input('class_id');
+
+        $query = Timetable::where('school_id', $schoolId);
+        if ($classId) $query->where('class_id', $classId);
+
+        $query->update(['status' => 'published']);
+
+        return back()->with('success', 'Timetable published. Students and teachers can now see it.');
+    }
+
+    public function unpublish(Request $request): RedirectResponse
+    {
+        $schoolId = $this->getSchoolId();
+        $classId = $request->input('class_id');
+
+        $query = Timetable::where('school_id', $schoolId);
+        if ($classId) $query->where('class_id', $classId);
+
+        $query->update(['status' => 'draft']);
+
+        return back()->with('success', 'Timetable unpublished. It is now hidden from students and teachers.');
+    }
+
     /**
      * Teacher's personal weekly schedule.
      */
@@ -137,6 +196,7 @@ class TimetableController extends Controller
         if ($teacherId) {
             $periods = Timetable::with(['schoolClass:id,name', 'section:id,name', 'subject:id,name'])
                 ->where('teacher_id', $teacherId)
+                ->where('status', 'published')
                 ->get();
         }
 

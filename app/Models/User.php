@@ -35,6 +35,7 @@ class User extends Authenticatable
         'created_by',
         'two_factor_enabled',
         'two_factor_secret',
+        'registration_status',
     ];
 
     protected $hidden = [

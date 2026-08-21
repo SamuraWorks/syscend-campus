@@ -16,6 +16,7 @@ class EnsureSchoolIsConfigured
         'school/setup/*',
         'logout',
         'super-admin/*',
+        'ministry/*',
     ];
 
     public function handle(Request $request, Closure $next)

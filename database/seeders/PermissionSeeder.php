@@ -58,7 +58,29 @@ class PermissionSeeder extends Seeder
         $rolePermissions = [
             'super-admin' => $permissions,
 
-            'school-admin' => $permissions,
+            // school-admin receives its granular dot-notation permissions via
+            // RolePermissionSeeder.  The flat permissions here are intentionally
+            // scoped to school-level operations only (NOT identical to super-admin).
+            'school-admin' => [
+                'view-students', 'create-students', 'edit-students', 'delete-students',
+                'view-staff', 'create-staff', 'edit-staff', 'delete-staff',
+                'view-fees', 'create-fees', 'edit-fees', 'delete-fees', 'collect-fees',
+                'view-exams', 'create-exams', 'edit-exams', 'delete-exams',
+                'view-results', 'edit-results', 'publish-results', 'approve-result-changes',
+                'view-attendance', 'take-attendance', 'approve-attendance',
+                'view-homework', 'create-homework', 'edit-homework', 'delete-homework',
+                'view-announcements', 'create-announcements', 'delete-announcements',
+                'send-messages', 'send-blasts',
+                'view-library', 'manage-library',
+                'view-inventory', 'manage-inventory', 'manage-assets',
+                'view-transport', 'manage-transport',
+                'view-hostel', 'manage-hostel',
+                'view-reports', 'export-reports', 'view-audit-log',
+                'view-settings', 'manage-settings', 'manage-users',
+                'view-payroll', 'manage-payroll',
+                'view-report-cards', 'generate-report-cards', 'publish-report-cards',
+                'view-performance', 'manage-performance',
+            ],
 
             'principal' => [
                 'view-students', 'create-students', 'edit-students',

@@ -107,9 +107,16 @@ class StaffController extends Controller
     public function show(Staff $staff): Response
     {
         $staff->load(['department', 'designation', 'documents']);
+        $staff->load(['subjectAssignments' => fn ($q) => $q
+            ->where('is_active', true)
+            ->with(['subjectOffering' => fn ($q2) => $q2->with(['schoolClass:id,name', 'section:id,name', 'subject:id,name'])])
+        ]);
 
         return Inertia::render('SchoolAdmin/Staff/Show', [
             'staff' => $staff,
+            'formMasterSection' => $staff->form_master_section_id
+                ? \App\Models\Section::with('schoolClass:id,name')->find($staff->form_master_section_id)
+                : null,
         ]);
     }
 

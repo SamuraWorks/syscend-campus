@@ -11,8 +11,9 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, CalendarDays, User } from 'lucide-react';
+import { Plus, Trash2, CalendarDays, User, Eye, EyeOff, Download, Upload } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import ImportUploadDialog from '@/components/ImportUploadDialog';
 import type { SchoolClass, Section, Subject, Staff, Timetable, SchedulePeriod, DayOfWeek, PageProps } from '@/Types';
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
     days: DayOfWeek[];
     filters: { class_id?: string; section_id?: string };
     hasConfiguredPeriods: boolean;
+    overallStatus: 'published' | 'draft' | 'mixed' | 'empty';
 }
 
 const DAY_LABELS: Record<string, string> = {
@@ -50,9 +52,10 @@ function fmt12(time: string) {
     return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-export default function TimetableIndex({ classes, sections, subjects, teachers, grid, days, schedulePeriods, filters, hasConfiguredPeriods }: Props) {
+export default function TimetableIndex({ classes, sections, subjects, teachers, grid, days, schedulePeriods, filters, hasConfiguredPeriods, overallStatus }: Props) {
     const { flash } = usePage<PageProps>().props;
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [importOpen, setImportOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<{ day: DayOfWeek; start: string; end: string } | null>(null);
     const [existingPeriod, setExistingPeriod] = useState<Timetable | null>(null);
 
@@ -104,12 +107,12 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
     }
 
     const filteredSections = filters.class_id
-        ? sections.filter(s => s.class_id === Number(filters.class_id))
+        ? (sections ?? []).filter(s => s.class_id === Number(filters.class_id))
         : [];
 
     // Map subject id → color index for consistent coloring
     const subjectColorMap: Record<number, string> = {};
-    subjects.forEach((s, i) => { subjectColorMap[s.id] = SUBJECT_COLORS[i % SUBJECT_COLORS.length]; });
+    (subjects ?? []).forEach((s, i) => { subjectColorMap[s.id] = SUBJECT_COLORS[i % SUBJECT_COLORS.length]; });
 
     // Normalize grid keys (backend sends "HH:MM:SS", normalize to "HH:MM")
     function getPeriod(day: DayOfWeek, slot: { start_time: string }): Timetable | undefined {
@@ -125,12 +128,46 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Timetable</h1>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Weekly class schedule builder</p>
+                        {overallStatus !== 'empty' && filters.class_id && (
+                            <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                overallStatus === 'published' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                overallStatus === 'draft' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                            }`}>
+                                {overallStatus === 'published' ? 'Published' : overallStatus === 'draft' ? 'Draft' : 'Mixed Status'}
+                            </span>
+                        )}
                     </div>
-                    <Link href="/school/timetable/teacher">
-                        <Button variant="outline" className="inline-flex items-center gap-2">
-                            <User className="w-4 h-4" /> Teacher Schedule
+                    <div className="flex items-center gap-2">
+                        {filters.class_id && overallStatus !== 'empty' && (
+                            <>
+                                {overallStatus === 'published' ? (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => router.post('/school/timetable/unpublish', { class_id: filters.class_id }, { preserveScroll: true })}
+                                        className="inline-flex items-center gap-2"
+                                    >
+                                        <EyeOff className="w-4 h-4" /> Unpublish
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={() => router.post('/school/timetable/publish', { class_id: filters.class_id }, { preserveScroll: true })}
+                                        className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                        <Eye className="w-4 h-4" /> Publish
+                                    </Button>
+                                )}
+                            </>
+                        )}
+                        <Link href="/school/timetable/teacher">
+                            <Button variant="outline" className="inline-flex items-center gap-2">
+                                <User className="w-4 h-4" /> Teacher Schedule
+                            </Button>
+                        </Link>
+                        <Button variant="outline" onClick={() => setImportOpen(true)} className="inline-flex items-center gap-2">
+                            <Upload className="w-4 h-4" /> Import CSV
                         </Button>
-                    </Link>
+                    </div>
                 </div>
 
                 {flash?.success && (
@@ -148,7 +185,7 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                                 <Select value={filters.class_id ?? ''} onValueChange={v => applyFilter('class_id', v)}>
                                     <SelectTrigger className="w-40"><SelectValue placeholder="Select class" /></SelectTrigger>
                                     <SelectContent>
-                                        {classes.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                                        {(classes ?? []).map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -184,15 +221,15 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide w-28 border-b border-slate-200 dark:border-slate-800">
                                         Time
                                     </th>
-                                    {days.map(day => (
-                                        <th key={day} className="px-2 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-l border-slate-200 dark:border-slate-800">
-                                            {DAY_LABELS[day]}
-                                        </th>
-                                    ))}
+                                        {(days ?? []).map(day => (
+                                            <th key={day} className="px-2 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-l border-slate-200 dark:border-slate-800">
+                                                {DAY_LABELS[day]}
+                                            </th>
+                                        ))}
                                 </tr>
                             </thead>
                             <tbody>
-                                {schedulePeriods.map((slot) => (
+                                {(schedulePeriods ?? []).map((slot) => (
                                     <tr key={slot.id || slot.start_time} className={`border-b border-slate-100 dark:border-slate-800/50 last:border-0 ${slot.is_break ? 'bg-slate-50/50 dark:bg-slate-900/30' : ''}`}>
                                         <td className="px-4 py-2 text-xs text-slate-400 whitespace-nowrap">
                                             {slot.is_break ? (
@@ -205,7 +242,7 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                                                 </>
                                             )}
                                         </td>
-                                        {days.map(day => {
+                                        {(days ?? []).map(day => {
                                             const period = getPeriod(day, slot);
                                             const colorClass = period ? (subjectColorMap[period.subject_id] ?? SUBJECT_COLORS[0]) : '';
 
@@ -255,9 +292,9 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                 )}
 
                 {/* Subject color legend */}
-                {subjects.length > 0 && filters.class_id && (
+                {(subjects ?? []).length > 0 && filters.class_id && (
                     <div className="flex flex-wrap gap-2">
-                        {subjects.map((s, i) => (
+                        {(subjects ?? []).map((s, i) => (
                             <span key={s.id} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${SUBJECT_COLORS[i % SUBJECT_COLORS.length]}`}>
                                 {s.name}
                             </span>
@@ -287,7 +324,7 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                             <Select value={data.subject_id} onValueChange={v => setData('subject_id', v)}>
                                 <SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger>
                                 <SelectContent>
-                                    {subjects.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name} ({s.code})</SelectItem>)}
+                                    {(subjects ?? []).map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name} ({s.code})</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             {errors.subject_id && <p className="text-xs text-red-500">{errors.subject_id}</p>}
@@ -298,7 +335,7 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                             <Select value={data.teacher_id} onValueChange={v => setData('teacher_id', v)}>
                                 <SelectTrigger><SelectValue placeholder="Assign teacher (optional)" /></SelectTrigger>
                                 <SelectContent>
-                                    {teachers.map(t => (
+                                    {(teachers ?? []).map(t => (
                                         <SelectItem key={t.id} value={String(t.id)}>{t.first_name} {t.last_name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -331,6 +368,8 @@ export default function TimetableIndex({ classes, sections, subjects, teachers, 
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <ImportUploadDialog open={importOpen} onOpenChange={setImportOpen} type="timetables" label="Timetable" />
         </AppLayout>
     );
 }

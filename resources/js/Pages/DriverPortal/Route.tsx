@@ -49,7 +49,7 @@ export default function DriverRoute({ linked, route }: Props) {
                     <p className="text-sm text-slate-500">{route.start_point} → {route.end_point}</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Card>
                         <CardContent className="p-4">
                             <p className="text-xs text-slate-500">Start Point</p>
@@ -60,6 +60,12 @@ export default function DriverRoute({ linked, route }: Props) {
                         <CardContent className="p-4">
                             <p className="text-xs text-slate-500">End Point</p>
                             <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{route.end_point}</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="p-4">
+                            <p className="text-xs text-slate-500">Monthly Fee</p>
+                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{route.monthly_fee}</p>
                         </CardContent>
                     </Card>
                     <Card>

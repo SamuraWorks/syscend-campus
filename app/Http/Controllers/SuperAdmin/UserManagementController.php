@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\School;
 use App\Models\User;
+use App\Services\RoleRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -31,7 +32,9 @@ class UserManagementController extends Controller
             ->withQueryString();
 
         $schools = School::select('id', 'name')->orderBy('name')->get();
-        $roles   = Role::orderBy('name')->pluck('name');
+        $roles   = Role::whereIn('name', RoleRegistry::SUPER_ADMIN_ASSIGNABLE_ROLES)
+            ->orderBy('name')
+            ->pluck('name');
 
         return Inertia::render('SuperAdmin/Users/Index', [
             'users' => [
@@ -56,10 +59,20 @@ class UserManagementController extends Controller
             'email'     => 'required|email|unique:users,email',
             'phone'     => 'nullable|string|max:20',
             'password'  => 'required|string|min:8',
-            'role'      => 'required|string|exists:roles,name',
+            'role'      => ['required', 'string', Rule::in(RoleRegistry::SUPER_ADMIN_ASSIGNABLE_ROLES)],
             'school_id' => 'nullable|integer|exists:schools,id',
             'status'    => 'required|in:active,inactive,suspended',
         ]);
+
+        // Enforce: school-admin MUST have a school_id
+        if ($data['role'] === RoleRegistry::SCHOOL_ADMIN && empty($data['school_id'])) {
+            return back()->withErrors(['school_id' => 'A school is required for the school admin role.'])->withInput();
+        }
+
+        // Enforce: super-admin MUST NOT have a school_id
+        if ($data['role'] === RoleRegistry::SUPER_ADMIN && !empty($data['school_id'])) {
+            return back()->withErrors(['school_id' => 'Super admin cannot be assigned to a school.'])->withInput();
+        }
 
         $user = User::create([
             'name'      => $data['name'],
@@ -82,10 +95,28 @@ class UserManagementController extends Controller
             'email'     => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'phone'     => 'nullable|string|max:20',
             'password'  => 'nullable|string|min:8',
-            'role'      => 'required|string|exists:roles,name',
+            'role'      => ['required', 'string', Rule::in(RoleRegistry::SUPER_ADMIN_ASSIGNABLE_ROLES)],
             'school_id' => 'nullable|integer|exists:schools,id',
             'status'    => 'required|in:active,inactive,suspended',
         ]);
+
+        // Prevent removing the last super-admin
+        if ($user->hasRole(RoleRegistry::SUPER_ADMIN) && $data['role'] !== RoleRegistry::SUPER_ADMIN) {
+            $superAdminCount = User::role(RoleRegistry::SUPER_ADMIN)->count();
+            if ($superAdminCount <= 1) {
+                return back()->withErrors(['role' => 'Cannot remove the last super admin.'])->withInput();
+            }
+        }
+
+        // Enforce: school-admin MUST have a school_id
+        if ($data['role'] === RoleRegistry::SCHOOL_ADMIN && empty($data['school_id'])) {
+            return back()->withErrors(['school_id' => 'A school is required for the school admin role.'])->withInput();
+        }
+
+        // Enforce: super-admin MUST NOT have a school_id
+        if ($data['role'] === RoleRegistry::SUPER_ADMIN && !empty($data['school_id'])) {
+            return back()->withErrors(['school_id' => 'Super admin cannot be assigned to a school.'])->withInput();
+        }
 
         $user->update([
             'name'      => $data['name'],
@@ -106,7 +137,7 @@ class UserManagementController extends Controller
 
     public function destroy(User $user): RedirectResponse
     {
-        if ($user->hasRole('super-admin')) {
+        if ($user->hasRole(RoleRegistry::SUPER_ADMIN)) {
             return back()->with('error', 'Cannot delete a super admin.');
         }
 
@@ -117,6 +148,10 @@ class UserManagementController extends Controller
 
     public function suspend(User $user): RedirectResponse
     {
+        if ($user->hasRole(RoleRegistry::SUPER_ADMIN)) {
+            return back()->with('error', 'Cannot suspend a super admin.');
+        }
+
         $user->update(['status' => 'suspended']);
         return back()->with('success', 'User suspended.');
     }

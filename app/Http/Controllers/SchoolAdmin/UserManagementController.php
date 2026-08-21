@@ -4,7 +4,7 @@ namespace App\Http\Controllers\SchoolAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\{Department, Designation, SchoolClass, Section, Staff, Student, User, UserAuditLog};
-use App\Services\{PasswordGeneratorService, UserCreationService};
+use App\Services\{PasswordGeneratorService, RoleRegistry, UserCreationService};
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -44,7 +44,7 @@ class UserManagementController extends Controller
                 ],
                 'links' => ['prev' => $users->previousPageUrl(), 'next' => $users->nextPageUrl()],
             ],
-            'roles'  => Role::orderBy('name')->pluck('name'),
+            'roles'  => Role::whereIn('name', RoleRegistry::SCHOOL_MANAGEABLE_ROLES)->orderBy('name')->pluck('name'),
             'filters'=> $request->only('search', 'role', 'status'),
             'stats'  => [
                 'total'     => User::where('school_id', $schoolId)->count(),
@@ -63,7 +63,7 @@ class UserManagementController extends Controller
         $schoolId = $this->getSchoolId();
 
         return Inertia::render('SchoolAdmin/Users/Create', [
-            'roles'         => Role::orderBy('name')->pluck('name'),
+            'roles'         => Role::whereIn('name', RoleRegistry::SCHOOL_MANAGEABLE_ROLES)->orderBy('name')->pluck('name'),
             'classes'       => SchoolClass::orderBy('numeric_name')->get(['id', 'name']),
             'sections'      => Section::orderBy('name')->get(['id', 'class_id', 'name']),
             'departments'   => Department::orderBy('name')->get(['id', 'name']),
@@ -98,7 +98,7 @@ class UserManagementController extends Controller
             'custom_password' => 'nullable|string|min:6|max:128',
             // Roles
             'roles'         => 'required|array|min:1',
-            'roles.*'       => 'string|exists:roles,name',
+            'roles.*'       => ['required', 'string', \Illuminate\Validation\Rule::in(RoleRegistry::SCHOOL_MANAGEABLE_ROLES)],
             // Staff-specific
             'department_id'  => 'nullable|exists:departments,id',
             'designation_id' => 'nullable|exists:designations,id',
@@ -197,8 +197,144 @@ class UserManagementController extends Controller
             'staff'      => $staff,
             'student'    => $student,
             'auditLogs'  => $auditLogs,
-            'allRoles'   => Role::orderBy('name')->pluck('name'),
+            'allRoles'   => Role::whereIn('name', RoleRegistry::SCHOOL_MANAGEABLE_ROLES)->orderBy('name')->pluck('name'),
         ]);
+    }
+
+    /**
+     * Edit user form.
+     */
+    public function edit(User $user): Response
+    {
+        abort_unless($user->school_id === $this->getSchoolId(), 403);
+
+        $user->load('roles');
+        $staff = Staff::where('user_id', $user->id)->first();
+        $student = Student::where('user_id', $user->id)->first();
+
+        return Inertia::render('SchoolAdmin/Users/Edit', [
+            'user'         => $user,
+            'staff'        => $staff,
+            'student'      => $student,
+            'roles'        => Role::whereIn('name', RoleRegistry::SCHOOL_MANAGEABLE_ROLES)->orderBy('name')->pluck('name'),
+            'classes'      => SchoolClass::orderBy('numeric_name')->get(['id', 'name']),
+            'sections'     => Section::orderBy('name')->get(['id', 'class_id', 'name']),
+            'departments'  => Department::orderBy('name')->get(['id', 'name']),
+            'designations' => Designation::orderBy('name')->get(['id', 'department_id', 'name']),
+            'staffTypes'   => ['subject_teacher', 'form_master', 'both', 'non_teaching'],
+        ]);
+    }
+
+    /**
+     * Update user details.
+     */
+    public function update(Request $request, User $user): RedirectResponse
+    {
+        abort_unless($user->school_id === $this->getSchoolId(), 403);
+
+        $data = $request->validate([
+            'name'        => 'sometimes|string|max:150',
+            'email'       => 'nullable|email|max:150',
+            'phone'       => 'nullable|string|max:20',
+            'username'    => 'nullable|string|max:100|unique:users,username,' . $user->id,
+            'status'      => 'sometimes|in:active,inactive',
+            'roles'       => 'sometimes|array|min:1',
+            'roles.*'     => ['required', 'string', \Illuminate\Validation\Rule::in(RoleRegistry::SCHOOL_MANAGEABLE_ROLES)],
+            // Staff-specific fields (optional)
+            'gender'               => 'nullable|in:male,female,other',
+            'date_of_birth'        => 'nullable|date',
+            'blood_group'          => 'nullable|string|max:5',
+            'religion'             => 'nullable|string|max:50',
+            'nationality'          => 'nullable|string|max:50',
+            'address'              => 'nullable|string|max:500',
+            'teacher_type'         => 'nullable|in:subject_teacher,form_master,both,non_teaching',
+            'department_id'        => 'nullable|exists:departments,id',
+            'designation_id'       => 'nullable|exists:designations,id',
+            'form_master_class_id' => 'nullable|exists:classes,id',
+            'form_master_section_id' => 'nullable|exists:sections,id',
+            'salary_type'          => 'nullable|in:fixed,hourly',
+            'salary'               => 'nullable|numeric|min:0',
+            'joining_date'         => 'nullable|date',
+        ]);
+
+        $oldData = $user->only(['name', 'email', 'phone', 'username', 'status']);
+
+        if (isset($data['name'])) $user->name = $data['name'];
+        if (array_key_exists('email', $data)) $user->email = $data['email'];
+        if (array_key_exists('phone', $data)) $user->phone = $data['phone'];
+        if (isset($data['username'])) $user->username = $data['username'];
+        if (isset($data['status'])) $user->status = $data['status'];
+        $user->save();
+
+        if (isset($data['roles'])) {
+            $service = new UserCreationService($this->getSchoolId(), auth()->id());
+            $service->updateRoles($user, $data['roles']);
+            $this->ensureStaffRecordsForRoles($user, $data['roles']);
+        }
+
+        // Update staff record if it exists and staff fields were provided
+        $staffFields = ['gender', 'date_of_birth', 'blood_group', 'religion', 'nationality',
+            'address', 'teacher_type', 'department_id', 'designation_id',
+            'form_master_class_id', 'form_master_section_id', 'salary_type', 'salary', 'joining_date'];
+        $staffData = array_filter($data, fn ($v, $k) => in_array($k, $staffFields) && $v !== null, ARRAY_FILTER_USE_KEY);
+
+        if (! empty($staffData)) {
+            $staff = Staff::where('school_id', $this->getSchoolId())
+                ->where('user_id', $user->id)
+                ->first();
+
+            if ($staff) {
+                $staff->fill($staffData);
+
+                // Sync name fields from user
+                $nameParts = array_filter(explode(' ', $user->name, 2));
+                $staff->first_name = $nameParts[0] ?? $user->name;
+                $staff->last_name  = $nameParts[1] ?? '';
+                $staff->email      = $user->email;
+                $staff->phone      = $user->phone;
+
+                $staff->save();
+            }
+        }
+
+        $changes = collect($data)->filter(fn ($v, $k) => isset($oldData[$k]) && $oldData[$k] != $v);
+        if ($changes->isNotEmpty()) {
+            UserAuditLog::log(
+                $this->getSchoolId(),
+                $user->id,
+                auth()->id(),
+                'profile_updated',
+                'Profile updated: ' . $changes->keys()->implode(', ')
+            );
+        }
+
+        return redirect()->route('school.users.show', $user->id)
+            ->with('success', 'User updated successfully.');
+    }
+
+    /**
+     * Delete user (soft delete).
+     */
+    public function destroy(User $user): RedirectResponse
+    {
+        abort_unless($user->school_id === $this->getSchoolId(), 403);
+
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'You cannot delete your own account.');
+        }
+
+        UserAuditLog::log(
+            $this->getSchoolId(),
+            $user->id,
+            auth()->id(),
+            'account_deleted',
+            "Account deleted for {$user->name}"
+        );
+
+        $user->delete();
+
+        return redirect()->route('school.users.index')
+            ->with('success', "User \"{$user->name}\" has been deleted.");
     }
 
     /**
@@ -210,11 +346,20 @@ class UserManagementController extends Controller
 
         $data = $request->validate([
             'roles'   => 'required|array|min:1',
-            'roles.*' => 'string|exists:roles,name',
+            'roles.*' => ['required', 'string', \Illuminate\Validation\Rule::in(RoleRegistry::SCHOOL_MANAGEABLE_ROLES)],
         ]);
 
         $service = new UserCreationService($this->getSchoolId(), auth()->id());
         $service->updateRoles($user, $data['roles']);
+        $this->ensureStaffRecordsForRoles($user, $data['roles']);
+
+        UserAuditLog::log(
+            $this->getSchoolId(),
+            $user->id,
+            auth()->id(),
+            'roles_updated',
+            'Roles changed to: ' . implode(', ', $data['roles'])
+        );
 
         return back()->with('success', 'Roles updated.');
     }
@@ -274,6 +419,49 @@ class UserManagementController extends Controller
         );
 
         return back()->with('success', "User {$newStatus}.");
+    }
+
+    /**
+     * Ensure Staff records exist for any staff-type roles being assigned.
+     * Portal controllers (Principal/Teacher/Accountant/Librarian/Driver/Warden/StoreManager)
+     * resolve their identity via Staff::where('user_id', $user->id).
+     */
+    private function ensureStaffRecordsForRoles(User $user, array $roles): void
+    {
+        $hasStaffRole = array_intersect($roles, RoleRegistry::STAFF_ROLES);
+        if (empty($hasStaffRole)) {
+            return;
+        }
+
+        $existingStaff = Staff::where('school_id', $user->school_id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($existingStaff) {
+            return;
+        }
+
+        $nameParts = array_filter(explode(' ', $user->name, 2));
+        $firstName = $nameParts[0] ?? $user->name;
+        $lastName = $nameParts[1] ?? '';
+
+        $teacherType = null;
+        if (in_array(RoleRegistry::TEACHER, $roles, true)) {
+            $teacherType = 'subject_teacher';
+        }
+
+        Staff::create([
+            'school_id'    => $user->school_id,
+            'user_id'      => $user->id,
+            'first_name'   => $firstName,
+            'last_name'    => $lastName,
+            'gender'       => 'other',
+            'phone'        => $user->phone,
+            'email'        => $user->email,
+            'teacher_type' => $teacherType,
+            'status'       => 'active',
+            'joining_date' => now(),
+        ]);
     }
 
     /**

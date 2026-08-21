@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\Guardian;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\RoleRegistry;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class AttendancePolicy
@@ -14,7 +15,7 @@ class AttendancePolicy
 
     public function before(User $user, string $ability): ?bool
     {
-        if ($user->hasRole('super-admin')) {
+        if ($user->hasRole(RoleRegistry::SUPER_ADMIN)) {
             return true;
         }
 
@@ -28,11 +29,11 @@ class AttendancePolicy
 
     public function view(User $user, Attendance $attendance): bool
     {
-        if ($user->hasRole(['school-admin', 'principal', 'teacher', 'accountant'])) {
+        if ($user->hasRole([RoleRegistry::SCHOOL_ADMIN, RoleRegistry::PRINCIPAL, RoleRegistry::TEACHER, RoleRegistry::ACCOUNTANT])) {
             return true;
         }
 
-        if ($user->hasRole('student')) {
+        if ($user->hasRole(RoleRegistry::STUDENT)) {
             if ($attendance->attendable_type === Student::class
                 && $attendance->attendable_id === $user->id) {
                 return true;
@@ -47,7 +48,7 @@ class AttendancePolicy
             return false;
         }
 
-        if ($user->hasRole('parent')) {
+        if ($user->hasRole(RoleRegistry::PARENT)) {
             $guardian = Guardian::where('user_id', $user->id)->first();
             if (! $guardian) {
                 return false;
@@ -67,12 +68,12 @@ class AttendancePolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole(['school-admin', 'teacher']);
+        return $user->hasRole([RoleRegistry::SCHOOL_ADMIN, RoleRegistry::TEACHER]);
     }
 
     public function update(User $user, Attendance $attendance): bool
     {
-        if (! $user->hasRole(['school-admin'])) {
+        if (! $user->hasRole([RoleRegistry::SCHOOL_ADMIN])) {
             return false;
         }
 
@@ -81,7 +82,7 @@ class AttendancePolicy
 
     public function delete(User $user, Attendance $attendance): bool
     {
-        if (! $user->hasRole(['school-admin'])) {
+        if (! $user->hasRole([RoleRegistry::SCHOOL_ADMIN])) {
             return false;
         }
 

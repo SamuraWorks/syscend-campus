@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/react';
-import { Moon, Sun, LogOut, User, Menu, KeyRound } from 'lucide-react';
+import { Moon, Sun, LogOut, User, Menu, KeyRound, Check, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
@@ -33,9 +33,12 @@ export default function Topbar({ title, breadcrumbs }: TopbarProps) {
     const { toggleSidebar } = useUIStore();
 
     const user = auth.user;
-    const roleLabel = user?.role?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) ?? '';
-    const roleClass = roleColors[user?.role ?? ''] ?? 'bg-secondary text-secondary-foreground';
+    const allRoles = user?.roles ?? [];
+    const activeRole = user?.activeRole ?? user?.role ?? '';
+    const roleLabel = activeRole.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    const roleClass = roleColors[activeRole] ?? 'bg-secondary text-secondary-foreground';
     const primaryColor = schoolBranding?.primary_color;
+    const hasMultipleRoles = allRoles.length > 1;
 
     useEffect(() => {
         const root = document.documentElement;
@@ -47,6 +50,11 @@ export default function Topbar({ title, breadcrumbs }: TopbarProps) {
                 : root.classList.remove('dark');
         }
     }, [theme]);
+
+    function switchRole(role: string) {
+        if (role === activeRole) return;
+        router.post('/school/switch-role', { role }, { preserveScroll: true });
+    }
 
     return (
         <header className="relative h-16 flex items-center justify-between px-4 border-b border-border bg-card shrink-0">
@@ -106,7 +114,7 @@ export default function Topbar({ title, breadcrumbs }: TopbarProps) {
                             </div>
                         </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuGroup>
                             <DropdownMenuLabel className="font-normal">
                                 <p className="text-sm font-medium">{user?.name}</p>
@@ -114,6 +122,34 @@ export default function Topbar({ title, breadcrumbs }: TopbarProps) {
                             </DropdownMenuLabel>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
+
+                        {/* Role Switcher */}
+                        {hasMultipleRoles && (
+                            <>
+                                <div className="px-2 py-1.5">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Switch Role</p>
+                                    <div className="space-y-0.5">
+                                        {allRoles.map((r) => {
+                                            const isActive = r === activeRole;
+                                            const colorClass = roleColors[r] ?? 'bg-secondary text-secondary-foreground';
+                                            return (
+                                                <button
+                                                    key={r}
+                                                    onClick={() => switchRole(r)}
+                                                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors hover:bg-accent"
+                                                >
+                                                    <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
+                                                    <span className={`text-xs font-medium capitalize flex-1 text-left ${colorClass}`}>{r.replace(/-/g, ' ')}</span>
+                                                    {isActive && <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <DropdownMenuSeparator />
+                            </>
+                        )}
+
                         <DropdownMenuGroup>
                             <DropdownMenuItem onClick={() => { window.location.href = '/profile'; }}>
                                 <User className="w-4 h-4 mr-2" /> Profile

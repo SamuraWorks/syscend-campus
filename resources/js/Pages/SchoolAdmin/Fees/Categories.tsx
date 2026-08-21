@@ -32,7 +32,7 @@ const FEE_TYPES = ['tuition', 'transport', 'library', 'exam', 'hostel', 'sports'
 
 const emptyForm = { name: '', type: 'tuition', description: '', is_active: true };
 
-export default function FeeCategories({ categories }: { categories: FeeCategory[] }) {
+export default function FeeCategories({ categories = [] }: { categories: FeeCategory[] }) {
     const { flash } = usePage<PageProps>().props;
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<FeeCategory | null>(null);

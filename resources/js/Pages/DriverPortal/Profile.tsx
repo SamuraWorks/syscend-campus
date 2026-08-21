@@ -2,6 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { User, Briefcase, Mail, Phone } from 'lucide-react';
+import ProfileAvatar from '@/components/ProfileAvatar';
 
 interface Staff {
     id: number; full_name: string; emp_id: string;
@@ -41,11 +42,12 @@ export default function DriverProfile({ linked, staff }: Props) {
         <AppLayout title="My Profile">
             <div className="space-y-6">
                 <div className="rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 p-6 text-white flex items-center gap-5">
-                    <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
-                        {staff.photo_url
-                            ? <img src={staff.photo_url} alt={staff.full_name} className="w-full h-full object-cover" />
-                            : <User className="w-10 h-10 text-white/80" />}
-                    </div>
+                    <ProfileAvatar
+                        src={staff.photo_url}
+                        name={staff.full_name}
+                        size="2xl"
+                        showRing
+                    />
                     <div className="flex-1 min-w-0">
                         <h1 className="text-xl font-bold">{staff.full_name}</h1>
                         <p className="text-white/80 text-sm">Emp# {staff.emp_id}{staff.designation ? ` · ${staff.designation}` : ''}{staff.department ? ` · ${staff.department}` : ''}</p>
@@ -66,6 +68,7 @@ export default function DriverProfile({ linked, staff }: Props) {
                             <Field label="Gender" value={staff.gender} />
                             <Field label="Date of Birth" value={staff.date_of_birth} />
                             <Field label="Blood Group" value={staff.blood_group} />
+                            <Field label="Religion" value={staff.religion} />
                         </CardContent>
                     </Card>
 

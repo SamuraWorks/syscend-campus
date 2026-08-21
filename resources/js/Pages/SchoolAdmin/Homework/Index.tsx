@@ -111,7 +111,7 @@ export default function HomeworkIndex({ homework, classes, subjects, staff, filt
                                     <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">All classes</SelectItem>
-                                        {classes.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                                        {(classes ?? []).map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -121,7 +121,7 @@ export default function HomeworkIndex({ homework, classes, subjects, staff, filt
                                     <SelectTrigger><SelectValue placeholder="All subjects" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">All subjects</SelectItem>
-                                        {subjects.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                                        {(subjects ?? []).map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -150,10 +150,10 @@ export default function HomeworkIndex({ homework, classes, subjects, staff, filt
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {homework.data.length === 0 && (
+                                {(homework?.data ?? []).length === 0 && (
                                     <TableRow><TableCell colSpan={8} className="text-center text-slate-400 py-8">No homework found</TableCell></TableRow>
                                 )}
-                                {homework.data.map(hw => (
+                                {(homework?.data ?? []).map(hw => (
                                     <TableRow key={hw.id}>
                                         <TableCell className="font-medium">{hw.title}</TableCell>
                                         <TableCell>{hw.school_class?.name ?? '—'}</TableCell>
@@ -216,7 +216,7 @@ export default function HomeworkIndex({ homework, classes, subjects, staff, filt
                                 <Select value={data.class_id} onValueChange={v => setData('class_id', v)}>
                                     <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
                                     <SelectContent>
-                                        {classes.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                                        {(classes ?? []).map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 {errors.class_id && <p className="text-xs text-red-500 mt-1">{errors.class_id}</p>}
@@ -226,7 +226,7 @@ export default function HomeworkIndex({ homework, classes, subjects, staff, filt
                                 <Select value={data.subject_id} onValueChange={v => setData('subject_id', v)}>
                                     <SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger>
                                     <SelectContent>
-                                        {subjects.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                                        {(subjects ?? []).map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 {errors.subject_id && <p className="text-xs text-red-500 mt-1">{errors.subject_id}</p>}
@@ -238,7 +238,7 @@ export default function HomeworkIndex({ homework, classes, subjects, staff, filt
                                 <SelectTrigger><SelectValue placeholder="Select teacher (optional)" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">None</SelectItem>
-                                    {staff.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.first_name} {s.last_name}</SelectItem>)}
+                                    {(staff ?? []).map(s => <SelectItem key={s.id} value={String(s.id)}>{s.first_name} {s.last_name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>

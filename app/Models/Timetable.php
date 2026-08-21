@@ -12,7 +12,11 @@ class Timetable extends Model
 
     protected $fillable = [
         'school_id', 'class_id', 'section_id', 'subject_id', 'teacher_id',
-        'day_of_week', 'start_time', 'end_time', 'room', 'notes',
+        'day_of_week', 'start_time', 'end_time', 'room', 'notes', 'status',
+    ];
+
+    protected $casts = [
+        'status' => 'string',
     ];
 
     public function schoolClass(): BelongsTo

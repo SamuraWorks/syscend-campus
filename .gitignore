@@ -29,3 +29,7 @@ auth.json
 /deploy
 /deploy.sh
 /geniusSchoolManagement
+composer_setup.php
+database/cleanup_all.php
+test_upload.php
+*.tmp

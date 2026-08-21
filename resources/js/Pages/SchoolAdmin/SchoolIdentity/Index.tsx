@@ -135,8 +135,8 @@ function FileUpload({ label, accept, description, currentUrl, onFile, onRemove }
 /* ═══════════════ Basic Identity Tab ═══════════════ */
 function BasicTab({ school }: { school: SchoolData }) {
     const form = useForm({
-        name: school.name, short_name: school.short_name ?? '', motto: school.motto ?? '',
-        primary_color: school.primary_color ?? '#0d6efd', secondary_color: school.secondary_color ?? '#6c757d',
+        short_name: school.short_name ?? '', motto: school.motto ?? '',
+        secondary_color: school.secondary_color ?? '#6c757d',
         year_established: school.year_established ?? '', school_level: school.school_level ?? '',
         school_type: school.school_type ?? '', ownership: school.ownership ?? '',
     });
@@ -144,11 +144,10 @@ function BasicTab({ school }: { school: SchoolData }) {
     return (
         <form onSubmit={e => { e.preventDefault(); form.post('/school/school-identity/basic'); }}>
             <Card>
-                <CardHeader><CardTitle className="text-base">Basic School Identity</CardTitle><CardDescription>Official name, motto, type, and visual identity colors.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="text-base">Basic School Identity</CardTitle><CardDescription>Motto, type, level, and ownership. School name and primary color are managed in Settings.</CardDescription></CardHeader>
                 <CardContent className="space-y-5">
                     {form.recentlySuccessful && <SuccessBanner message="Identity updated." />}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="sm:col-span-2"><Label>School Name *</Label><Input value={form.data.name} onChange={e => form.setData('name', e.target.value)} />{form.errors.name && <p className="text-xs text-red-500 mt-1">{form.errors.name}</p>}</div>
                         <div><Label>Short Name / Abbreviation</Label><Input value={form.data.short_name} onChange={e => form.setData('short_name', e.target.value)} placeholder="e.g. SCS" /></div>
                         <div><Label>School Motto</Label><Input value={form.data.motto} onChange={e => form.setData('motto', e.target.value)} placeholder="e.g. Knowledge is Power" /></div>
                         <div><Label>School Type</Label><Select value={form.data.school_type} onValueChange={v => form.setData('school_type', v)}><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger><SelectContent>{SCHOOL_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent></Select></div>
@@ -157,9 +156,8 @@ function BasicTab({ school }: { school: SchoolData }) {
                         <div><Label>Ownership</Label><Input value={form.data.ownership} onChange={e => form.setData('ownership', e.target.value)} placeholder="e.g. Community Trust" /></div>
                     </div>
                     <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
-                        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">School Colors</h3>
+                        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Secondary Color</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div><Label>Primary Color</Label><div className="flex items-center gap-2"><input type="color" value={form.data.primary_color} onChange={e => form.setData('primary_color', e.target.value)} className="w-10 h-10 rounded border border-slate-200 cursor-pointer p-0.5" /><Input value={form.data.primary_color} onChange={e => form.setData('primary_color', e.target.value)} className="font-mono" /></div></div>
                             <div><Label>Secondary Color</Label><div className="flex items-center gap-2"><input type="color" value={form.data.secondary_color} onChange={e => form.setData('secondary_color', e.target.value)} className="w-10 h-10 rounded border border-slate-200 cursor-pointer p-0.5" /><Input value={form.data.secondary_color} onChange={e => form.setData('secondary_color', e.target.value)} className="font-mono" /></div></div>
                         </div>
                     </div>
@@ -209,8 +207,8 @@ function RegistrationTab({ school }: { school: SchoolData }) {
 /* ═══════════════ Contact Tab ═══════════════ */
 function ContactTab({ school }: { school: SchoolData }) {
     const form = useForm({
-        email: school.email ?? '', phone: school.phone ?? '', whatsapp_number: school.whatsapp_number ?? '',
-        address: school.address ?? '', district_name: school.district_name ?? '',
+        whatsapp_number: school.whatsapp_number ?? '',
+        district_name: school.district_name ?? '',
         chiefdom: school.chiefdom ?? '', province: school.province ?? '',
         postal_address: school.postal_address ?? '', website: school.website ?? '',
         gps_latitude: school.gps_latitude ?? '', gps_longitude: school.gps_longitude ?? '',
@@ -219,15 +217,12 @@ function ContactTab({ school }: { school: SchoolData }) {
     return (
         <form onSubmit={e => { e.preventDefault(); form.post('/school/school-identity/contact'); }}>
             <Card>
-                <CardHeader><CardTitle className="text-base">Contact Information</CardTitle><CardDescription>Physical address, phone numbers, and online presence.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="text-base">Location & Details</CardTitle><CardDescription>District, chiefdom, GPS coordinates, and website. Core contact (email, phone, address) is in Settings.</CardDescription></CardHeader>
                 <CardContent className="space-y-5">
                     {form.recentlySuccessful && <SuccessBanner message="Contact info updated." />}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div><Label>Email</Label><Input type="email" value={form.data.email} onChange={e => form.setData('email', e.target.value)} /></div>
-                        <div><Label>Official Phone</Label><Input value={form.data.phone} onChange={e => form.setData('phone', e.target.value)} /></div>
                         <div><Label>WhatsApp Number</Label><Input value={form.data.whatsapp_number} onChange={e => form.setData('whatsapp_number', e.target.value)} /></div>
                         <div><Label>Website</Label><Input value={form.data.website} onChange={e => form.setData('website', e.target.value)} placeholder="https://..." /></div>
-                        <div className="sm:col-span-2"><Label>Physical Address</Label><Textarea rows={2} value={form.data.address} onChange={e => form.setData('address', e.target.value)} /></div>
                         <div><Label>District</Label><Input value={form.data.district_name} onChange={e => form.setData('district_name', e.target.value)} /></div>
                         <div><Label>Chiefdom / City / Town</Label><Input value={form.data.chiefdom} onChange={e => form.setData('chiefdom', e.target.value)} /></div>
                         <div><Label>Province / Region</Label><Select value={form.data.province} onValueChange={v => form.setData('province', v)}><SelectTrigger><SelectValue placeholder="Select province" /></SelectTrigger><SelectContent>{PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div>
@@ -310,22 +305,18 @@ function AcademicTab({ school }: { school: SchoolData }) {
         working_days: school.working_days ?? 'Monday-Friday',
         school_opening_time: school.school_opening_time ?? '08:00',
         school_closing_time: school.school_closing_time ?? '15:30',
-        ca_weight: school.ca_weight ?? '40',
-        exam_weight: school.exam_weight ?? '60',
     });
 
     return (
         <form onSubmit={e => { e.preventDefault(); form.post('/school/school-identity/academic'); }}>
             <Card>
-                <CardHeader><CardTitle className="text-base">Academic Configuration</CardTitle><CardDescription>School hours, working days, and assessment weights.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="text-base">School Hours</CardTitle><CardDescription>Working days and school hours. CA/exam weights are in Sierra Leone Settings.</CardDescription></CardHeader>
                 <CardContent className="space-y-5">
                     {form.recentlySuccessful && <SuccessBanner message="Academic config updated." />}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="sm:col-span-2"><Label>Working Days</Label><Input value={form.data.working_days} onChange={e => form.setData('working_days', e.target.value)} placeholder="e.g. Monday-Friday" /></div>
                         <div><Label>School Opening Time</Label><Input type="time" value={form.data.school_opening_time} onChange={e => form.setData('school_opening_time', e.target.value)} /></div>
                         <div><Label>School Closing Time</Label><Input type="time" value={form.data.school_closing_time} onChange={e => form.setData('school_closing_time', e.target.value)} /></div>
-                        <div><Label>CA Weight (%)</Label><Input type="number" min="0" max="100" value={form.data.ca_weight} onChange={e => form.setData('ca_weight', e.target.value)} /></div>
-                        <div><Label>Exam Weight (%)</Label><Input type="number" min="0" max="100" value={form.data.exam_weight} onChange={e => form.setData('exam_weight', e.target.value)} /></div>
                     </div>
                     <div className="flex justify-end"><Button type="submit" disabled={form.processing} className="gap-2"><Save className="w-4 h-4" /> Save Academic Config</Button></div>
                 </CardContent>
@@ -337,9 +328,9 @@ function AcademicTab({ school }: { school: SchoolData }) {
 /* ═══════════════ Branding Tab ═══════════════ */
 function BrandingTab({ school }: { school: SchoolData }) {
     const form = useForm<{
-        logo: File | null; badge: File | null; banner: File | null;
+        badge: File | null; banner: File | null;
         official_signature: File | null; official_stamp: File | null;
-    }>({ logo: null, badge: null, banner: null, official_signature: null, official_stamp: null });
+    }>({ badge: null, banner: null, official_signature: null, official_stamp: null });
 
     const uploadField = (field: string, file: File) => {
         form.setData(field as any, file);
@@ -352,10 +343,9 @@ function BrandingTab({ school }: { school: SchoolData }) {
     return (
         <form onSubmit={e => { e.preventDefault(); form.post('/school/school-identity/branding', { forceFormData: true }); }}>
             <Card>
-                <CardHeader><CardTitle className="text-base">Branding Assets</CardTitle><CardDescription>Upload logos, crests, signatures, and stamps. These appear on all official documents.</CardDescription></CardHeader>
+                <CardHeader><CardTitle className="text-base">Identity Assets</CardTitle><CardDescription>Badge, banner, signature, and stamp. Logo/favicon are in Settings.</CardDescription></CardHeader>
                 <CardContent className="space-y-6">
                     {form.recentlySuccessful && <SuccessBanner message="Branding assets updated." />}
-                    <FileUpload label="School Logo" currentUrl={school.logo_url} description="PNG/SVG, max 2MB. Recommended 200x200px." onFile={f => uploadField('logo', f)} onRemove={() => removeAsset('logo')} />
                     <FileUpload label="School Badge / Crest" currentUrl={school.badge_url} description="PNG/SVG, max 2MB." onFile={f => uploadField('badge', f)} onRemove={() => removeAsset('badge')} />
                     <FileUpload label="School Banner" currentUrl={school.banner_url} description="JPG/PNG, max 4MB. Recommended 1200x400px." onFile={f => uploadField('banner', f)} onRemove={() => removeAsset('banner')} />
                     <div className="border-t border-slate-100 dark:border-slate-800 pt-4">

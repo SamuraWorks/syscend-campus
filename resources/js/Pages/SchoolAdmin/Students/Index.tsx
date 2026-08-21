@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Search, Users, Eye, Pencil, Trash2, MoreHorizontal, Upload } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import ImportUploadDialog from '@/components/ImportUploadDialog';
 import type { PageProps, PaginatedResponse, Student, SchoolClass, Section } from '@/Types';
 
 interface Props extends PageProps {
@@ -37,7 +36,10 @@ export default function StudentsIndex() {
     const { students, filters, classes, sections, stats } = usePage<Props>().props;
     const [search, setSearch] = useState(filters.search ?? '');
     const [importOpen, setImportOpen] = useState(false);
-    const importForm = useForm({ csv_file: null as File | null, class_id: '', section_id: '' });
+
+    const confirmDelete = (s: Student) => {
+        if (confirm(`Remove student "${s.full_name}"?`)) router.delete(`/school/students/${s.id}`);
+    };
 
     const applyFilter = (params: Record<string, string>) =>
         router.get('/school/students', { ...filters, ...params }, { preserveState: true, replace: true });
@@ -45,18 +47,6 @@ export default function StudentsIndex() {
     const visibleSections = filters.class_id
         ? sections.filter((s) => String(s.class_id) === filters.class_id)
         : sections;
-
-    const confirmDelete = (s: Student) => {
-        if (confirm(`Remove student "${s.full_name}"?`)) router.delete(`/school/students/${s.id}`);
-    };
-
-    function handleImportSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        importForm.post('/school/students/bulk-import', {
-            onSuccess: () => { importForm.reset(); setImportOpen(false); },
-            forceFormData: true,
-        });
-    }
 
     return (
         <AppLayout breadcrumbs={[{ label: 'Students' }]}>
@@ -157,7 +147,7 @@ export default function StudentsIndex() {
                                         <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center shrink-0 text-xs font-bold text-indigo-600 dark:text-indigo-400">
                                             {s.photo_url
                                                 ? <img src={s.photo_url} className="w-8 h-8 rounded-full object-cover" alt="" />
-                                                : s.first_name[0].toUpperCase()
+                                                : (s.first_name?.[0] ?? '?').toUpperCase()
                                             }
                                         </div>
                                         <div>
@@ -169,7 +159,7 @@ export default function StudentsIndex() {
                                 <TableCell className="hidden sm:table-cell text-sm font-mono text-slate-500">{s.admission_no}</TableCell>
                                 <TableCell className="hidden lg:table-cell text-sm text-slate-600 dark:text-slate-400">
                                     {s.school_class?.name ?? '—'}
-                                    {s.section && <span className="text-xs text-slate-400"> / {s.section.name}</span>}
+                                    {s.section && <span className="text-xs text-slate-400"> / {s.section?.name}</span>}
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell text-sm text-slate-600 dark:text-slate-400">
                                     {s.guardian?.name ?? '—'}
@@ -216,50 +206,7 @@ export default function StudentsIndex() {
             </div>
 
             {/* Import Dialog */}
-            <Dialog open={importOpen} onOpenChange={setImportOpen}>
-                <DialogContent className="max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Import Students from CSV</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleImportSubmit} className="space-y-4">
-                        <div>
-                            <Label>Target Class *</Label>
-                            <Select value={importForm.data.class_id} onValueChange={(v) => importForm.setData('class_id', v)}>
-                                <SelectTrigger><SelectValue placeholder="Select class for imported students" /></SelectTrigger>
-                                <SelectContent>
-                                    {classes.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Section (optional)</Label>
-                            <Select value={importForm.data.section_id} onValueChange={(v) => importForm.setData('section_id', v)}>
-                                <SelectTrigger><SelectValue placeholder="Select section" /></SelectTrigger>
-                                <SelectContent>
-                                    {sections.filter((s) => !importForm.data.class_id || String(s.class_id) === importForm.data.class_id).map((s) => (
-                                        <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>CSV File * (max 5MB)</Label>
-                            <Input type="file" accept=".csv,.txt" onChange={(e) => importForm.setData('csv_file', e.target.files?.[0] ?? null)} />
-                        </div>
-                        <div className="bg-slate-50 dark:bg-slate-800 rounded p-3 text-xs text-slate-600 dark:text-slate-400">
-                            <p className="font-semibold mb-1">Expected CSV columns:</p>
-                            <p className="font-mono text-[10px]">first_name, last_name, gender, date_of_birth, class_name, section_name, guardian_name, guardian_relation, guardian_phone, guardian_email, phone, email, address, roll_no</p>
-                            <p className="mt-1">Only <strong>first_name</strong> is required. Students without a class match will use the target class above.</p>
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setImportOpen(false)}>Cancel</Button>
-                            <Button type="submit" disabled={importForm.processing || !importForm.data.csv_file || !importForm.data.class_id}>
-                                {importForm.processing ? 'Importing...' : 'Import Students'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <ImportUploadDialog open={importOpen} onOpenChange={setImportOpen} type="students" label="Students" />
         </AppLayout>
     );
 }

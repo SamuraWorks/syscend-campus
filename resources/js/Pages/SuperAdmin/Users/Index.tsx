@@ -10,7 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import { Users, Plus, Search, Edit, Trash2, Ban, CheckCircle, KeyRound, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+    Users, Plus, Search, Edit, Trash2, Ban, CheckCircle, KeyRound,
+    ChevronLeft, ChevronRight, ClipboardCopy, Mail, School,
+} from 'lucide-react';
 
 interface Role { name: string; }
 interface UserRow {
@@ -38,6 +41,54 @@ const statusBadge = (status: string) => {
     return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${map[status] ?? ''}`}>{status}</span>;
 };
 
+const formatRoleName = (role: string) => {
+    const map: Record<string, string> = {
+        'super-admin': 'Super Admin',
+        'school-admin': 'School Admin',
+    };
+    return map[role] ?? role;
+};
+
+function buildWelcomeMessage(data: {
+    name: string;
+    email: string;
+    password: string;
+    role: string;
+    schoolName?: string;
+}) {
+    const lines = [
+        `Dear ${data.name},`,
+        '',
+        'Welcome to Syscend Campus! Your account has been created successfully.',
+        '',
+    ];
+
+    if (data.schoolName) {
+        lines.push(`School: ${data.schoolName}`);
+    }
+
+    lines.push(
+        `Role: ${formatRoleName(data.role)}`,
+        '',
+        'Login Credentials:',
+        `  Email: ${data.email}`,
+        `  Password: ${data.password}`,
+        '',
+        'You can log in at: ' + window.location.origin + '/login',
+        '',
+        'Please keep your credentials secure. For security purposes, we recommend changing your password after your first login.',
+        '',
+        'Best regards,',
+        'Syscend Campus Team',
+    );
+
+    return lines.join('\n');
+}
+
+function buildEmailSubject(userName: string) {
+    return `Welcome to Syscend Campus - Your Account Credentials`;
+}
+
 export default function UsersIndex({ users, schools, roles, filters }: Props) {
     const [search, setSearch]     = useState(filters.search ?? '');
     const [roleFilter, setRoleFilter] = useState(filters.role ?? '');
@@ -48,6 +99,16 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
     const [editUser, setEditUser]           = useState<UserRow | null>(null);
     const [deleteUser, setDeleteUser]       = useState<UserRow | null>(null);
     const [resetUser, setResetUser]         = useState<UserRow | null>(null);
+
+    const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+    const [welcomeData, setWelcomeData] = useState<{
+        name: string;
+        email: string;
+        password: string;
+        role: string;
+        schoolName?: string;
+    } | null>(null);
+    const [copied, setCopied] = useState(false);
 
     const form = useForm({
         name: '', email: '', phone: '', password: '',
@@ -87,7 +148,23 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
         if (editUser) {
             form.put(`/super-admin/users/${editUser.id}`, { onSuccess: () => setShowModal(false) });
         } else {
-            form.post('/super-admin/users', { onSuccess: () => setShowModal(false) });
+            form.post('/super-admin/users', {
+                onSuccess: () => {
+                    const schoolName = form.data.school_id
+                        ? schools.find(s => s.id === Number(form.data.school_id))?.name
+                        : undefined;
+                    setWelcomeData({
+                        name: form.data.name,
+                        email: form.data.email,
+                        password: form.data.password,
+                        role: form.data.role,
+                        schoolName,
+                    });
+                    setShowModal(false);
+                    setShowWelcomeDialog(true);
+                    form.reset();
+                },
+            });
         }
     }
 
@@ -107,6 +184,22 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
         resetForm.patch(`/super-admin/users/${resetUser.id}/reset-password`, {
             onSuccess: () => { setResetUser(null); resetForm.reset(); },
         });
+    }
+
+    function copyToClipboard() {
+        if (!welcomeData) return;
+        const msg = buildWelcomeMessage(welcomeData);
+        navigator.clipboard.writeText(msg).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    }
+
+    function sendViaEmail() {
+        if (!welcomeData) return;
+        const subject = encodeURIComponent(buildEmailSubject(welcomeData.name));
+        const body = encodeURIComponent(buildWelcomeMessage(welcomeData));
+        window.open(`mailto:?subject=${subject}&body=${body}`, '_self');
     }
 
     return (
@@ -137,7 +230,7 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
                                 <SelectTrigger className="w-44"><SelectValue placeholder="All Roles" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="_all">All Roles</SelectItem>
-                                    {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                                    {roles.map(r => <SelectItem key={r} value={r}>{formatRoleName(r)}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             <Select value={schoolFilter || '_all'} onValueChange={v => { setSchoolFilter(v === '_all' ? '' : v); applyFilters({ school_id: v === '_all' ? '' : v }); }}>
@@ -192,7 +285,7 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
                                             <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">{u.name}</td>
                                             <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{u.email}</td>
                                             <td className="py-3 px-4">
-                                                {u.roles[0] ? <Badge variant="outline" className="text-xs">{u.roles[0].name}</Badge> : <span className="text-slate-400">—</span>}
+                                                {u.roles[0] ? <Badge variant="outline" className="text-xs">{formatRoleName(u.roles[0].name)}</Badge> : <span className="text-slate-400">—</span>}
                                             </td>
                                             <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
                                                 {u.school_id ? (schools.find(s => s.id === u.school_id)?.name ?? '—') : <span className="text-slate-400">Global</span>}
@@ -284,10 +377,13 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <Label>Role *</Label>
-                                <Select value={form.data.role} onValueChange={v => form.setData('role', v)}>
+                                <Select value={form.data.role} onValueChange={v => {
+                                    form.setData('role', v);
+                                    if (v === 'super-admin') form.setData('school_id', '');
+                                }}>
                                     <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
                                     <SelectContent>
-                                        {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                                        {roles.map(r => <SelectItem key={r} value={r}>{formatRoleName(r)}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 {form.errors.role && <p className="text-xs text-red-500 mt-1">{form.errors.role}</p>}
@@ -302,16 +398,21 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
                                 </Select>
                             </div>
                         </div>
-                        <div>
-                            <Label>School</Label>
-                            <Select value={form.data.school_id || '_none'} onValueChange={v => form.setData('school_id', v === '_none' ? '' : v)}>
-                                <SelectTrigger><SelectValue placeholder="None (Global user)" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="_none">None (Global)</SelectItem>
-                                    {schools.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {form.data.role === 'school-admin' && (
+                            <div>
+                                <Label className="flex items-center gap-1.5">
+                                    <School className="w-3.5 h-3.5" />
+                                    School *
+                                </Label>
+                                <Select value={form.data.school_id || '_none'} onValueChange={v => form.setData('school_id', v === '_none' ? '' : v)}>
+                                    <SelectTrigger><SelectValue placeholder="Select a school" /></SelectTrigger>
+                                    <SelectContent>
+                                        {schools.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                {form.errors.school_id && <p className="text-xs text-red-500 mt-1">{form.errors.school_id}</p>}
+                            </div>
+                        )}
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
                             <Button type="submit" disabled={form.processing}>
@@ -319,6 +420,48 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Welcome / Credentials Dialog */}
+            <Dialog open={showWelcomeDialog} onOpenChange={open => { if (!open) { setShowWelcomeDialog(false); setCopied(false); } }}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <CheckCircle className="w-5 h-5 text-green-500" />
+                            User Created Successfully
+                        </DialogTitle>
+                    </DialogHeader>
+                    {welcomeData && (
+                        <div className="space-y-4">
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                                Login credentials for <strong className="text-slate-900 dark:text-white">{welcomeData.name}</strong>.
+                                Copy the message below and send it to the user via WhatsApp, SMS, or any other channel.
+                            </p>
+                            <textarea
+                                readOnly
+                                rows={14}
+                                className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3 text-sm font-mono text-slate-800 dark:text-slate-200 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-text select-all"
+                                value={welcomeData ? buildWelcomeMessage(welcomeData) : ''}
+                                onClick={e => (e.currentTarget as HTMLTextAreaElement).select()}
+                            />
+                            <div className="flex gap-2">
+                                <Button size="sm" className="flex-1 gap-2" onClick={copyToClipboard}>
+                                    <ClipboardCopy className="w-4 h-4" />
+                                    {copied ? 'Copied to Clipboard!' : 'Copy Message'}
+                                </Button>
+                                <Button variant="outline" size="sm" className="flex-1 gap-2" onClick={sendViaEmail}>
+                                    <Mail className="w-4 h-4" />
+                                    Open in Email
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => { setShowWelcomeDialog(false); setCopied(false); }}>
+                            Close
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

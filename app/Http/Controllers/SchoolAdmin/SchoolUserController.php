@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SchoolAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\RoleRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -24,10 +25,7 @@ class SchoolUserController extends Controller
     /** School-level roles that can be managed by a school-admin */
     private function allowedRoles(): array
     {
-        return [
-            'school-admin', 'principal', 'teacher', 'accountant',
-            'librarian', 'receptionist', 'driver', 'warden', 'store-manager',
-        ];
+        return RoleRegistry::SCHOOL_MANAGEABLE_ROLES;
     }
 
     public function index(Request $request): Response

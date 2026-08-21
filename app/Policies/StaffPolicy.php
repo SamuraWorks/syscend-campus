@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Staff;
 use App\Models\User;
+use App\Services\RoleRegistry;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class StaffPolicy
@@ -12,7 +13,7 @@ class StaffPolicy
 
     public function before(User $user, string $ability): ?bool
     {
-        if ($user->hasRole('super-admin')) {
+        if ($user->hasRole(RoleRegistry::SUPER_ADMIN)) {
             return true;
         }
 
@@ -26,7 +27,7 @@ class StaffPolicy
 
     public function view(User $user, Staff $staff): bool
     {
-        if ($user->hasRole(['school-admin', 'principal'])) {
+        if ($user->hasRole([RoleRegistry::SCHOOL_ADMIN, RoleRegistry::PRINCIPAL])) {
             return true;
         }
 
@@ -39,16 +40,16 @@ class StaffPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole(['school-admin']);
+        return $user->hasRole([RoleRegistry::SCHOOL_ADMIN]);
     }
 
     public function update(User $user, Staff $staff): bool
     {
-        return $user->hasRole(['school-admin']);
+        return $user->hasRole([RoleRegistry::SCHOOL_ADMIN]);
     }
 
     public function delete(User $user, Staff $staff): bool
     {
-        return $user->hasRole(['school-admin']);
+        return $user->hasRole([RoleRegistry::SCHOOL_ADMIN]);
     }
 }

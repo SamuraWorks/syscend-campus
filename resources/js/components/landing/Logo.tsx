@@ -14,9 +14,9 @@ export default function Logo({
     return (
         <span className={cn('inline-flex items-center gap-2', className)}>
             <img
-                src="/images/logo.jpeg"
+                src="/images/logo.png"
                 alt="Syscend Campus"
-                className="size-10 rounded-md object-cover"
+                className="h-12 w-auto rounded-md object-contain"
             />
             {showWordmark && (
                 <span

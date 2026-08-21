@@ -186,9 +186,9 @@ class PerformanceController extends Controller
         ]);
     }
 
-    public function markAlertRead(int $alertId)
+    public function markAlertRead(int $id)
     {
-        $alert = StudentAlert::where('school_id', $this->schoolId())->findOrFail($alertId);
+        $alert = StudentAlert::where('school_id', $this->schoolId())->findOrFail($id);
         $alert->update(['is_read' => true]);
 
         return back();
@@ -270,9 +270,9 @@ class PerformanceController extends Controller
         return back()->with('success', 'Intervention updated.');
     }
 
-    public function addInterventionNote(Request $request, int $interventionId)
+    public function addInterventionNote(Request $request, int $id)
     {
-        $intervention = Intervention::where('school_id', $this->schoolId())->findOrFail($interventionId);
+        $intervention = Intervention::where('school_id', $this->schoolId())->findOrFail($id);
 
         $validated = $request->validate([
             'note'       => 'required|string',

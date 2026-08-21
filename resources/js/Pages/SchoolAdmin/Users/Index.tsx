@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-    Search, MoreHorizontal, Eye, RotateCcw, ShieldCheck,
+    Search, MoreHorizontal, Eye, RotateCcw, ShieldCheck, Pencil, Trash2,
     Users, UserCheck, KeyRound, UserMinus, CheckCircle2, XCircle,
 } from 'lucide-react';
 import type { PageProps } from '@/Types';
@@ -136,7 +136,7 @@ export default function UsersIndex({ users, roles, filters, stats }: Props) {
                         <SelectTrigger className="w-44"><SelectValue placeholder="All Roles" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="">All Roles</SelectItem>
-                            {roles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                            {(roles ?? []).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                         </SelectContent>
                     </Select>
 
@@ -165,14 +165,14 @@ export default function UsersIndex({ users, roles, filters, stats }: Props) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {users.data.length === 0 ? (
+                            {(users?.data ?? []).length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={7} className="text-center py-16 text-slate-400">
                                         <Users className="w-10 h-10 mx-auto mb-2 opacity-40" />
                                         No users found.
                                     </TableCell>
                                 </TableRow>
-                            ) : users.data.map((u) => (
+                            ) : (users?.data ?? []).map((u) => (
                                 <TableRow key={u.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
@@ -192,9 +192,9 @@ export default function UsersIndex({ users, roles, filters, stats }: Props) {
                                     <TableCell className="hidden sm:table-cell font-mono text-xs text-slate-600 dark:text-slate-400">{u.username ?? '—'}</TableCell>
                                     <TableCell className="hidden md:table-cell">
                                         <div className="flex flex-wrap gap-1">
-                                            {u.roles.length === 0 ? (
+                                            {(u.roles ?? []).length === 0 ? (
                                                 <span className="text-xs text-slate-400">—</span>
-                                            ) : u.roles.map(role => (
+                                            ) : (u.roles ?? []).map(role => (
                                                 <Badge key={role.id} variant="secondary" className="text-xs">
                                                     {role.name}
                                                 </Badge>
@@ -233,11 +233,23 @@ export default function UsersIndex({ users, roles, filters, stats }: Props) {
                                                         <Eye className="w-4 h-4" /> View
                                                     </Link>
                                                 </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/school/users/${u.id}/edit`} className="flex items-center gap-2 text-sm">
+                                                        <Pencil className="w-4 h-4" /> Edit
+                                                    </Link>
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleToggleStatus(u)} className="flex items-center gap-2 text-sm">
                                                     <ShieldCheck className="w-4 h-4" /> Toggle Status
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleResetPassword(u)} className="flex items-center gap-2 text-sm">
                                                     <RotateCcw className="w-4 h-4" /> Reset Password
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => {
+                                                    if (confirm(`Delete "${u.name}"? This cannot be undone.`)) {
+                                                        router.delete(`/school/users/${u.id}`);
+                                                    }
+                                                }} className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                                                    <Trash2 className="w-4 h-4" /> Delete
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -248,10 +260,10 @@ export default function UsersIndex({ users, roles, filters, stats }: Props) {
                     </Table>
 
                     {/* Pagination */}
-                    {users.meta.last_page > 1 && (
+                    {users?.meta?.last_page > 1 && (
                         <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-800">
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                                Showing {users.meta.from}–{users.meta.to} of {users.meta.total}
+                                Showing {users?.meta?.from ?? '?'}–{users?.meta?.to ?? '?'} of {users?.meta?.total ?? 0}
                             </p>
                             <div className="flex gap-2">
                                 {users.links.prev && (

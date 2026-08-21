@@ -130,7 +130,9 @@ class ProfileController extends Controller
             'password'              => Hash::make($data['password']),
             'is_temporary_password' => false,
             'must_change_password'  => false,
+            'force_password_change' => false,
             'password_changed_at'   => now(),
+            'last_password_change_at' => now(),
         ]);
 
         return back()->with('success', 'Password changed successfully. You can now access the full dashboard.');

@@ -14,7 +14,8 @@ class Attendance extends Model
 
     protected $fillable = [
         'school_id', 'academic_year_id', 'date',
-        'attendable_type', 'attendable_id', 'status', 'remarks',
+        'attendable_type', 'attendable_id', 'subject_id',
+        'status', 'remarks',
         'approved_at', 'approved_by',
         'session_id', 'status_draft', 'submitted_by', 'submitted_at',
     ];
@@ -28,6 +29,11 @@ class Attendance extends Model
     public function attendable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function subject(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class);
     }
 
     public function academicYear(): BelongsTo
@@ -68,5 +74,30 @@ class Attendance extends Model
     public function isEditable(): bool
     {
         return !$this->isSubmitted();
+    }
+
+    public function isSubjectLevel(): bool
+    {
+        return $this->subject_id !== null;
+    }
+
+    public function isClassLevel(): bool
+    {
+        return $this->subject_id === null;
+    }
+
+    public function scopeForSubject($query, int $subjectId)
+    {
+        return $query->where('subject_id', $subjectId);
+    }
+
+    public function scopeClassLevel($query)
+    {
+        return $query->whereNull('subject_id');
+    }
+
+    public function scopeSubjectLevel($query)
+    {
+        return $query->whereNotNull('subject_id');
     }
 }

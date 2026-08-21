@@ -26,8 +26,6 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->foreign('school_id')->references('id')->on('schools')->onDelete('cascade');
-            $table->foreign('academic_year_id')->references('id')->on('academic_years')->onDelete('cascade');
             $table->index(['school_id', 'academic_year_id', 'category']);
             $table->unique(['school_id', 'academic_year_id', 'slug']);
         });

@@ -33,7 +33,7 @@ const METHOD_LABELS: Record<string, string> = {
     cash: 'Cash', card: 'Card', online: 'Online', orange_money: 'Orange Money', afrimoney: 'AfriMoney', mobile_money: 'Mobile Money',
 };
 
-export default function FeePayments({ payments, classes, filters, stats }: Props) {
+export default function FeePayments({ payments = { data: [], links: { prev: null, next: null }, meta: { total: 0, per_page: 20, current_page: 1, last_page: 1, from: 0, to: 0 } }, classes = [], filters, stats }: Props) {
     function applyFilter(key: string, value: string) {
         router.get('/school/fees/payments', { ...filters, [key]: value || undefined }, { preserveScroll: true });
     }
@@ -125,9 +125,9 @@ export default function FeePayments({ payments, classes, filters, stats }: Props
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {payments.data.length === 0 ? (
+                            {(payments?.data ?? []).length === 0 ? (
                                 <TableRow><TableCell colSpan={10} className="text-center py-16 text-slate-400">No payments recorded yet.</TableCell></TableRow>
-                            ) : payments.data.map(p => {
+                            ) : (payments?.data ?? []).map(p => {
                                 const balance = (Number(p.amount_due) + Number(p.fine) - Number(p.discount) - Number(p.amount_paid)).toFixed(2);
                                 return (
                                     <TableRow key={p.id}>

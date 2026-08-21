@@ -46,7 +46,7 @@ function KpiCard({ title, value, sub, icon: Icon, color }: { title: string; valu
     );
 }
 
-export default function Dashboard({ role, totalStudents, totalStaff, attendancePct, monthFees, pendingFees, pendingHomework, todayCollection, feeChart, attChart, recentActivity, schools, topStudents = [], atRiskStudents = [] }: Props) {
+export default function Dashboard({ role, totalStudents, totalStaff, attendancePct, monthFees, pendingFees, pendingHomework, todayCollection, feeChart = [], attChart = [], recentActivity = [], schools, topStudents = [], atRiskStudents = [] }: Props) {
     const fmt = (n: number) => new Intl.NumberFormat().format(n);
 
     return (
@@ -130,7 +130,7 @@ export default function Dashboard({ role, totalStudents, totalStaff, attendanceP
                                 <Brain className="w-5 h-5 text-indigo-500" />
                                 <h2 className="text-lg font-semibold">Performance Intelligence</h2>
                             </div>
-                            <Link href="/school/performance" className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                            <Link href="/school/performance/overview" className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                                 Full Analytics <ArrowRight className="w-4 h-4" />
                             </Link>
                         </div>
@@ -148,7 +148,8 @@ export default function Dashboard({ role, totalStudents, totalStaff, attendanceP
                                         </Link>
                                     </CardHeader>
                                     <CardContent className="p-0">
-                                        <table className="w-full text-sm">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
                                             <thead>
                                                 <tr className="border-b border-slate-100 dark:border-slate-800 text-left text-xs text-slate-500 uppercase tracking-wide">
                                                     <th className="px-4 py-2">Student</th>
@@ -179,6 +180,7 @@ export default function Dashboard({ role, totalStudents, totalStaff, attendanceP
                                                 ))}
                                             </tbody>
                                         </table>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             ) : (
@@ -204,7 +206,8 @@ export default function Dashboard({ role, totalStudents, totalStaff, attendanceP
                                         </Link>
                                     </CardHeader>
                                     <CardContent className="p-0">
-                                        <table className="w-full text-sm">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
                                             <thead>
                                                 <tr className="border-b border-slate-100 dark:border-slate-800 text-left text-xs text-slate-500 uppercase tracking-wide">
                                                     <th className="px-4 py-2">Student</th>
@@ -234,6 +237,7 @@ export default function Dashboard({ role, totalStudents, totalStaff, attendanceP
                                                 ))}
                                             </tbody>
                                         </table>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             ) : (

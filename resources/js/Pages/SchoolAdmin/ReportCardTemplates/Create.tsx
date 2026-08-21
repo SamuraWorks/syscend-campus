@@ -250,8 +250,8 @@ export default function CreateReportCardTemplate({ existingTemplates }: Props) {
                                             </tr>
                                         ))}
                                     </tbody>
-                                </table>
-                            </div>
+                                    </table>
+                                </div>
                         </CardContent>
                     </Card>
                 )}

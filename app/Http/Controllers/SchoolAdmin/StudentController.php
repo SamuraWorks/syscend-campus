@@ -121,18 +121,28 @@ class StudentController extends Controller
                 ));
 
                 if (!empty($data['guardian']['email']) && !$guardian->user_id) {
-                    $service = new UserCreationService($schoolId, auth()->id());
-                    $result = $service->createUser(
-                        [
-                            'name'  => $data['guardian']['name'],
-                            'email' => $data['guardian']['email'],
-                            'phone' => $data['guardian']['phone'] ?? null,
-                        ],
-                        ['parent']
-                    );
-                    $guardian->update(['user_id' => $result['user']->id]);
-                    $parentTempPassword = $result['temp_password'] ?? null;
-                    $parentUserId = $result['user']->id ?? null;
+                    $existingUser = User::where('school_id', $schoolId)->where('email', $data['guardian']['email'])->first();
+
+                    if ($existingUser) {
+                        if (!$existingUser->hasRole('parent')) {
+                            $existingUser->assignRole('parent');
+                        }
+                        $guardian->update(['user_id' => $existingUser->id]);
+                        $parentUserId = $existingUser->id;
+                    } else {
+                        $service = new UserCreationService($schoolId, auth()->id());
+                        $result = $service->createUser(
+                            [
+                                'name'  => $data['guardian']['name'],
+                                'email' => $data['guardian']['email'],
+                                'phone' => $data['guardian']['phone'] ?? null,
+                            ],
+                            ['parent']
+                        );
+                        $guardian->update(['user_id' => $result['user']->id]);
+                        $parentTempPassword = $result['temp_password'] ?? null;
+                        $parentUserId = $result['user']->id ?? null;
+                    }
                 }
             });
 

@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\PlatformSetting;
 use App\Models\School;
 use App\Models\SchoolSetting;
+use App\Services\RoleRegistry;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,14 +42,19 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user() ? [
+                'user' => fn () => $request->user() ? [
                     'id'         => $request->user()->id,
                     'name'       => $request->user()->name,
                     'email'      => $request->user()->email,
+                    'phone'      => $request->user()->phone ?? null,
                     'avatar'     => $request->user()->avatar ?? null,
                     'avatar_url' => $request->user()->avatar_url,
-                    'role'       => $request->user()->roles()->first()?->name ?? null,
+                    'role'       => $this->resolvePrimaryRole($request->user()),
+                    'roles'      => $request->user()->getRoleNames()->toArray(),
+                    'activeRole' => $this->resolveActiveRole($request->user()),
+                    'permissions'=> $request->user()->getAllPermissions()->pluck('name')->toArray(),
                     'school_id'  => $request->user()->school_id ?? null,
+                    'status'     => $request->user()->status ?? null,
                 ] : null,
             ],
             'flash' => [
@@ -60,11 +66,19 @@ class HandleInertiaRequests extends Middleware
                 return $path ? asset('storage/' . $path) : null;
             }),
             'schoolBranding' => fn () => once(function () use ($request) {
+                // Authenticated user — resolve from their school
                 $user = $request->user();
-                if (!$user || !$user->school_id) return null;
-                $school = School::find($user->school_id);
-                if (!$school) return null;
-                return $school->branding;
+                if ($user && $user->school_id) {
+                    $school = School::find($user->school_id);
+                    return $school ? $school->branding : null;
+                }
+                // Guest user on a school-slug route — resolve from URL
+                $slug = $request->route('schoolSlug');
+                if ($slug) {
+                    $school = School::where('slug', $slug)->where('status', 'active')->first();
+                    return $school ? $school->branding : null;
+                }
+                return null;
             }),
             'schoolConfig' => fn () => once(function () use ($request) {
                 $user = $request->user();
@@ -100,5 +114,65 @@ class HandleInertiaRequests extends Middleware
                 ];
             }),
         ];
+    }
+
+    /**
+     * Determine the active role — either the session-stored one or fallback to primary.
+     */
+    private function resolveActiveRole($user): ?string
+    {
+        $active = session('active_role');
+        $roles = $user->getRoleNames();
+
+        if ($active && $roles->contains($active)) {
+            return $active;
+        }
+
+        return $this->resolvePrimaryRole($user);
+    }
+
+    /**
+     * Determine the single authoritative primary role for the user.
+     *
+     * Priority order matches the dashboard routing logic:
+     *  super-admin > ministry-admin > district-officer > school-admin > ...
+     *
+     * This is the role used by the sidebar to determine which nav items to show.
+     */
+    private function resolvePrimaryRole($user): ?string
+    {
+        $roles = $user->getRoleNames();
+
+        if ($roles->isEmpty()) {
+            return null;
+        }
+
+        // Priority-ordered list of all roles
+        $priority = [
+            RoleRegistry::SUPER_ADMIN,
+            RoleRegistry::MINISTRY_ADMIN,
+            RoleRegistry::DISTRICT_OFFICER,
+            RoleRegistry::SCHOOL_ADMIN,
+            RoleRegistry::PRINCIPAL,
+            RoleRegistry::TEACHER,
+            RoleRegistry::ACCOUNTANT,
+            RoleRegistry::LIBRARIAN,
+            RoleRegistry::RECEPTIONIST,
+            RoleRegistry::DRIVER,
+            RoleRegistry::WARDEN,
+            RoleRegistry::STORE_MANAGER,
+            RoleRegistry::PROPRIETOR,
+            RoleRegistry::STUDENT,
+            RoleRegistry::PARENT,
+        ];
+
+        foreach ($priority as $role) {
+            if ($roles->contains($role)) {
+                return $role;
+            }
+        }
+
+        // Fallback: first role alphabetically
+        return $roles->sort()->first();
     }
 }

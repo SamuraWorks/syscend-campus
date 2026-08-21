@@ -1,13 +1,24 @@
-import { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Bell, ChevronRight, Pin } from 'lucide-react';
 
-interface Announcement { id: number; title: string; content: string; priority: string; target_audience: string; created_by: string; created_at: string; is_pinned: boolean; }
-interface Props { linked: boolean; announcements: Announcement[]; }
+interface Announcement {
+    id: number;
+    title: string;
+    body: string;
+    pinned: boolean;
+    audience: string;
+    author: string;
+    date: string;
+    class_id?: number | null;
+}
+interface Props {
+    linked: boolean;
+    principal: { full_name: string };
+    announcements: Announcement[];
+}
 
 export default function Announcements({ linked, announcements }: Props) {
     if (!linked) {
@@ -21,8 +32,8 @@ export default function Announcements({ linked, announcements }: Props) {
         );
     }
 
-    const pinned = announcements.filter(a => a.is_pinned);
-    const others = announcements.filter(a => !a.is_pinned);
+    const pinned = announcements.filter(a => a.pinned);
+    const others = announcements.filter(a => !a.pinned);
 
     return (
         <AppLayout title="Announcements">
@@ -56,16 +67,15 @@ export default function Announcements({ linked, announcements }: Props) {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{a.title}</h3>
-                                                        <Badge variant="secondary" className={cn('text-[10px] capitalize', a.priority === 'high' ? 'bg-red-100 text-red-700' : a.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500')}>{a.priority}</Badge>
                                                         <Badge variant="outline" className="text-[10px]">Pinned</Badge>
                                                     </div>
-                                                    <p className="text-xs text-slate-500 mt-1">{a.content}</p>
+                                                    <p className="text-xs text-slate-500 mt-1">{a.body}</p>
                                                     <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
-                                                        <span>{a.created_by}</span>
+                                                        <span>{a.author}</span>
                                                         <span>·</span>
-                                                        <span>{a.target_audience}</span>
+                                                        <span>{a.audience}</span>
                                                         <span>·</span>
-                                                        <span>{a.created_at}</span>
+                                                        <span>{a.date}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -85,17 +95,14 @@ export default function Announcements({ linked, announcements }: Props) {
                                                     <Bell className="w-4 h-4 text-slate-500" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{a.title}</h3>
-                                                        <Badge variant="secondary" className={cn('text-[10px] capitalize', a.priority === 'high' ? 'bg-red-100 text-red-700' : a.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500')}>{a.priority}</Badge>
-                                                    </div>
-                                                    <p className="text-xs text-slate-500 mt-1">{a.content}</p>
+                                                    <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{a.title}</h3>
+                                                    <p className="text-xs text-slate-500 mt-1">{a.body}</p>
                                                     <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
-                                                        <span>{a.created_by}</span>
+                                                        <span>{a.author}</span>
                                                         <span>·</span>
-                                                        <span>{a.target_audience}</span>
+                                                        <span>{a.audience}</span>
                                                         <span>·</span>
-                                                        <span>{a.created_at}</span>
+                                                        <span>{a.date}</span>
                                                     </div>
                                                 </div>
                                             </div>

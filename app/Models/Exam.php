@@ -82,6 +82,12 @@ class Exam extends Model
             ->where('approvable_type', self::class);
     }
 
+    public function subjectOfferings(): BelongsToMany
+    {
+        return $this->belongsToMany(SubjectOffering::class, 'exam_subject_offerings')
+            ->withPivot('max_marks', 'weight');
+    }
+
     public function scopeForTerm($query, int $termId)
     {
         return $query->where('term_id', $termId);
@@ -132,5 +138,43 @@ class Exam extends Model
         }
 
         return Subject::where('class_id', $this->class_id)->orderBy('name')->get();
+    }
+
+    /**
+     * Get students enrolled in specific subject offerings for this exam.
+     * When subject offerings are configured, only students enrolled in those offerings are eligible.
+     */
+    public function enrolledStudents(int $subjectOfferingId)
+    {
+        return Student::where('class_id', $this->class_id)
+            ->where('status', 'active')
+            ->whereHas('subjectEnrollments', fn ($q) => $q
+                ->where('subject_offering_id', $subjectOfferingId)
+                ->where('status', 'enrolled'))
+            ->orderBy('roll_no');
+    }
+
+    /**
+     * Check if a student is eligible for a specific subject offering in this exam.
+     */
+    public function isStudentEligible(Student $student, int $subjectOfferingId): bool
+    {
+        return $student->class_id === $this->class_id
+            && $student->status === 'active'
+            && $student->subjectEnrollments()
+                ->where('subject_offering_id', $subjectOfferingId)
+                ->where('status', 'enrolled')
+                ->exists();
+    }
+
+    /**
+     * Get marks for this exam grouped by subject offering.
+     */
+    public function marksByOffering(): \Illuminate\Support\Collection
+    {
+        return $this->marks()
+            ->whereNotNull('subject_offering_id')
+            ->get()
+            ->groupBy('subject_offering_id');
     }
 }

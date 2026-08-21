@@ -45,7 +45,7 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string; color: string; i
     { value: 'half_day', label: 'Half Day', color: 'bg-blue-100 text-blue-700 border-blue-300',    icon: MinusCircle  },
 ];
 
-export default function AttendanceIndex({ classes, sections, students, sessions, existing, filters, role, canApprove }: Props) {
+export default function AttendanceIndex({ classes = [], sections = [], students = [], sessions = [], existing = {}, filters, role, canApprove }: Props) {
     const { flash } = usePage<PageProps>().props;
     const { records, setDate, setClassId, setSectionId, markStudent, markAll, initRecords } = useAttendanceStore();
     const [currentSessionId, setCurrentSessionId] = useState(filters.session_id ?? '');
@@ -302,7 +302,7 @@ export default function AttendanceIndex({ classes, sections, students, sessions,
                                 <TableBody>
                                     {students.map((student, idx) => {
                                         const rec = records[student.id] ?? { status: 'present', remarks: '' };
-                                        const statusOpt = STATUS_OPTIONS.find(o => o.value === rec.status)!;
+                                        const statusOpt = STATUS_OPTIONS.find(o => o.value === rec.status);
 
                                         return (
                                             <TableRow key={student.id} className={rec.status === 'absent' ? 'bg-red-50/50 dark:bg-red-950/10' : ''}>

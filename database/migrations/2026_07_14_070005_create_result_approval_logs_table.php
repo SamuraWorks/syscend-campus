@@ -20,8 +20,6 @@ return new class extends Migration
             $table->json('new_state')->nullable();
             $table->timestamps();
 
-            $table->foreign('school_id')->references('id')->on('schools')->onDelete('cascade');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->index(['approvable_type', 'approvable_id']);
             $table->index(['school_id', 'action']);
         });

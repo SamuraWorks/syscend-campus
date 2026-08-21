@@ -8,36 +8,35 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Add username, temporary password tracking, and audit fields to users
-        DB::statement('ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(100) NULL');
-        DB::statement('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_temporary_password BOOLEAN DEFAULT FALSE');
-        DB::statement('ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMP NULL');
-        DB::statement('ALTER TABLE users ADD COLUMN IF NOT EXISTS created_by INTEGER NULL');
-        DB::statement('ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_secondary VARCHAR(20) NULL');
-        DB::statement('ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT TRUE');
-        DB::statement('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_password_change_at TIMESTAMP NULL');
+        Schema::table('users', function ($table) {
+            if (!Schema::hasColumn('users', 'username')) $table->string('username', 100)->nullable();
+            if (!Schema::hasColumn('users', 'is_temporary_password')) $table->boolean('is_temporary_password')->default(false);
+            if (!Schema::hasColumn('users', 'password_changed_at')) $table->timestamp('password_changed_at')->nullable();
+            if (!Schema::hasColumn('users', 'created_by')) $table->unsignedBigInteger('created_by')->nullable();
+            if (!Schema::hasColumn('users', 'phone_secondary')) $table->string('phone_secondary', 20)->nullable();
+            if (!Schema::hasColumn('users', 'must_change_password')) $table->boolean('must_change_password')->default(true);
+            if (!Schema::hasColumn('users', 'last_password_change_at')) $table->timestamp('last_password_change_at')->nullable();
+        });
 
-        // Add user_id to students (for student login accounts)
-        $studentHasUserId = DB::select("SELECT column_name FROM information_schema.columns WHERE table_name='students' AND column_name='user_id'");
-        if (empty($studentHasUserId)) {
-            DB::statement('ALTER TABLE students ADD COLUMN user_id INTEGER NULL');
-        }
+        Schema::table('students', function ($table) {
+            if (!Schema::hasColumn('students', 'user_id')) $table->unsignedBigInteger('user_id')->nullable();
+        });
 
-        // Add user_id to staff if not present (for staff login accounts)
-        $staffHasUserId = DB::select("SELECT column_name FROM information_schema.columns WHERE table_name='staff' AND column_name='user_id'");
-        if (empty($staffHasUserId)) {
-            DB::statement('ALTER TABLE staff ADD COLUMN user_id INTEGER NULL');
-        }
+        Schema::table('staff', function ($table) {
+            if (!Schema::hasColumn('staff', 'user_id')) $table->unsignedBigInteger('user_id')->nullable();
+        });
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE users DROP COLUMN IF EXISTS username');
-        DB::statement('ALTER TABLE users DROP COLUMN IF EXISTS is_temporary_password');
-        DB::statement('ALTER TABLE users DROP COLUMN IF EXISTS password_changed_at');
-        DB::statement('ALTER TABLE users DROP COLUMN IF EXISTS created_by');
-        DB::statement('ALTER TABLE users DROP COLUMN IF EXISTS phone_secondary');
-        DB::statement('ALTER TABLE users DROP COLUMN IF EXISTS must_change_password');
-        DB::statement('ALTER TABLE users DROP COLUMN IF EXISTS last_password_change_at');
+        Schema::table('users', function ($table) {
+            if (Schema::hasColumn('users', 'username')) $table->dropColumn('username');
+            if (Schema::hasColumn('users', 'is_temporary_password')) $table->dropColumn('is_temporary_password');
+            if (Schema::hasColumn('users', 'password_changed_at')) $table->dropColumn('password_changed_at');
+            if (Schema::hasColumn('users', 'created_by')) $table->dropColumn('created_by');
+            if (Schema::hasColumn('users', 'phone_secondary')) $table->dropColumn('phone_secondary');
+            if (Schema::hasColumn('users', 'must_change_password')) $table->dropColumn('must_change_password');
+            if (Schema::hasColumn('users', 'last_password_change_at')) $table->dropColumn('last_password_change_at');
+        });
     }
 };

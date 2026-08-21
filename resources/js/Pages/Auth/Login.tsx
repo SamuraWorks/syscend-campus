@@ -24,7 +24,9 @@ type LoginFormData = z.infer<typeof loginSchema>;
 interface LoginProps extends PageProps {}
 
 export default function Login() {
-    const { flash, errors: serverErrors } = usePage<LoginProps>().props;
+    const { flash, errors: serverErrors, schoolBranding } = usePage<LoginProps>().props;
+
+    const hasSchoolBranding = !!schoolBranding?.name;
 
     const {
         register,
@@ -68,15 +70,15 @@ export default function Login() {
                 {/* Logo / Branding — tap to go home */}
                 <Link href="/" className="block text-center mb-8">
                     <img
-                        src="/images/logo.jpeg"
-                        alt="Syscend Campus"
+                        src={schoolBranding?.logo_url || "/images/logo.png"}
+                        alt={schoolBranding?.name || "Syscend Campus"}
                         className="inline-block w-16 h-16 rounded-2xl object-cover mb-4 shadow-lg"
                     />
                     <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                        Syscend Campus
+                        {schoolBranding?.name || "Syscend Campus"}
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Campus Management System
+                        {schoolBranding?.motto || "Campus Management System"}
                     </p>
                 </Link>
 
@@ -177,15 +179,20 @@ export default function Login() {
                 </Card>
 
                 <p className="text-center text-xs text-muted-foreground mt-6">
-                    &copy; {new Date().getFullYear()} Syscend Campus. All rights reserved.
+                    &copy; {new Date().getFullYear()} {schoolBranding?.name || "Syscend Campus"}. All rights reserved.
                 </p>
 
-                <p className="text-center text-sm text-muted-foreground mt-4">
-                    Don&apos;t have an account?{' '}
-                    <Link href="/register" className="font-medium text-primary hover:text-primary/80 transition-colors">
-                        Sign up
-                    </Link>
-                </p>
+                <div className="text-center text-sm text-muted-foreground mt-4 space-y-1">
+                    <p>
+                        Don&apos;t have an account?{' '}
+                        <Link href="/register" className="font-medium text-primary hover:text-primary/80 transition-colors">
+                            Find your school
+                        </Link>
+                    </p>
+                    <p className="text-xs text-muted-foreground/70">
+                        Registration is managed by your school administrator.
+                    </p>
+                </div>
             </div>
         </AuthLayout>
     );

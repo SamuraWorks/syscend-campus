@@ -22,6 +22,7 @@ class Student extends Model
         'department_id', 'emis_number',
         'npse_index_number', 'bece_index_number', 'wassce_index_number',
         'medical_info',
+        'claimed_by', 'claimed_at', 'registration_status',
     ];
 
     protected $casts = [
@@ -56,6 +57,11 @@ class Student extends Model
         return $this->belongsTo(Guardian::class);
     }
 
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id');
@@ -64,6 +70,19 @@ class Student extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(StudentDocument::class);
+    }
+
+    public function subjectEnrollments(): HasMany
+    {
+        return $this->hasMany(StudentSubjectEnrollment::class);
+    }
+
+    public function enrolledSubjects()
+    {
+        return Subject::query()
+            ->whereHas('subjectOfferings.enrollments', fn ($q) => $q
+                ->where('student_id', $this->id)
+                ->where('status', 'enrolled'));
     }
 
     protected static function booted(): void

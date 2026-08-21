@@ -10,11 +10,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Pencil, User, Briefcase, FileText, Upload, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, User, Briefcase, FileText, Upload, Trash2, BookOpen, GraduationCap } from 'lucide-react';
 import type { Staff, StaffDocument } from '@/Types';
+
+interface SubjectAssignment {
+    id: number;
+    subject_offering_id: number;
+    subjectOffering: {
+        id: number;
+        subject_name: string;
+        subject_code: string;
+        school_class: { id: number; name: string } | null;
+        section: { id: number; name: string } | null;
+        subject: { id: number; name: string } | null;
+    } | null;
+}
 
 interface Props {
     staff: Staff;
+    subjectAssignments?: SubjectAssignment[];
+    formMasterSection?: { id: number; name: string; school_class: { id: number; name: string } } | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -33,7 +48,7 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
     );
 }
 
-export default function StaffShow({ staff }: Props) {
+export default function StaffShow({ staff, subjectAssignments = [], formMasterSection = null }: Props) {
     const [docOpen, setDocOpen] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm<{ title: string; file: File | null }>({
@@ -102,6 +117,7 @@ export default function StaffShow({ staff }: Props) {
                         <TabsTrigger value="personal" className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> Personal</TabsTrigger>
                         <TabsTrigger value="employment" className="flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5" /> Employment</TabsTrigger>
                         <TabsTrigger value="documents" className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Documents ({staff.documents?.length ?? 0})</TabsTrigger>
+                        <TabsTrigger value="assignments" className="flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> Assignments</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="personal" className="mt-4">
@@ -159,6 +175,47 @@ export default function StaffShow({ staff }: Props) {
                                         </Button>
                                     </div>
                                 ))}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="assignments" className="mt-4">
+                        <Card className="border-slate-200 dark:border-slate-800">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base flex items-center gap-2"><BookOpen className="w-4 h-4" /> Teaching Assignments</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                {formMasterSection && (
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                                        <GraduationCap className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                        <div>
+                                            <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
+                                                Form Master — {formMasterSection.school_class?.name} / {formMasterSection.name}
+                                            </p>
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-400">Class Teacher for this section</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {subjectAssignments.length > 0 ? (
+                                    <div className="space-y-1.5">
+                                        {subjectAssignments.map(a => (
+                                            <div key={a.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
+                                                <div>
+                                                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                                                        {a.subjectOffering?.subject_name ?? 'Unknown Subject'}
+                                                        <span className="text-slate-400 ml-1.5 text-xs">({a.subjectOffering?.subject_code})</span>
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 mt-0.5">
+                                                        {a.subjectOffering?.school_class?.name} {a.subjectOffering?.section ? `/ ${a.subjectOffering.section.name}` : ''}
+                                                    </p>
+                                                </div>
+                                                <span className="text-xs text-slate-400">Active</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    !formMasterSection && <p className="text-sm text-slate-400 py-4 text-center">No assignments configured yet.</p>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>

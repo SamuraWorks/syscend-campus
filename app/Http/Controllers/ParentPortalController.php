@@ -350,6 +350,7 @@ class ParentPortalController extends Controller
                     ->where('class_id', $student->class_id)
                     ->where('section_id', $student->section_id)
                     ->where('day_of_week', $day)
+                    ->where('status', 'published')
                     ->with('subject:id,name')
                     ->orderBy('start_time')
                     ->get()
