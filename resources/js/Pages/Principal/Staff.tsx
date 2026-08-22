@@ -5,20 +5,25 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { UserCog as StaffIcon, Search, Users, User, ChevronRight, Phone, Mail } from 'lucide-react';
+import { UserCog as StaffIcon, Search, Users, ChevronRight, Phone, Mail } from 'lucide-react';
 
 interface StaffMember {
-    id: number; full_name: string; employee_id: string | null; role: string;
-    department: string | null; phone: string | null; email: string | null;
-    photo_url: string | null; status: string;
+    id: number; full_name: string; emp_id: string | null; gender: string | null;
+    phone: string | null; email: string | null; photo_url: string | null;
+    status: string; department: string | null; designation: string | null;
+    teacher_type: string | null;
 }
-interface RoleBreakdown { [key: string]: number; }
+interface DeptCount { department: string; count: number; }
+interface LeaveRequest { id: number; staff_name: string; leave_type: string; start_date: string; end_date: string; days: number; reason: string | null; }
 interface Props {
-    linked: boolean; totalStaff: number;
-    staff: StaffMember[]; roleBreakdown: RoleBreakdown;
+    linked: boolean;
+    principal: { full_name: string };
+    staff: StaffMember[];
+    staffByDepartment: DeptCount[];
+    pendingLeaveRequests: LeaveRequest[];
 }
 
-export default function Staff({ linked, staff, totalStaff, roleBreakdown }: Props) {
+export default function Staff({ linked, principal, staff, staffByDepartment, pendingLeaveRequests }: Props) {
     const [search, setSearch] = useState('');
 
     if (!linked) {
@@ -32,8 +37,9 @@ export default function Staff({ linked, staff, totalStaff, roleBreakdown }: Prop
         );
     }
 
+    const q = search.toLowerCase();
     const filtered = search.trim()
-        ? staff.filter(s => s.full_name.toLowerCase().includes(search.toLowerCase()) || (s.role && s.role.toLowerCase().includes(search.toLowerCase())))
+        ? staff.filter(s => s.full_name.toLowerCase().includes(q) || (s.department && s.department.toLowerCase().includes(q)) || (s.designation && s.designation.toLowerCase().includes(q)))
         : staff;
 
     return (
@@ -49,29 +55,56 @@ export default function Staff({ linked, staff, totalStaff, roleBreakdown }: Prop
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <StaffIcon className="w-5 h-5 text-violet-500" /> Staff Members
                     </h1>
-                    <p className="text-sm text-slate-500 mt-0.5">{totalStaff} total staff</p>
+                    <p className="text-sm text-slate-500 mt-0.5">{staff.length} total staff</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {Object.entries(roleBreakdown).map(([role, count]) => (
-                        <Card key={role}>
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', 'bg-violet-100 dark:bg-violet-900/30')}>
-                                        <Users className="w-4 h-4 text-violet-600" />
+                {staffByDepartment.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {staffByDepartment.map(d => (
+                            <Card key={d.department}>
+                                <CardContent className="p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', 'bg-violet-100 dark:bg-violet-900/30')}>
+                                            <Users className="w-4 h-4 text-violet-600" />
+                                        </div>
+                                        <Badge variant="outline" className="text-[10px]">{d.count}</Badge>
                                     </div>
-                                    <Badge variant="outline" className="text-[10px]">{count}</Badge>
-                                </div>
-                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 capitalize">{role}</p>
-                                <p className="text-xs text-slate-400 mt-0.5">{count} {count === 1 ? 'member' : 'members'}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{d.department}</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">{d.count} {d.count === 1 ? 'member' : 'members'}</p>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+
+                {pendingLeaveRequests.length > 0 && (
+                    <Card>
+                        <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">{pendingLeaveRequests.length}</Badge>
+                                Pending Leave Requests
+                            </h2>
+                        </div>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {pendingLeaveRequests.map(lr => (
+                                    <div key={lr.id} className="px-4 py-3">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{lr.staff_name}</p>
+                                            <Badge variant="outline" className="text-[10px]">{lr.leave_type}</Badge>
+                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">{lr.start_date} — {lr.end_date} ({lr.days} days)</p>
+                                        {lr.reason && <p className="text-xs text-slate-500 mt-0.5">{lr.reason}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <div className="relative max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input placeholder="Search by name or role…" className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
+                    <Input placeholder="Search by name, department, or designation…" className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
 
                 {filtered.length === 0 ? (
@@ -83,7 +116,8 @@ export default function Staff({ linked, staff, totalStaff, roleBreakdown }: Prop
                                 <tr className="text-xs uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">
                                     <th className="text-left py-3 px-4 font-medium">Staff</th>
                                     <th className="text-left py-3 px-4 font-medium">Employee ID</th>
-                                    <th className="text-left py-3 px-4 font-medium">Role</th>
+                                    <th className="text-left py-3 px-4 font-medium">Department</th>
+                                    <th className="text-left py-3 px-4 font-medium">Designation</th>
                                     <th className="text-left py-3 px-4 font-medium">Contact</th>
                                     <th className="text-left py-3 px-4 font-medium">Status</th>
                                 </tr>
@@ -102,8 +136,9 @@ export default function Staff({ linked, staff, totalStaff, roleBreakdown }: Prop
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-3 px-4 font-mono text-slate-500">{s.employee_id ?? '—'}</td>
-                                        <td className="py-3 px-4 capitalize text-slate-500">{s.role}</td>
+                                        <td className="py-3 px-4 font-mono text-slate-500">{s.emp_id ?? '—'}</td>
+                                        <td className="py-3 px-4 text-slate-500">{s.department ?? '—'}</td>
+                                        <td className="py-3 px-4 capitalize text-slate-500">{s.designation ?? '—'}</td>
                                         <td className="py-3 px-4 text-slate-500">{s.phone ?? '—'}</td>
                                         <td className="py-3 px-4">
                                             <Badge variant="secondary" className={cn('text-[10px] capitalize', s.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500')}>{s.status}</Badge>

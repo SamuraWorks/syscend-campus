@@ -1,24 +1,25 @@
 import { Link } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { BarChart3, ChevronRight, TrendingUp, Users, BookOpen, Calendar } from 'lucide-react';
+import { BarChart3, ChevronRight, TrendingUp, Users, BookOpen, Calendar, DollarSign } from 'lucide-react';
 
-interface ReportLink { title: string; description: string; href: string; icon: string; color: string; }
-interface Summary { total_students: number; total_staff: number; attendance_rate: number; pass_rate: number; }
-interface Props { linked: boolean; reportLinks: ReportLink[]; summary: Summary; }
+interface ReportItem { label: string; value: string | number; }
+interface Props {
+    linked: boolean;
+    academicReport: ReportItem[];
+    attendanceReport: ReportItem[];
+    financialReport: ReportItem[];
+    staffReport: ReportItem[];
+}
 
-const iconMap: Record<string, any> = {
-    'bar-chart': BarChart3, 'trending-up': TrendingUp, users: Users, 'book-open': BookOpen, calendar: Calendar,
+const sectionConfig: Record<string, { title: string; icon: any; color: string }> = {
+    academic: { title: 'Academic Overview', icon: BookOpen, color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' },
+    attendance: { title: 'Attendance Report', icon: Calendar, color: 'bg-green-100 dark:bg-green-900/30 text-green-600' },
+    financial: { title: 'Financial Summary', icon: DollarSign, color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' },
+    staff: { title: 'Staff Overview', icon: Users, color: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600' },
 };
-const colorMap: Record<string, string> = {
-    blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600',
-    green: 'bg-green-100 dark:bg-green-900/30 text-green-600',
-    purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600',
-    indigo: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600',
-    amber: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600',
-};
 
-export default function Reports({ linked, reportLinks, summary }: Props) {
+export default function Reports({ linked, academicReport, attendanceReport, financialReport, staffReport }: Props) {
     if (!linked) {
         return (
             <AppLayout title="Reports">
@@ -29,6 +30,13 @@ export default function Reports({ linked, reportLinks, summary }: Props) {
             </AppLayout>
         );
     }
+
+    const sections = [
+        { key: 'academic', data: academicReport },
+        { key: 'attendance', data: attendanceReport },
+        { key: 'financial', data: financialReport },
+        { key: 'staff', data: staffReport },
+    ];
 
     return (
         <AppLayout title="Reports">
@@ -46,60 +54,33 @@ export default function Reports({ linked, reportLinks, summary }: Props) {
                     <p className="text-sm text-slate-500 mt-0.5">School performance reports and analytics</p>
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2 bg-indigo-100 dark:bg-indigo-900/30"><Users className="w-4 h-4 text-indigo-600" /></div>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{summary.total_students}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">Students</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2 bg-violet-100 dark:bg-violet-900/30"><Users className="w-4 h-4 text-violet-600" /></div>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{summary.total_staff}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">Staff</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2 bg-green-100 dark:bg-green-900/30"><Calendar className="w-4 h-4 text-green-600" /></div>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{summary.attendance_rate}%</p>
-                            <p className="text-xs text-slate-500 mt-0.5">Attendance Rate</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2 bg-cyan-100 dark:bg-cyan-900/30"><TrendingUp className="w-4 h-4 text-cyan-600" /></div>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white">{summary.pass_rate}%</p>
-                            <p className="text-xs text-slate-500 mt-0.5">Pass Rate</p>
-                        </CardContent>
-                    </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {sections.map(({ key, data }) => {
+                        const cfg = sectionConfig[key];
+                        const Icon = cfg.icon;
+                        return (
+                            <Card key={key}>
+                                <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                        <Icon className="w-4 h-4" /> {cfg.title}
+                                    </h2>
+                                </div>
+                                <CardContent className="p-0">
+                                    <table className="w-full text-sm">
+                                        <tbody>
+                                            {data.map((item, i) => (
+                                                <tr key={i} className="border-b border-slate-50 dark:border-slate-800/50 last:border-0">
+                                                    <td className="py-3 px-4 font-medium text-slate-700 dark:text-slate-300">{item.label}</td>
+                                                    <td className="py-3 px-4 text-right text-slate-900 dark:text-white font-semibold">{item.value}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
                 </div>
-
-                {reportLinks.length === 0 ? (
-                    <Card><CardContent className="py-16 text-center"><BarChart3 className="w-10 h-10 mx-auto mb-3 text-slate-300" /><p className="text-sm text-slate-400">No reports available.</p></CardContent></Card>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {reportLinks.map((r, i) => {
-                            const Icon = iconMap[r.icon] || BarChart3;
-                            const color = colorMap[r.color] || colorMap.blue;
-                            return (
-                                <Link key={i} href={r.href}>
-                                    <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                                        <CardContent className="p-5">
-                                            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-3', color)}>
-                                                <Icon className="w-5 h-5" />
-                                            </div>
-                                            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{r.title}</h3>
-                                            <p className="text-xs text-slate-500 mt-1">{r.description}</p>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
-                            );
-                        })}
-                    </div>
-                )}
             </div>
         </AppLayout>
     );
