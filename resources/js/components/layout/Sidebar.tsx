@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import {
     LayoutDashboard, School, Users, GraduationCap, UserCog,
@@ -709,6 +710,17 @@ export default function Sidebar() {
     const activeRole = auth?.user?.activeRole ?? auth?.user?.role ?? '';
     const branding = schoolBranding as Record<string, any> | null;
 
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
+    // On mobile, always show expanded sidebar
+    const collapsed = sidebarCollapsed && !isMobile;
+
     const filteredGroups = navGroups
         .map((group) => ({
             ...group,
@@ -724,18 +736,18 @@ export default function Sidebar() {
                 className={cn(
                     'flex flex-col border-r border-border bg-card transition-all duration-200 shrink-0 h-full',
                     'fixed inset-y-0 left-0 z-50 md:relative md:translate-x-0',
-                    sidebarCollapsed ? 'md:w-[60px] w-60' : 'w-60',
+                    collapsed ? 'md:w-[60px] w-60' : 'w-60',
                     'md:transform-none',
                 )}
             >
                 {/* Logo */}
-                <div className={cn('flex items-center h-16 px-4 border-b border-border', sidebarCollapsed && 'justify-center px-2')}>
+                <div className={cn('flex items-center h-16 px-4 border-b border-border', collapsed && 'justify-center px-2')}>
                     <div className="flex items-center justify-center w-9 h-9 rounded-lg overflow-hidden shrink-0">
                         {branding?.logo_url
                             ? <img src={branding.logo_url} alt={branding.name ?? 'School'} className="size-9 object-cover" />
                             : <img src="/images/logo.png" alt="Syscend Campus" className="size-9 object-cover" />}
                     </div>
-                    {!sidebarCollapsed && (
+                    {!collapsed && (
                         <span className="ml-2.5 font-bold text-foreground text-base tracking-tight truncate">
                             {branding?.short_name || branding?.name || 'Syscend Campus'}
                         </span>
@@ -746,27 +758,27 @@ export default function Sidebar() {
                 <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
                     {filteredGroups.map((group) => (
                         <div key={group.title}>
-                            {!sidebarCollapsed && (
+                            {!collapsed && (
                                 <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                                     {group.title}
                                 </p>
                             )}
                             <div className="space-y-0.5">
                                 {group.items.map((item) => (
-                                    <NavLink key={item.href} item={item} collapsed={sidebarCollapsed} />
+                                    <NavLink key={item.href} item={item} collapsed={collapsed} />
                                 ))}
                             </div>
                         </div>
                     ))}
                 </nav>
 
-                {/* Collapse toggle */}
+                {/* Collapse toggle — hidden on mobile */}
                 <button
                     onClick={toggleCollapsed}
-                    className="absolute -right-3 top-[1.625rem] flex items-center justify-center w-6 h-6 rounded-full border border-border bg-card shadow-sm hover:bg-accent transition-colors z-10"
+                    className="hidden md:flex absolute -right-3 top-[1.625rem] items-center justify-center w-6 h-6 rounded-full border border-border bg-card shadow-sm hover:bg-accent transition-colors z-10"
                     aria-label="Toggle sidebar"
                 >
-                    {sidebarCollapsed
+                    {collapsed
                         ? <ChevronRight className="w-3 h-3 text-muted-foreground" />
                         : <ChevronLeft className="w-3 h-3 text-muted-foreground" />
                     }
