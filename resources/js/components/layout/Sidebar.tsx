@@ -64,7 +64,6 @@ const navGroups: NavGroup[] = [
         title: 'Platform Management',
         items: [
             { label: 'Platform Settings', href: '/super-admin/settings',         icon: Settings, roles: ['super-admin'] },
-            { label: 'Integrations',      href: '/super-admin/integrations', icon: Plug,     roles: ['super-admin'] },
             { label: 'Demo Reset',        href: '/super-admin/demo-reset',       icon: RotateCcw, roles: ['super-admin'] },
         ],
     },
@@ -205,6 +204,7 @@ const navGroups: NavGroup[] = [
         title: 'Academics',
         items: [
             { label: 'Academic Overview', href: '/school/principal/academic', icon: BarChart3,      roles: ['principal'] },
+            { label: 'Academic Structure', href: '/school-admin/academic-structure', icon: Building2, roles: ['principal'] },
             { label: 'Curriculum',            href: '/school-admin/curriculum',  icon: BookOpen,      roles: ['principal'] },
             { label: 'Teacher Assignments',    href: '/school-admin/assignments', icon: UserCog,      roles: ['principal'] },
             { label: 'Timetable',    href: '/school/principal/timetable',  icon: CalendarDays,  roles: ['principal'] },
@@ -281,6 +281,7 @@ const navGroups: NavGroup[] = [
     {
         title: 'Academics',
         items: [
+            { label: 'Academic Structure', href: '/school-admin/academic-structure', icon: Building2, roles: ['school-admin'] },
             { label: 'Curriculum',           href: '/school-admin/curriculum',  icon: BookOpen,      roles: ['school-admin'] },
             { label: 'Teacher Assignments',   href: '/school-admin/assignments', icon: UserCog,      roles: ['school-admin'] },
             { label: 'Student Enrollments',  href: '/school-admin/enrollments', icon: GraduationCap, roles: ['school-admin'] },

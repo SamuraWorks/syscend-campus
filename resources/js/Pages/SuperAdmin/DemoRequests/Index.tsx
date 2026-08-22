@@ -61,6 +61,32 @@ function StatCard({ label, value, icon: Icon }: { label: string; value: number |
     );
 }
 
+function RequestCard({ r }: { r: DemoReq }) {
+    return (
+        <Link href={`/super-admin/demo-requests/${r.id}`} className="block">
+            <Card className="hover:shadow-md transition-shadow border-slate-200 dark:border-slate-800">
+                <CardContent className="pt-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                            <p className="font-semibold text-sm truncate">{r.school_name}</p>
+                            <p className="text-xs text-muted-foreground">{r.school_type} · {r.school_level}</p>
+                        </div>
+                        <Badge className={cn('shrink-0 text-[10px]', STATUS_COLORS[r.status])}>{STATUS_LABELS[r.status]}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="truncate">{r.contact_name} · {r.district}</span>
+                        <span className="shrink-0 ml-2">{new Date(r.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Assigned: {r.assignee?.name ?? '—'}</span>
+                        <ChevronRight className="w-4 h-4 text-slate-300" />
+                    </div>
+                </CardContent>
+            </Card>
+        </Link>
+    );
+}
+
 export default function DemoRequestsIndex({ requests, filters, districts, staff, stats }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const form = useForm({ status: filters.status ?? 'all', district: filters.district ?? '', assigned_to: filters.assigned_to ?? '' });
@@ -75,7 +101,7 @@ export default function DemoRequestsIndex({ requests, filters, districts, staff,
         <AppLayout title="Demo Requests">
             <div className="space-y-6">
                 {/* Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                     <StatCard label="Total" value={stats.total} icon={CalendarClock} />
                     <StatCard label="Today" value={stats.today} icon={CalendarClock} />
                     <StatCard label="This Week" value={stats.this_week} icon={TrendingUp} />
@@ -104,27 +130,37 @@ export default function DemoRequestsIndex({ requests, filters, districts, staff,
                                 <Input className="pl-9" placeholder="Search by school, contact, ID..." value={search} onChange={e => setSearch(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && applyFilters()} />
                             </div>
-                            <Select value={form.data.district} onValueChange={v => { form.setData('district', v); setTimeout(applyFilters, 50); }}>
-                                <SelectTrigger className="w-40"><SelectValue placeholder="All Districts" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="">All Districts</SelectItem>
-                                    {districts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <Select value={form.data.assigned_to} onValueChange={v => { form.setData('assigned_to', v); setTimeout(applyFilters, 50); }}>
-                                <SelectTrigger className="w-40"><SelectValue placeholder="All Staff" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="">All Staff</SelectItem>
-                                    {staff.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <Button variant="outline" onClick={applyFilters}><Filter className="w-4 h-4 mr-1" /> Filter</Button>
+                            <div className="flex gap-2">
+                                <Select value={form.data.district} onValueChange={v => { form.setData('district', v); setTimeout(applyFilters, 50); }}>
+                                    <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All Districts" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">All Districts</SelectItem>
+                                        {districts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <Select value={form.data.assigned_to} onValueChange={v => { form.setData('assigned_to', v); setTimeout(applyFilters, 50); }}>
+                                    <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All Staff" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">All Staff</SelectItem>
+                                        {staff.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Button variant="outline" onClick={applyFilters} className="sm:w-auto"><Filter className="w-4 h-4 mr-1" /> Filter</Button>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Table */}
-                <Card>
+                {/* Mobile: Card layout */}
+                <div className="md:hidden space-y-3">
+                    {requests.data.map(r => <RequestCard key={r.id} r={r} />)}
+                    {requests.data.length === 0 && (
+                        <Card><CardContent className="py-12 text-center text-muted-foreground">No demo requests found.</CardContent></Card>
+                    )}
+                </div>
+
+                {/* Desktop: Table layout */}
+                <Card className="hidden md:block">
                     <CardContent className="pt-5">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">

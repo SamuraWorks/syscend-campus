@@ -64,6 +64,7 @@ use App\Http\Controllers\SuperAdmin\PackageController;
 use App\Http\Controllers\SuperAdmin\SchoolController;
 use App\Http\Controllers\SuperAdmin\DemoManagementController;
 use App\Http\Controllers\SuperAdmin\DemoResetController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DemoRequestController;
 use App\Http\Controllers\SuperAdmin\SubscriptionController;
 use App\Http\Controllers\SuperAdmin\UserManagementController;
@@ -140,6 +141,7 @@ Route::post('/{schoolSlug}/register/staff/complete', [StaffRegistrationControlle
 */
 Route::get('/about',            fn () => Inertia::render('Public/About'))->name('about');
 Route::get('/contact',          fn () => Inertia::render('Public/Contact'))->name('contact');
+Route::post('/contact',         [ContactController::class, 'store'])->middleware('throttle:10,1')->name('contact.submit');
 Route::get('/privacy',          fn () => Inertia::render('Public/Privacy'))->name('privacy');
 Route::get('/terms',            fn () => Inertia::render('Public/Terms'))->name('terms');
 Route::get('/support',          fn () => Inertia::render('Public/Support'))->name('support');
@@ -238,8 +240,10 @@ Route::middleware('auth')->group(function () {
             // Admin-only: class/section/subject/shift/holiday management
             Route::middleware('role:super-admin|school-admin|principal')->group(function () {
                 Route::resource('classes',  ClassController::class)->except(['create', 'edit', 'show']);
+                Route::post('classes/{class}/toggle-status', [ClassController::class, 'toggleStatus'])->name('classes.toggle-status');
                 Route::resource('sections', SectionController::class)->except(['create', 'edit', 'show']);
                 Route::resource('subjects', SubjectController::class)->except(['create', 'edit', 'show']);
+                Route::post('subjects/{subject}/toggle-status', [SubjectController::class, 'toggleStatus'])->name('subjects.toggle-status');
                 Route::resource('shifts',   ShiftController::class)->except(['create', 'edit', 'show']);
                 Route::resource('holidays', HolidayController::class)->except(['create', 'edit', 'show']);
             });
@@ -591,6 +595,7 @@ Route::middleware('auth')->group(function () {
             Route::delete('admissions/visitors/{visitorLog}', [VisitorLogController::class, 'destroy'])->name('admissions.visitors.destroy');
 
             Route::resource('departments',  DepartmentController::class)->except(['create', 'edit', 'show']);
+            Route::post('departments/{department}/toggle-status', [DepartmentController::class, 'toggleStatus'])->name('departments.toggle-status');
             Route::resource('designations', DesignationController::class)->except(['create', 'edit', 'show']);
             Route::resource('staff',        StaffController::class);
             Route::post('staff/{staff}/documents',         [StaffController::class, 'uploadDocument'])->name('staff.documents.upload');
@@ -736,6 +741,62 @@ Route::middleware('auth')->group(function () {
             Route::put('/{parent}', [ParentController::class, 'update'])->name('update');
             Route::delete('/{parent}', [ParentController::class, 'destroy'])->name('destroy');
         });
+
+        // ── Academic Structure (Classes + Departments + Subjects) ──
+        Route::get('academic-structure', function () {
+            $schoolId = auth()->user()->school_id;
+            if (!$schoolId) {
+                $schoolId = \App\Models\School::orderBy('id')->value('id');
+            }
+            $schoolId = (int) $schoolId;
+
+            $classes = \App\Models\SchoolClass::query()
+                ->where('school_id', $schoolId)
+                ->withCount(['sections', 'subjects', 'students'])
+                ->with(['department'])
+                ->orderBy('school_level')
+                ->orderBy('level_order')
+                ->orderBy('numeric_name')
+                ->orderBy('name')
+                ->get();
+
+            $departments = \App\Models\Department::query()
+                ->where('school_id', $schoolId)
+                ->withCount(['staff', 'classes'])
+                ->orderBy('name')
+                ->get();
+
+            $subjects = \App\Models\Subject::query()
+                ->where('school_id', $schoolId)
+                ->with(['schoolClass', 'department'])
+                ->orderBy('school_level')
+                ->orderBy('name')
+                ->get();
+
+            $settings = \App\Models\SchoolSetting::allFor($schoolId);
+            $enabledLevels = [];
+            if (($settings['enable_ece'] ?? '1') === '1')     $enabledLevels[] = 'early_childhood';
+            if (($settings['enable_primary'] ?? '1') === '1')  $enabledLevels[] = 'primary';
+            if (($settings['enable_jss'] ?? '1') === '1')      $enabledLevels[] = 'junior_secondary';
+            if (($settings['enable_sss'] ?? '1') === '1')      $enabledLevels[] = 'senior_secondary';
+
+            $staff = \App\Models\Staff::where('school_id', $schoolId)
+                ->where('status', 'active')
+                ->select('id', 'first_name', 'last_name')
+                ->get()
+                ->map(fn ($s) => ['id' => $s->id, 'name' => $s->full_name]);
+
+            $departmentsAcademic = $departments->where('type', 'academic')->values();
+
+            return inertia('SchoolAdmin/AcademicStructure/Index', [
+                'classes'       => $classes,
+                'departments'   => $departments,
+                'subjects'      => $subjects,
+                'staff'         => $staff,
+                'enabledLevels' => $enabledLevels,
+                'academicDepts' => $departmentsAcademic,
+            ]);
+        })->name('academic-structure');
 
         Route::prefix('curriculum')->name('curriculum.')->group(function () {
             Route::get('/', [CurriculumController::class, 'index'])->name('index');

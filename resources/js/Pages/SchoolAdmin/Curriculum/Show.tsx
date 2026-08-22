@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronUp, BookOpen, AlertCircle } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -45,6 +45,7 @@ interface Props extends PageProps {
     grouped: Record<string, Record<string, SubjectOffering[]>>;
     academicYears: AcademicYear[];
     currentYear: AcademicYear;
+    flash?: { success?: string; error?: string };
 }
 
 const TYPE_BADGE: Record<string, string> = {
@@ -78,12 +79,13 @@ const emptyForm: FormState = {
 };
 
 export default function CurriculumShow() {
-    const { classData, offerings = [], grouped = {}, academicYears = [], currentYear } = usePage<Props>().props;
+    const { classData, offerings = [], grouped = {}, academicYears = [], currentYear, flash } = usePage<Props>().props;
 
     const [form, setForm] = useState<FormState>(emptyForm);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<string>(() => {
         const keys = Object.keys(grouped);
         return keys.length > 0 ? keys[0] : '__all__';
@@ -95,17 +97,28 @@ export default function CurriculumShow() {
     }
 
     function handleAdd() {
-        router.post(`/school-admin/curriculum/class/${classData.id}/offerings`, form, {
+        if (!currentYear) return;
+        setFormError(null);
+        router.post('/school-admin/curriculum', {
+            ...form,
+            class_id: classData.id,
+            academic_year_id: currentYear.id,
+        }, {
             onSuccess: () => {
                 setShowAddForm(false);
                 setForm(emptyForm);
+                setFormError(null);
+            },
+            onError: (errors) => {
+                const first = Object.values(errors)[0];
+                setFormError(typeof first === 'string' ? first : 'Failed to add subject. Please check all fields.');
             },
         });
     }
 
     function handleUpdate() {
         if (!editingId) return;
-        router.put(`/school-admin/curriculum/offerings/${editingId}`, form, {
+        router.put(`/school-admin/curriculum/${editingId}`, form, {
             onSuccess: () => {
                 setEditingId(null);
                 setForm(emptyForm);
@@ -115,7 +128,7 @@ export default function CurriculumShow() {
 
     function handleDelete() {
         if (!deleteId) return;
-        router.delete(`/school-admin/curriculum/offerings/${deleteId}`, {
+        router.delete(`/school-admin/curriculum/${deleteId}`, {
             onSuccess: () => setDeleteId(null),
         });
     }
@@ -368,9 +381,9 @@ export default function CurriculumShow() {
                     </div>
                     <div className="flex gap-2 items-center">
                         <span className="text-xs text-slate-400">
-                            {currentYear.name}
+                            {currentYear?.name ?? 'No year selected'}
                         </span>
-                        <Select value={String(currentYear.id)} onValueChange={(val) => router.get(`/school-admin/curriculum/class/${classData.id}?year=${val}`)}>
+                        <Select value={String(currentYear?.id ?? '')} onValueChange={(val) => router.get(`/school-admin/curriculum/class/${classData.id}?academic_year_id=${val}`)}>
                             <SelectTrigger className="h-8 text-xs w-40">
                                 <SelectValue />
                             </SelectTrigger>
@@ -385,6 +398,18 @@ export default function CurriculumShow() {
                     </div>
                 </div>
 
+                {flash?.success && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                        <p className="text-sm text-green-700 dark:text-green-300">{flash.success}</p>
+                    </div>
+                )}
+
+                {flash?.error && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                        <p className="text-sm text-red-700 dark:text-red-300">{flash.error}</p>
+                    </div>
+                )}
+
                 <div className="flex items-center justify-between">
                     <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                         <BookOpen className="w-4 h-4 inline mr-1" />
@@ -397,7 +422,17 @@ export default function CurriculumShow() {
                     )}
                 </div>
 
-                {showAddForm && renderSubjectForm(false)}
+                {showAddForm && (
+                    <>
+                        {formError && (
+                            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                                <p className="text-sm text-red-700 dark:text-red-300">{formError}</p>
+                            </div>
+                        )}
+                        {renderSubjectForm(false)}
+                    </>
+                )}
 
                 {!hasGroups ? (
                     offerings.length > 0 ? (

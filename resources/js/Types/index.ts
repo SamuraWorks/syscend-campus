@@ -204,7 +204,12 @@ export interface Subject {
     type: 'theory' | 'practical';
     full_marks: number;
     pass_marks: number;
+    school_level: string | null;
+    department_id: number | null;
+    is_core: boolean;
+    is_active: boolean;
     school_class?: SchoolClass;
+    department?: Department;
 }
 
 export interface Shift {
@@ -271,7 +276,10 @@ export interface Department {
     name: string;
     code: string | null;
     description: string | null;
+    type: 'academic' | 'staff';
+    is_active: boolean;
     staff_count?: number;
+    classes_count?: number;
 }
 
 export interface Designation {

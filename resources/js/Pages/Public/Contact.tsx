@@ -1,9 +1,24 @@
-import { Head } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import SiteHeader from '@/components/landing/SiteHeader';
 import SiteFooter from '@/components/landing/SiteFooter';
-import { Mail, Phone, MapPin } from 'lucide-react';
+import { Mail, Phone, MapPin, CheckCircle } from 'lucide-react';
 
 export default function Contact() {
+    const { flash } = usePage<{ flash?: { success?: string } }>().props;
+    const form = useForm({
+        name: '',
+        email: '',
+        subject: '',
+        message: '',
+    });
+
+    function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        form.post('/contact', {
+            onSuccess: () => form.reset(),
+        });
+    }
+
     return (
         <>
             <Head title="Contact Us — Syscend Campus" />
@@ -41,27 +56,52 @@ export default function Contact() {
                         <p className="mt-3 text-muted-foreground">
                             Fill out the form below and our team will get back to you within 24 hours.
                         </p>
-                        <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
+
+                        {flash?.success && (
+                            <div className="mt-4 flex items-center gap-2 text-sm text-green-700 bg-green-50 dark:bg-green-950/30 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg px-4 py-2">
+                                <CheckCircle className="w-4 h-4 shrink-0" /> {flash.success}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-1.5">
                                     <label htmlFor="name" className="text-sm font-medium text-foreground">Name</label>
-                                    <input id="name" type="text" placeholder="Your name" className="h-10 w-full rounded-sm border border-border bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                                    <input id="name" type="text" placeholder="Your name"
+                                        value={form.data.name}
+                                        onChange={e => form.setData('name', e.target.value)}
+                                        className="h-10 w-full rounded-sm border border-border bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                                    {form.errors.name && <p className="text-xs text-red-500">{form.errors.name}</p>}
                                 </div>
                                 <div className="space-y-1.5">
                                     <label htmlFor="email" className="text-sm font-medium text-foreground">Email</label>
-                                    <input id="email" type="email" placeholder="you@example.com" className="h-10 w-full rounded-sm border border-border bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                                    <input id="email" type="email" placeholder="you@example.com"
+                                        value={form.data.email}
+                                        onChange={e => form.setData('email', e.target.value)}
+                                        className="h-10 w-full rounded-sm border border-border bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                                    {form.errors.email && <p className="text-xs text-red-500">{form.errors.email}</p>}
                                 </div>
                             </div>
                             <div className="space-y-1.5">
                                 <label htmlFor="subject" className="text-sm font-medium text-foreground">Subject</label>
-                                <input id="subject" type="text" placeholder="How can we help?" className="h-10 w-full rounded-sm border border-border bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                                <input id="subject" type="text" placeholder="How can we help?"
+                                    value={form.data.subject}
+                                    onChange={e => form.setData('subject', e.target.value)}
+                                    className="h-10 w-full rounded-sm border border-border bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                                {form.errors.subject && <p className="text-xs text-red-500">{form.errors.subject}</p>}
                             </div>
                             <div className="space-y-1.5">
                                 <label htmlFor="message" className="text-sm font-medium text-foreground">Message</label>
-                                <textarea id="message" rows={5} placeholder="Tell us more..." className="w-full rounded-sm border border-border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+                                <textarea id="message" rows={5} placeholder="Tell us more..."
+                                    value={form.data.message}
+                                    onChange={e => form.setData('message', e.target.value)}
+                                    className="w-full rounded-sm border border-border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+                                {form.errors.message && <p className="text-xs text-red-500">{form.errors.message}</p>}
                             </div>
-                            <button type="submit" className="inline-flex h-10 items-center justify-center rounded-sm bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                                Send message
+                            <button type="submit"
+                                disabled={form.processing}
+                                className="inline-flex h-10 items-center justify-center rounded-sm bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50">
+                                {form.processing ? 'Sending...' : 'Send message'}
                             </button>
                         </form>
                     </section>

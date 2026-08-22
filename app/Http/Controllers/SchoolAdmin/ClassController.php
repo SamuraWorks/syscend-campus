@@ -3,9 +3,14 @@
 namespace App\Http\Controllers\SchoolAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Department;
 use App\Models\SchoolClass;
 use App\Models\SchoolSetting;
+use App\Models\Section;
 use App\Models\Staff;
+use App\Models\Student;
+use App\Models\SubjectOffering;
+use App\Models\Timetable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -27,12 +32,14 @@ class ClassController extends Controller
 
     public function index(Request $request): Response
     {
-        $schoolId = auth()->user()->school_id;
+        $schoolId = $this->getSchoolId();
 
-        $query = SchoolClass::withCount(['sections', 'subjects', 'students'])
+        $query = SchoolClass::query()
+            ->where('school_id', $schoolId)
+            ->withCount(['sections', 'subjects', 'students'])
             ->with(['sections' => function ($q) {
                 $q->withCount('students')->orderBy('name');
-            }]);
+            }, 'department']);
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -58,21 +65,30 @@ class ClassController extends Controller
             ->paginate($request->input('per_page', 25))
             ->withQueryString();
 
-        $staff = Staff::where('status', 'active')
+        $staff = Staff::where('school_id', $schoolId)
+            ->where('status', 'active')
             ->select('id', 'first_name', 'last_name')
             ->get()
             ->map(fn ($s) => ['id' => $s->id, 'name' => $s->full_name]);
 
+        $departments = Department::where('school_id', $schoolId)
+            ->academic()
+            ->active()
+            ->select('id', 'name', 'code')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('SchoolAdmin/Classes/Index', [
             'classes'       => $classes,
             'staff'         => $staff,
+            'departments'   => $departments,
             'enabledLevels' => $this->getEnabledLevels($schoolId),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $schoolId = auth()->user()->school_id;
+        $schoolId = $this->getSchoolId();
         $enabledLevels = $this->getEnabledLevels($schoolId);
 
         $data = $request->validate([
@@ -96,6 +112,8 @@ class ClassController extends Controller
         }
 
         $data['school_id'] = $schoolId;
+        $data['is_active'] = $data['is_active'] ?? true;
+
         SchoolClass::create($data);
 
         return back()->with('success', 'Class created.');
@@ -103,7 +121,12 @@ class ClassController extends Controller
 
     public function update(Request $request, SchoolClass $class): RedirectResponse
     {
-        $schoolId = auth()->user()->school_id;
+        $schoolId = $this->getSchoolId();
+
+        if ($class->school_id !== $schoolId) {
+            abort(403, 'Unauthorized.');
+        }
+
         $enabledLevels = $this->getEnabledLevels($schoolId);
 
         $data = $request->validate([
@@ -134,8 +157,64 @@ class ClassController extends Controller
 
     public function destroy(SchoolClass $class): RedirectResponse
     {
+        $schoolId = $this->getSchoolId();
+
+        if ($class->school_id !== $schoolId) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $dependencies = $this->checkDependencies($class);
+
+        if (!empty($dependencies)) {
+            return back()->withErrors([
+                'delete' => 'Cannot delete this class. It has: ' . implode(', ', $dependencies) . '. Consider deactivating it instead.',
+            ]);
+        }
+
         $class->delete();
 
         return back()->with('success', 'Class deleted.');
+    }
+
+    public function toggleStatus(SchoolClass $class): RedirectResponse
+    {
+        $schoolId = $this->getSchoolId();
+
+        if ($class->school_id !== $schoolId) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $class->update(['is_active' => !$class->is_active]);
+
+        $status = $class->is_active ? 'activated' : 'deactivated';
+
+        return back()->with('success', "Class {$status}.");
+    }
+
+    private function checkDependencies(SchoolClass $class): array
+    {
+        $deps = [];
+
+        $studentsCount = Student::where('class_id', $class->id)->count();
+        if ($studentsCount > 0) {
+            $deps[] = "{$studentsCount} student(s)";
+        }
+
+        $offeringsCount = SubjectOffering::where('class_id', $class->id)->count();
+        if ($offeringsCount > 0) {
+            $deps[] = "{$offeringsCount} curriculum offering(s)";
+        }
+
+        $timetableCount = Timetable::where('class_id', $class->id)->count();
+        if ($timetableCount > 0) {
+            $deps[] = "{$timetableCount} timetable record(s)";
+        }
+
+        $sectionsCount = Section::where('class_id', $class->id)->count();
+        if ($sectionsCount > 0) {
+            $deps[] = "{$sectionsCount} section(s)";
+        }
+
+        return $deps;
     }
 }

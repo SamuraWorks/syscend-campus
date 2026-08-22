@@ -281,7 +281,7 @@ class PerformanceController extends Controller
         ]);
 
         $validated['school_id'] = $this->schoolId();
-        $validated['intervention_id'] = $interventionId;
+        $validated['intervention_id'] = $intervention->id;
         $validated['author_id'] = Auth::user()->staff_id ?? Auth::id();
 
         InterventionNote::create($validated);

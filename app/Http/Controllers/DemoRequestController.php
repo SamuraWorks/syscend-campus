@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AdminDemoRequestMail;
 use App\Models\DemoRequest;
 use App\Models\DemoRequestStatusHistory;
 use App\Notifications\DemoRequestReceived;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class DemoRequestController extends Controller
@@ -64,6 +66,13 @@ class DemoRequestController extends Controller
             $demo->notify(new DemoRequestReceived($demo));
         } catch (\Throwable $e) {
             \Log::warning('Demo request notification failed: ' . $e->getMessage());
+        }
+
+        // Notify platform admin at syscend@gmail.com
+        try {
+            Mail::to('syscend@gmail.com')->send(new AdminDemoRequestMail($demo));
+        } catch (\Throwable $e) {
+            \Log::warning('Demo request admin email failed: ' . $e->getMessage());
         }
 
         return redirect()->route('demo.thank-you')

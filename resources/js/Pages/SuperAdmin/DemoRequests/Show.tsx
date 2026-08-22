@@ -91,11 +91,11 @@ export default function DemoRequestShow({ request: r, staff }: Props) {
 
                 <div className="grid gap-6 lg:grid-cols-3">
                     {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="space-y-6 order-2 lg:col-span-2">
                         {/* School Info */}
                         <Card>
                             <CardHeader><CardTitle className="text-base">School Information</CardTitle></CardHeader>
-                            <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                                 <div><span className="text-muted-foreground">Type:</span> <span className="font-medium">{r.school_type}</span></div>
                                 <div><span className="text-muted-foreground">Level:</span> <span className="font-medium">{r.school_level}</span></div>
                                 <div><span className="text-muted-foreground">District:</span> <span className="font-medium">{r.district}</span></div>
@@ -168,7 +168,7 @@ export default function DemoRequestShow({ request: r, staff }: Props) {
                     </div>
 
                     {/* Sidebar */}
-                    <div className="space-y-6">
+                    <div className="space-y-6 order-1 lg:order-3">
                         {/* Status */}
                         <Card>
                             <CardHeader><CardTitle className="text-base">Update Status</CardTitle></CardHeader>
