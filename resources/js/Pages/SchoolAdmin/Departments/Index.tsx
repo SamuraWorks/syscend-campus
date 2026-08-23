@@ -99,7 +99,7 @@ export default function DepartmentsIndex() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input placeholder="Search departments..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
                 </div>
-                <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v)}>
+                <Select defaultValue="_all" onValueChange={(v) => setTypeFilter(v)}>
                     <SelectTrigger className="w-full sm:w-44 h-9"><SelectValue placeholder="All Types" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="_all">All Types</SelectItem>
