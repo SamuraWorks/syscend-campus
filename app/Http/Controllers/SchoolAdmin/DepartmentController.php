@@ -45,7 +45,7 @@ class DepartmentController extends Controller
 
         $academicDepts = Department::where('school_id', $schoolId)
             ->academic()
-            ->active()
+            ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
 
