@@ -821,8 +821,6 @@ Route::middleware('auth')->group(function () {
         })->name('academic-structure');
 
         Route::prefix('curriculum')->name('curriculum.')->group(function () {
-            Route::get('/', [CurriculumController::class, 'index'])->name('index');
-            Route::get('/class/{classId}', [CurriculumController::class, 'show'])->name('show');
             Route::post('/', [CurriculumController::class, 'store'])->name('store');
             Route::put('/{offering}', [CurriculumController::class, 'update'])->name('update');
             Route::delete('/{offering}', [CurriculumController::class, 'destroy'])->name('destroy');

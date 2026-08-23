@@ -25,7 +25,7 @@ export default function DepartmentsIndex() {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Department | null>(null);
     const [search, setSearch] = useState('');
-    const [typeFilter, setTypeFilter] = useState('');
+    const [typeFilter, setTypeFilter] = useState('_all');
     const [deleteDialog, setDeleteDialog] = useState<Department | null>(null);
 
     const emptyForm = { name: '', code: '', description: '', type: 'academic', is_active: true };
@@ -33,7 +33,7 @@ export default function DepartmentsIndex() {
 
     const filtered = departments.filter((d) => {
         if (search && !d.name.toLowerCase().includes(search.toLowerCase()) && !(d.code ?? '').toLowerCase().includes(search.toLowerCase())) return false;
-        if (typeFilter && d.type !== typeFilter) return false;
+        if (typeFilter !== '_all' && d.type !== typeFilter) return false;
         return true;
     });
 
@@ -99,7 +99,7 @@ export default function DepartmentsIndex() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input placeholder="Search departments..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
                 </div>
-                <Select defaultValue="" onValueChange={(v) => setTypeFilter(v === '_all' ? '' : v)}>
+                <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v)}>
                     <SelectTrigger className="w-full sm:w-44 h-9"><SelectValue placeholder="All Types" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="_all">All Types</SelectItem>

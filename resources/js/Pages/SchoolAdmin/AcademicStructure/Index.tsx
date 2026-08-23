@@ -67,8 +67,8 @@ function ClassesTab({ classes, staff, departments, enabledLevels }: {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<SchoolClass | null>(null);
     const [search, setSearch] = useState('');
-    const [levelFilter, setLevelFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
+    const [levelFilter, setLevelFilter] = useState('_all');
+    const [statusFilter, setStatusFilter] = useState('_all');
     const [deleteDialog, setDeleteDialog] = useState<SchoolClass | null>(null);
 
     const classSchema = z.object({
@@ -95,7 +95,7 @@ function ClassesTab({ classes, staff, departments, enabledLevels }: {
 
     const filtered = classes.filter((c) => {
         if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !(c.short_name ?? '').toLowerCase().includes(search.toLowerCase())) return false;
-        if (levelFilter && c.school_level !== levelFilter) return false;
+        if (levelFilter !== '_all' && c.school_level !== levelFilter) return false;
         if (statusFilter === 'active' && !c.is_active) return false;
         if (statusFilter === 'inactive' && c.is_active) return false;
         return true;
@@ -153,7 +153,7 @@ function ClassesTab({ classes, staff, departments, enabledLevels }: {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input placeholder="Search classes..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
                 </div>
-                <Select defaultValue="" onValueChange={(v) => setLevelFilter(v === '_all' ? '' : v)}>
+                <Select value={levelFilter} onValueChange={(v) => setLevelFilter(v)}>
                     <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue placeholder="All Levels" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="_all">All Levels</SelectItem>
@@ -163,7 +163,7 @@ function ClassesTab({ classes, staff, departments, enabledLevels }: {
                         {enabledLevels.includes('senior_secondary') && <SelectItem value="senior_secondary">SSS</SelectItem>}
                     </SelectContent>
                 </Select>
-                <Select defaultValue="" onValueChange={(v) => setStatusFilter(v === '_all' ? '' : v)}>
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
                     <SelectTrigger className="w-full sm:w-36 h-9"><SelectValue placeholder="All Status" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="_all">All Status</SelectItem>
@@ -357,7 +357,7 @@ function DepartmentsTab({ departments }: { departments: Props['departments'] }) 
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Department | null>(null);
     const [search, setSearch] = useState('');
-    const [typeFilter, setTypeFilter] = useState('');
+    const [typeFilter, setTypeFilter] = useState('_all');
     const [deleteDialog, setDeleteDialog] = useState<Department | null>(null);
 
     const emptyForm = { name: '', code: '', description: '', type: 'academic', is_active: true };
@@ -365,7 +365,7 @@ function DepartmentsTab({ departments }: { departments: Props['departments'] }) 
 
     const filtered = departments.filter((d) => {
         if (search && !d.name.toLowerCase().includes(search.toLowerCase()) && !(d.code ?? '').toLowerCase().includes(search.toLowerCase())) return false;
-        if (typeFilter && d.type !== typeFilter) return false;
+        if (typeFilter !== '_all' && d.type !== typeFilter) return false;
         return true;
     });
 
@@ -420,7 +420,7 @@ function DepartmentsTab({ departments }: { departments: Props['departments'] }) 
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input placeholder="Search departments..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
                 </div>
-                <Select defaultValue="" onValueChange={(v) => setTypeFilter(v === '_all' ? '' : v)}>
+                <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v)}>
                     <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue placeholder="All Types" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="_all">All Types</SelectItem>
@@ -569,7 +569,7 @@ function SubjectsTab({ subjects, classes, departments }: {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState<Subject | null>(null);
     const [search, setSearch] = useState('');
-    const [levelFilter, setLevelFilter] = useState('');
+    const [levelFilter, setLevelFilter] = useState('_all');
     const [deleteDialog, setDeleteDialog] = useState<Subject | null>(null);
 
     const subjectSchema = z.object({
@@ -592,11 +592,11 @@ function SubjectsTab({ subjects, classes, departments }: {
 
     const filteredSubjects = subjects.filter((s) => {
         if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !(s.code ?? '').toLowerCase().includes(search.toLowerCase())) return false;
-        if (levelFilter && s.school_level !== levelFilter) return false;
+        if (levelFilter !== '_all' && s.school_level !== levelFilter) return false;
         return true;
     });
 
-    const filteredClasses = levelFilter
+    const filteredClasses = levelFilter !== '_all'
         ? classes.filter(c => c.school_level === levelFilter)
         : classes;
 
@@ -652,7 +652,7 @@ function SubjectsTab({ subjects, classes, departments }: {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input placeholder="Search subjects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
                 </div>
-                <Select defaultValue="" onValueChange={(v) => setLevelFilter(v === '_all' ? '' : v)}>
+                <Select value={levelFilter} onValueChange={(v) => setLevelFilter(v)}>
                     <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue placeholder="All Levels" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="_all">All Levels</SelectItem>

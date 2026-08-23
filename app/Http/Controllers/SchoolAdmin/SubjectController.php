@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SchoolAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicYear;
 use App\Models\Department;
 use App\Models\SchoolClass;
 use App\Models\Subject;
@@ -108,9 +109,35 @@ class SubjectController extends Controller
             return back()->withErrors(['code' => 'A subject with this code already exists.'])->withInput();
         }
 
-        Subject::create($data);
+        $subject = Subject::create($data);
 
-        return back()->with('success', 'Subject created.');
+        $currentYear = AcademicYear::where('school_id', $schoolId)
+            ->where('is_current', true)
+            ->first();
+
+        if ($currentYear) {
+            $existing = SubjectOffering::where('school_id', $schoolId)
+                ->where('academic_year_id', $currentYear->id)
+                ->where('class_id', $data['class_id'])
+                ->where('subject_id', $subject->id)
+                ->exists();
+
+            if (!$existing) {
+                SubjectOffering::create([
+                    'school_id'     => $schoolId,
+                    'academic_year_id' => $currentYear->id,
+                    'class_id'      => $data['class_id'],
+                    'subject_id'    => $subject->id,
+                    'subject_name'  => $data['name'],
+                    'subject_code'  => $data['code'] ?? strtoupper(substr($data['name'], 0, 4)),
+                    'subject_type'  => 'compulsory',
+                    'department_id' => $data['department_id'] ?? null,
+                    'is_active'     => true,
+                ]);
+            }
+        }
+
+        return back()->with('success', 'Subject created and added to current curriculum.');
     }
 
     public function update(Request $request, Subject $subject): RedirectResponse
@@ -160,6 +187,14 @@ class SubjectController extends Controller
 
         $subject->update($data);
 
+        SubjectOffering::where('subject_id', $subject->id)
+            ->where('class_id', $data['class_id'])
+            ->update([
+                'subject_name'  => $data['name'],
+                'subject_code'  => $data['code'] ?? $subject->code,
+                'department_id' => $data['department_id'] ?? null,
+            ]);
+
         return back()->with('success', 'Subject updated.');
     }
 
@@ -174,7 +209,7 @@ class SubjectController extends Controller
         $offeringsCount = SubjectOffering::where('subject_id', $subject->id)->count();
         if ($offeringsCount > 0) {
             return back()->withErrors([
-                'delete' => "Cannot delete this subject. It is used in {$offeringsCount} curriculum offering(s). Consider deactivating it instead.",
+                'delete' => "Cannot delete this subject. It is used in {$offeringsCount} curriculum offering(s). Deactivate it instead.",
             ]);
         }
 
