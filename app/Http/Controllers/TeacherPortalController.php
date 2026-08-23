@@ -20,6 +20,7 @@ use App\Models\Staff;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Syllabus;
+use App\Models\TeacherSubjectAssignment;
 use App\Models\Timetable;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -54,6 +55,21 @@ class TeacherPortalController extends Controller
         if ($teacher->isFormMaster() && $teacher->form_master_class_id) {
             $classIds[] = $teacher->form_master_class_id;
         }
+
+        if ($classTeacherId = \App\Models\SchoolClass::where('class_teacher_id', $teacher->id)->value('id')) {
+            $classIds[] = $classTeacherId;
+        }
+
+        $assignmentClassIds = TeacherSubjectAssignment::where('school_id', $teacher->school_id)
+            ->where('staff_id', $teacher->id)
+            ->where('is_active', true)
+            ->with('subjectOffering:class_id')
+            ->get()
+            ->pluck('subjectOffering.class_id')
+            ->filter()
+            ->values()
+            ->toArray();
+        $classIds = array_merge($classIds, $assignmentClassIds);
 
         return array_unique($classIds);
     }
@@ -108,8 +124,33 @@ class TeacherPortalController extends Controller
             ->with(['schoolClass:id,name', 'section:id,name'])
             ->get()
             ->map(fn ($t) => ['class' => $t->schoolClass?->name, 'section' => $t->section?->name])
-            ->unique(fn ($v) => $v['class'] . $v['section'])
             ->values();
+
+        if ($teacher->isFormMaster() && $teacher->form_master_class_id) {
+            $fmClass = \App\Models\SchoolClass::where('id', $teacher->form_master_class_id)->first(['id', 'name']);
+            $fmSection = $teacher->formMasterSection?->name;
+            if ($fmClass && !$assignedClasses->contains(fn ($c) => $c['class'] === $fmClass->name && $c['section'] === $fmSection)) {
+                $assignedClasses->push(['class' => $fmClass->name, 'section' => $fmSection]);
+            }
+        }
+
+        $subjectAssignmentClasses = TeacherSubjectAssignment::where('school_id', $schoolId)
+            ->where('staff_id', $teacher->id)
+            ->where('is_active', true)
+            ->with('subjectOffering.schoolClass:id,name', 'subjectOffering.section:id,name')
+            ->get()
+            ->pluck('subjectOffering')
+            ->filter()
+            ->map(fn ($o) => ['class' => $o->schoolClass?->name, 'section' => $o->section?->name])
+            ->values();
+
+        foreach ($subjectAssignmentClasses as $saClass) {
+            if ($saClass['class'] && !$assignedClasses->contains(fn ($c) => $c['class'] === $saClass['class'] && $c['section'] === $saClass['section'])) {
+                $assignedClasses->push($saClass);
+            }
+        }
+
+        $assignedClasses = $assignedClasses->unique(fn ($v) => ($v['class'] ?? '') . ($v['section'] ?? ''))->values();
 
         $classIds  = $this->getTeacherClassIds($teacher);
         $sectionIds = $this->getTeacherSectionIds($teacher);
