@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { BookOpen, Calendar, GraduationCap, Users } from 'lucide-react';
 
 interface Subject { id: number; name: string; code: string | null; }
-interface LoadSlot { subject: string | null; day: string; start_time: string; end_time: string; room: string | null; }
+interface LoadSlot { subject: string | null; day: string | null; start_time: string | null; end_time: string | null; room: string | null; }
 interface TeachingLoadItem { label: string; classes: LoadSlot[]; }
 interface ClassCount { label: string; count: number; }
 interface Props {
@@ -93,8 +93,8 @@ export default function Academic({ linked, teacher, assignedSubjects, teachingLo
                                                     {item.classes.map((slot, i) => (
                                                         <tr key={i} className="border-b border-slate-50 dark:border-slate-800/50">
                                                             <td className="py-2 text-slate-700 dark:text-slate-300 font-medium">{slot.subject ?? '—'}</td>
-                                                            <td className="py-2 text-slate-500 capitalize">{slot.day}</td>
-                                                            <td className="py-2 text-slate-500">{slot.start_time} – {slot.end_time}</td>
+                                                            <td className="py-2 text-slate-500 capitalize">{slot.day ?? '—'}</td>
+                                                            <td className="py-2 text-slate-500">{slot.start_time && slot.end_time ? `${slot.start_time} – ${slot.end_time}` : '—'}</td>
                                                             <td className="py-2 text-slate-500">{slot.room ?? '—'}</td>
                                                         </tr>
                                                     ))}

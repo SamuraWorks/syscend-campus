@@ -87,6 +87,17 @@ class TeacherPortalController extends Controller
             $sectionIds[] = $teacher->form_master_section_id;
         }
 
+        $assignmentSections = TeacherSubjectAssignment::where('school_id', $teacher->school_id)
+            ->where('staff_id', $teacher->id)
+            ->where('is_active', true)
+            ->with('subjectOffering:section_id')
+            ->get()
+            ->pluck('subjectOffering.section_id')
+            ->filter()
+            ->values()
+            ->toArray();
+        $sectionIds = array_merge($sectionIds, $assignmentSections);
+
         return array_unique($sectionIds);
     }
 
@@ -279,8 +290,25 @@ class TeacherPortalController extends Controller
             ->with('subject:id,name,code')
             ->get()
             ->pluck('subject')
+            ->filter()
             ->unique('id')
             ->values();
+
+        $assignmentSubjects = TeacherSubjectAssignment::where('school_id', $schoolId)
+            ->where('staff_id', $teacher->id)
+            ->where('is_active', true)
+            ->with('subjectOffering.subject:id,name,code')
+            ->get()
+            ->pluck('subjectOffering.subject')
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        foreach ($assignmentSubjects as $as) {
+            if (!$assignedSubjects->contains('id', $as->id)) {
+                $assignedSubjects->push($as);
+            }
+        }
 
         $teachingLoad = Timetable::where('school_id', $schoolId)
             ->where('teacher_id', $teacher->id)
@@ -300,12 +328,37 @@ class TeacherPortalController extends Controller
             ])
             ->values();
 
+        $assignmentLoad = TeacherSubjectAssignment::where('school_id', $schoolId)
+            ->where('staff_id', $teacher->id)
+            ->where('is_active', true)
+            ->with(['subjectOffering.schoolClass:id,name', 'subjectOffering.section:id,name', 'subjectOffering.subject:id,name'])
+            ->get()
+            ->pluck('subjectOffering')
+            ->filter()
+            ->groupBy(fn ($o) => ($o->schoolClass?->name ?? 'Unassigned') . ' - ' . ($o->section?->name ?? 'General'))
+            ->map(fn ($offerings, $label) => [
+                'label'   => $label,
+                'classes' => $offerings->map(fn ($o) => [
+                    'subject'    => $o->subject?->name ?? $o->subject_name,
+                    'day'        => null,
+                    'start_time' => null,
+                    'end_time'   => null,
+                    'room'       => null,
+                ])->values(),
+            ])
+            ->values();
+
+        foreach ($assignmentLoad as $al) {
+            if (!$teachingLoad->contains('label', $al['label'])) {
+                $teachingLoad->push($al);
+            }
+        }
+
         $studentsPerClass = Student::where('school_id', $schoolId)
             ->whereIn('class_id', $classIds)
-            ->whereIn('section_id', $sectionIds)
             ->with(['schoolClass:id,name', 'section:id,name'])
             ->get()
-            ->groupBy(fn ($s) => $s->schoolClass?->name . ' - ' . $s->section?->name)
+            ->groupBy(fn ($s) => ($s->schoolClass?->name ?? 'Unknown') . ' - ' . ($s->section?->name ?? 'Unassigned'))
             ->map(fn ($students, $label) => ['label' => $label, 'count' => $students->count()])
             ->values();
 
@@ -365,6 +418,41 @@ class TeacherPortalController extends Controller
                 ];
             })
             ->values();
+
+        $existingKeys = $classSections->pluck('class_id')->toArray();
+        $existingSections = $classSections->pluck('section_id')->toArray();
+
+        $assignmentClasses = TeacherSubjectAssignment::where('school_id', $schoolId)
+            ->where('staff_id', $teacher->id)
+            ->where('is_active', true)
+            ->with(['subjectOffering.schoolClass:id,name', 'subjectOffering.section:id,name', 'subjectOffering.subject:id,name'])
+            ->get()
+            ->pluck('subjectOffering')
+            ->filter()
+            ->filter(fn ($o) => !in_array($o->class_id, $existingKeys) || !in_array($o->section_id, $existingSections))
+            ->groupBy(fn ($o) => $o->class_id . '-' . $o->section_id)
+            ->map(function ($offerings, $key) use ($schoolId) {
+                $first = $offerings->first();
+                $classId = $first->class_id;
+                $sectionId = $first->section_id;
+                $studentCount = Student::where('school_id', $schoolId)
+                    ->where('class_id', $classId)
+                    ->where('section_id', $sectionId)
+                    ->count();
+
+                return [
+                    'class_id'      => $classId,
+                    'section_id'    => $sectionId,
+                    'class_name'    => $first->schoolClass?->name ?? '—',
+                    'section_name'  => $first->section?->name ?? '—',
+                    'subjects'      => $offerings->pluck('subject')->filter()->unique('id')->values(),
+                    'student_count' => $studentCount,
+                    'slots'         => $offerings->count(),
+                ];
+            })
+            ->values();
+
+        $classSections = $classSections->merge($assignmentClasses);
 
         $formMasterInfo = null;
         if ($teacher->isFormMaster() && $teacher->form_master_class_id) {
