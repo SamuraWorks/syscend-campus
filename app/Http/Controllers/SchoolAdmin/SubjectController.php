@@ -102,11 +102,13 @@ class SubjectController extends Controller
             ])->withInput();
         }
 
-        $codeExists = Subject::where('school_id', $schoolId)
-            ->where('code', $data['code'])
-            ->exists();
-        if ($codeExists) {
-            return back()->withErrors(['code' => 'A subject with this code already exists.'])->withInput();
+        if (!empty($data['code'])) {
+            $codeExists = Subject::where('school_id', $schoolId)
+                ->where('code', $data['code'])
+                ->exists();
+            if ($codeExists) {
+                return back()->withErrors(['code' => 'A subject with this code already exists.'])->withInput();
+            }
         }
 
         $subject = Subject::create($data);
@@ -116,10 +118,12 @@ class SubjectController extends Controller
             ->first();
 
         if ($currentYear) {
+            $subjectCode = !empty($data['code']) ? $data['code'] : strtoupper(preg_replace('/\s+/', '', substr($data['name'], 0, 6)));
+
             $existing = SubjectOffering::where('school_id', $schoolId)
                 ->where('academic_year_id', $currentYear->id)
                 ->where('class_id', $data['class_id'])
-                ->where('subject_id', $subject->id)
+                ->where('subject_code', $subjectCode)
                 ->exists();
 
             if (!$existing) {
@@ -129,7 +133,7 @@ class SubjectController extends Controller
                     'class_id'      => $data['class_id'],
                     'subject_id'    => $subject->id,
                     'subject_name'  => $data['name'],
-                    'subject_code'  => $data['code'] ?? strtoupper(substr($data['name'], 0, 4)),
+                    'subject_code'  => $subjectCode,
                     'subject_type'  => 'compulsory',
                     'department_id' => $data['department_id'] ?? null,
                     'is_active'     => true,
