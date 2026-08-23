@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, Pencil, FileUp, Trash2, FileText, User, GraduationCap, Users } from 'lucide-react';
+import { ArrowLeft, Pencil, FileUp, Trash2, FileText, User, GraduationCap, Users, Flag, BookOpen, Download } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -69,7 +69,7 @@ export default function ShowStudent() {
                         <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-xl font-bold text-indigo-600 shrink-0">
                             {student.photo_url
                                 ? <img src={student.photo_url} className="w-12 h-12 rounded-xl object-cover" alt="" />
-                                : student.first_name[0].toUpperCase()
+                                : (student.initials || student.first_name[0].toUpperCase())
                             }
                         </div>
                         <div>
@@ -91,10 +91,12 @@ export default function ShowStudent() {
             </div>
 
             {/* Quick stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
                 {[
                     { icon: GraduationCap, label: 'Class', value: student.school_class?.name ?? '—' },
                     { icon: Users,         label: 'Section', value: student.section?.name ?? '—' },
+                    { icon: Flag,          label: 'House', value: student.house?.name ?? '—' },
+                    { icon: BookOpen,      label: 'Department', value: student.department?.name ?? '—' },
                     { icon: FileText,      label: 'Documents', value: String(student.documents?.length ?? 0) },
                 ].map((s) => (
                     <Card key={s.label} className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
@@ -130,6 +132,7 @@ export default function ShowStudent() {
                         <InfoRow label="Full Name"      value={student.full_name} />
                         <InfoRow label="Gender"         value={student.gender} />
                         <InfoRow label="Date of Birth"  value={student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : null} />
+                        <InfoRow label="Place of Birth" value={student.place_of_birth} />
                         <InfoRow label="Blood Group"    value={student.blood_group} />
                         <InfoRow label="Religion"       value={student.religion} />
                         <InfoRow label="Nationality"    value={student.nationality} />
@@ -138,6 +141,9 @@ export default function ShowStudent() {
                         <InfoRow label="Category"       value={student.category} />
                         <InfoRow label="Roll No"        value={student.roll_no} />
                         <InfoRow label="Admission Date" value={student.admission_date ? new Date(student.admission_date).toLocaleDateString() : null} />
+                        <InfoRow label="Admission Type" value={student.admission_type} />
+                        <InfoRow label="House"          value={student.house?.name} />
+                        <InfoRow label="Department"     value={student.department?.name} />
                         <InfoRow label="Previous School" value={student.previous_school} />
                         {student.address && (
                             <div className="col-span-3">
@@ -151,11 +157,42 @@ export default function ShowStudent() {
 
             {/* Guardian tab */}
             {tab === 'guardian' && (
-                <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                    <CardHeader className="pb-3"><CardTitle className="text-sm">Guardian Details</CardTitle></CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
-                        {student.guardian ? (
-                            <>
+                <div className="space-y-4">
+                    <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                        <CardHeader className="pb-3"><CardTitle className="text-sm">Guardians</CardTitle></CardHeader>
+                        <CardContent>
+                            {student.guardians?.length ? (
+                                <div className="space-y-2">
+                                    {student.guardians.map((g: any) => (
+                                        <div key={g.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-full bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
+                                                    <User className="w-4 h-4 text-indigo-500" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                                        {g.name}
+                                                        {g.pivot?.is_primary ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">Primary</span> : null}
+                                                    </p>
+                                                    <p className="text-xs text-slate-400">{[g.pivot?.relationship ?? g.relation, g.phone].filter(Boolean).join(' · ')}</p>
+                                                </div>
+                                            </div>
+                                            {g.email && <span className="text-xs text-slate-500">{g.email}</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : student.guardian ? (
+                                <p className="text-sm text-slate-400">Legacy guardian record — see details below.</p>
+                            ) : (
+                                <p className="text-sm text-slate-400">No guardians on record.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {student.guardian && !student.guardians?.length && (
+                        <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                            <CardHeader className="pb-3"><CardTitle className="text-sm">Guardian Details</CardTitle></CardHeader>
+                            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
                                 <InfoRow label="Name"       value={student.guardian.name} />
                                 <InfoRow label="Relation"   value={student.guardian.relation} />
                                 <InfoRow label="Phone"      value={student.guardian.phone} />
@@ -167,12 +204,10 @@ export default function ShowStudent() {
                                         <p className="text-sm text-slate-800 dark:text-slate-200 mt-0.5">{student.guardian.address}</p>
                                     </div>
                                 )}
-                            </>
-                        ) : (
-                            <p className="text-sm text-slate-400 col-span-3">No guardian information.</p>
-                        )}
-                    </CardContent>
-                </Card>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
             )}
 
             {/* Documents tab */}
@@ -198,10 +233,17 @@ export default function ShowStudent() {
                                                 {doc.file_size && <p className="text-xs text-slate-400">{(doc.file_size / 1024).toFixed(1)} KB</p>}
                                             </div>
                                         </div>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600"
-                                            onClick={() => { if (confirm('Delete this document?')) router.delete(`/school/students/documents/${doc.id}`); }}>
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </Button>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-500 hover:text-indigo-600" asChild>
+                                                <a href={`/school/students/documents/${doc.id}/download`} download>
+                                                    <Download className="w-3.5 h-3.5" />
+                                                </a>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600"
+                                                onClick={() => { if (confirm('Delete this document?')) router.delete(`/school/students/documents/${doc.id}`); }}>
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

@@ -15,8 +15,10 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { PageProps, SchoolClass, Section } from '@/Types';
 
 interface Props extends PageProps {
-    classes:  Pick<SchoolClass, 'id' | 'name'>[];
-    sections: (Pick<Section, 'id' | 'name'> & { class_id: number })[];
+    classes:     (Pick<SchoolClass, 'id' | 'name'> & { school_level?: string })[];
+    sections:    (Pick<Section, 'id' | 'name'> & { class_id: number })[];
+    houses:      { id: number; name: string; color: string | null }[];
+    departments: { id: number; name: string }[];
 }
 
 const schema = z.object({
@@ -25,6 +27,7 @@ const schema = z.object({
     last_name:       z.string().optional(),
     gender:          z.enum(['male', 'female', 'other']),
     date_of_birth:   z.string().optional(),
+    place_of_birth:  z.string().optional(),
     blood_group:     z.string().optional(),
     religion:        z.string().optional(),
     nationality:     z.string().optional(),
@@ -34,11 +37,14 @@ const schema = z.object({
     category:        z.enum(['general', 'disabled', 'quota']),
     status:          z.enum(['active', 'alumni', 'transferred', 'inactive']),
     admission_date:  z.string().optional(),
+    admission_type:  z.enum(['new', 'transfer', 'returning']).optional(),
     previous_school: z.string().optional(),
     roll_no:         z.string().optional(),
-    // Class
-    class_id:   z.coerce.number().int().positive('Select a class'),
-    section_id: z.coerce.number().int().positive().nullable().optional(),
+    // Placement
+    class_id:      z.coerce.number().int().positive('Select a class'),
+    section_id:    z.coerce.number().int().positive().nullable().optional(),
+    house_id:      z.coerce.number().int().positive().nullable().optional(),
+    department_id: z.coerce.number().int().positive().nullable().optional(),
     // Guardian
     guardian: z.object({
         name:       z.string().min(1, 'Guardian name is required'),
@@ -55,9 +61,10 @@ type FormData = z.infer<typeof schema>;
 const STEPS = ['Personal Info', 'Class & Roll', 'Guardian Info'];
 
 export default function CreateStudent() {
-    const { classes, sections } = usePage<Props>().props;
+    const { classes, sections, houses = [], departments = [] } = usePage<Props>().props;
     const [step, setStep] = useState(0);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [photo, setPhoto] = useState<File | null>(null);
 
     const { register, handleSubmit, setValue, watch, setError, formState: { errors, isSubmitting } } =
         useForm<FormData>({
@@ -67,13 +74,33 @@ export default function CreateStudent() {
 
     const selectedClassId = watch('class_id');
     const visibleSections = selectedClassId ? sections.filter((s) => s.class_id === Number(selectedClassId)) : [];
+    const selectedClass = classes.find((c) => c.id === Number(selectedClassId));
+    const isSss = selectedClass?.school_level === 'senior_secondary';
     const firstName = watch('first_name');
     const lastName = watch('last_name');
 
     const onSubmit = (data: FormData) => {
-        router.post('/school/students', data, {
-            onError: (errs) => Object.entries(errs).forEach(([f, m]) => setError(f as keyof FormData, { message: m })),
-        });
+        const payload = { ...data, guardian: { ...data.guardian } };
+        const onError = (errs: Record<string, string>) =>
+            Object.entries(errs).forEach(([f, m]) => setError(f as keyof FormData, { message: m }));
+
+        if (photo) {
+            const fd = new FormData();
+            Object.entries(payload).forEach(([key, value]) => {
+                if (value === null || value === undefined) return;
+                if (typeof value === 'object') {
+                    Object.entries(value).forEach(([k2, v2]) => {
+                        if (v2 !== null && v2 !== undefined && v2 !== '') fd.append(`${key}[${k2}]`, String(v2));
+                    });
+                } else if (value !== '') {
+                    fd.append(key, String(value));
+                }
+            });
+            fd.append('photo', photo);
+            router.post('/school/students', fd, { onError });
+        } else {
+            router.post('/school/students', payload, { onError });
+        }
     };
 
     const Field = ({ name, label, placeholder, type = 'text', required = false }: {
@@ -144,7 +171,8 @@ export default function CreateStudent() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <Field name="date_of_birth" label="Date of Birth" type="date" />
+                                <Field name="date_of_birth"  label="Date of Birth"   type="date" />
+                                <Field name="place_of_birth" label="Place of Birth"  placeholder="Freetown" />
                                 <Field name="blood_group" label="Blood Group" placeholder="A+" />
                                 <Field name="religion"    label="Religion"    placeholder="Islam" />
                                 <Field name="nationality" label="Nationality"  placeholder="Sierra Leonean" />
@@ -175,6 +203,16 @@ export default function CreateStudent() {
                                     <Label className="text-sm font-medium">Address</Label>
                                     <Textarea rows={2} className="resize-none" placeholder="House, Road, Area…" {...register('address')} />
                                 </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-medium">Photo</Label>
+                                    <Input
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp"
+                                        className="h-9 file:mr-2 file:text-xs"
+                                        onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+                                    />
+                                    <p className="text-xs text-slate-400">JPG/PNG/WebP, max 2MB</p>
+                                </div>
                             </CardContent>
                         </Card>
                     )}
@@ -186,7 +224,7 @@ export default function CreateStudent() {
                             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <Label className="text-sm font-medium">Class <span className="text-red-500">*</span></Label>
-                                    <Select onValueChange={(v) => { setValue('class_id', Number(v)); setValue('section_id', null); }}>
+                                    <Select onValueChange={(v) => { setValue('class_id', Number(v)); setValue('section_id', null); setValue('department_id', undefined); }}>
                                         <SelectTrigger className="h-9"><SelectValue placeholder="Select class" /></SelectTrigger>
                                         <SelectContent>
                                             {classes.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
@@ -203,8 +241,42 @@ export default function CreateStudent() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <Field name="roll_no"         label="Roll No"       placeholder="01" />
-                                <Field name="admission_date"  label="Admission Date" type="date" />
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-medium">House</Label>
+                                    <Select onValueChange={(v) => setValue('house_id', v === '_none' ? undefined : Number(v))} disabled={houses.length === 0}>
+                                        <SelectTrigger className="h-9"><SelectValue placeholder={houses.length === 0 ? 'No houses configured' : 'Select house'} /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="_none">None</SelectItem>
+                                            {houses.map((h) => <SelectItem key={h.id} value={String(h.id)}>{h.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-medium">Department</Label>
+                                    <Select
+                                        onValueChange={(v) => setValue('department_id', v === '_none' ? undefined : Number(v))}
+                                        disabled={!isSss || departments.length === 0}
+                                    >
+                                        <SelectTrigger className="h-9"><SelectValue placeholder={isSss ? (departments.length === 0 ? 'No departments' : 'Select department') : 'SSS classes only'} /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="_none">None</SelectItem>
+                                            {departments.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <Field name="roll_no"        label="Roll No"        placeholder="01" />
+                                <Field name="admission_date" label="Admission Date" type="date" />
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-medium">Admission Type</Label>
+                                    <Select defaultValue="new" onValueChange={(v) => setValue('admission_type', v as 'new' | 'transfer' | 'returning')}>
+                                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="new">New</SelectItem>
+                                            <SelectItem value="transfer">Transfer</SelectItem>
+                                            <SelectItem value="returning">Returning</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 <div className="col-span-2">
                                     <Field name="previous_school" label="Previous School" placeholder="XYZ School" />
                                 </div>

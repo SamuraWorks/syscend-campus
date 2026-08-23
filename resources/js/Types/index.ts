@@ -115,6 +115,7 @@ export interface Guardian {
     occupation: string | null;
     address: string | null;
     photo: string | null;
+    pivot?: { guardian_id: number; student_id: number; relationship: string | null; is_primary: boolean };
 }
 
 export interface StudentDocument {
@@ -128,19 +129,35 @@ export interface StudentDocument {
     created_at: string;
 }
 
+export interface House {
+    id: number;
+    school_id: number;
+    name: string;
+    color: string | null;
+    is_active: boolean;
+    house_master_id?: number | null;
+    house_master?: { id: number; name: string } | null;
+    students_count?: number;
+}
+
 export interface Student {
     id: number;
     school_id: number;
     class_id: number;
     section_id: number | null;
     guardian_id: number | null;
+    house_id: number | null;
+    department_id: number | null;
     admission_no: string;
+    student_id: string | null;
     roll_no: string | null;
     first_name: string;
     last_name: string | null;
     full_name: string;
+    initials?: string;
     gender: 'male' | 'female' | 'other';
     date_of_birth: string | null;
+    place_of_birth: string | null;
     blood_group: string | null;
     religion: string | null;
     nationality: string;
@@ -152,11 +169,15 @@ export interface Student {
     category: 'general' | 'disabled' | 'quota';
     status: 'active' | 'alumni' | 'transferred' | 'inactive';
     admission_date: string | null;
+    admission_type: 'new' | 'transfer' | 'returning' | null;
     previous_school: string | null;
     created_at: string;
     school_class?: SchoolClass;
     section?: Section;
     guardian?: Guardian;
+    guardians?: Guardian[];
+    house?: House;
+    department?: { id: number; name: string };
     documents?: StudentDocument[];
 }
 

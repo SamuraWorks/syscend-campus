@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Traits\{BelongsToSchool, HasAuditLog};
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, BelongsToMany, HasMany};
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Guardian extends Model
@@ -25,5 +25,12 @@ class Guardian extends Model
     public function students(): HasMany
     {
         return $this->hasMany(Student::class);
+    }
+
+    public function children(): BelongsToMany
+    {
+        return $this->belongsToMany(Student::class, 'guardian_student')
+            ->withPivot('relationship', 'is_primary')
+            ->withTimestamps();
     }
 }

@@ -72,6 +72,16 @@ function ClassesTab({ classes, staff, departments, enabledLevels }: {
     const watchActive = watch('is_active');
     const watchTeacher = watch('class_teacher_id');
     const watchDeptId = watch('department_id');
+    const watchNumeric = watch('numeric_name');
+
+    const suggestedDept = departments.find(d => d.id === watchDeptId);
+    const levelPrefix = levelLabels[watchLevel ?? ''] ?? '';
+    const suggestedClassName = watchLevel && suggestedDept
+        ? [levelPrefix, watchNumeric, suggestedDept.name].filter(Boolean).join(' ')
+        : null;
+    const suggestedShortName = watchLevel && suggestedDept
+        ? [`${levelPrefix}${watchNumeric ?? ''}`, suggestedDept.code].filter(Boolean).join('-')
+        : null;
 
     const filtered = classes.filter((c) => {
         if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !(c.short_name ?? '').toLowerCase().includes(search.toLowerCase())) return false;
@@ -225,7 +235,16 @@ function ClassesTab({ classes, staff, departments, enabledLevels }: {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <Label>Class Name <span className="text-red-500">*</span></Label>
-                                <Input placeholder="e.g. JSS 1, Class 5" {...register('name')} />
+                                <Input placeholder="e.g. JSS 1, Class 5, SSS 1 Science" {...register('name')} />
+                                {suggestedClassName && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setValue('name', suggestedClassName); if (suggestedShortName) setValue('short_name', suggestedShortName); }}
+                                        className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                    >
+                                        Suggested: &ldquo;{suggestedClassName}&rdquo; &mdash; click to use
+                                    </button>
+                                )}
                                 {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
                             </div>
                             <div className="space-y-1.5">

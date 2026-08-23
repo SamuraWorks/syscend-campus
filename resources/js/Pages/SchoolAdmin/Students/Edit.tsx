@@ -1,4 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,9 +14,11 @@ import { Textarea } from '@/components/ui/textarea';
 import type { PageProps, Student, SchoolClass, Section } from '@/Types';
 
 interface Props extends PageProps {
-    student:  Student;
-    classes:  Pick<SchoolClass, 'id' | 'name'>[];
-    sections: (Pick<Section, 'id' | 'name'> & { class_id: number })[];
+    student:     Student;
+    classes:     (Pick<SchoolClass, 'id' | 'name'> & { school_level?: string })[];
+    sections:    (Pick<Section, 'id' | 'name'> & { class_id: number })[];
+    houses:      { id: number; name: string; color: string | null }[];
+    departments: { id: number; name: string }[];
 }
 
 const schema = z.object({
@@ -23,6 +26,7 @@ const schema = z.object({
     last_name:       z.string().optional(),
     gender:          z.enum(['male', 'female', 'other']),
     date_of_birth:   z.string().optional(),
+    place_of_birth:  z.string().optional(),
     blood_group:     z.string().optional(),
     religion:        z.string().optional(),
     nationality:     z.string().optional(),
@@ -32,10 +36,13 @@ const schema = z.object({
     category:        z.enum(['general', 'disabled', 'quota']),
     status:          z.enum(['active', 'alumni', 'transferred', 'inactive']),
     admission_date:  z.string().optional(),
+    admission_type:  z.enum(['new', 'transfer', 'returning']).optional(),
     previous_school: z.string().optional(),
     roll_no:         z.string().optional(),
     class_id:        z.coerce.number().int().positive('Select a class'),
     section_id:      z.coerce.number().int().positive().nullable().optional(),
+    house_id:        z.coerce.number().int().positive().nullable().optional(),
+    department_id:   z.coerce.number().int().positive().nullable().optional(),
     guardian: z.object({
         name:       z.string().min(1, 'Guardian name is required'),
         relation:   z.string().min(1, 'Relation is required'),
@@ -48,7 +55,9 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function EditStudent() {
-    const { student, classes, sections } = usePage<Props>().props;
+    const { student, classes, sections, houses = [], departments = [] } = usePage<Props>().props;
+    const [photo, setPhoto] = useState<File | null>(null);
+    const [removePhoto, setRemovePhoto] = useState(false);
 
     const { register, handleSubmit, setValue, watch, setError, formState: { errors, isSubmitting } } =
         useForm<FormData>({
@@ -58,6 +67,7 @@ export default function EditStudent() {
                 last_name:       student.last_name ?? '',
                 gender:          student.gender,
                 date_of_birth:   student.date_of_birth?.slice(0, 10) ?? '',
+                place_of_birth:  student.place_of_birth ?? '',
                 blood_group:     student.blood_group ?? '',
                 religion:        student.religion ?? '',
                 nationality:     student.nationality,
@@ -67,10 +77,13 @@ export default function EditStudent() {
                 category:        student.category,
                 status:          student.status,
                 admission_date:  student.admission_date?.slice(0, 10) ?? '',
+                admission_type:  (student.admission_type ?? undefined),
                 previous_school: student.previous_school ?? '',
                 roll_no:         student.roll_no ?? '',
                 class_id:        student.class_id,
                 section_id:      student.section_id ?? undefined,
+                house_id:        (student.house_id ?? undefined),
+                department_id:   (student.department_id ?? undefined),
                 guardian: {
                     name:       student.guardian?.name ?? '',
                     relation:   student.guardian?.relation ?? 'Father',
@@ -84,11 +97,39 @@ export default function EditStudent() {
 
     const selectedClassId = watch('class_id');
     const visibleSections = sections.filter((s) => s.class_id === Number(selectedClassId));
+    const selectedClass = classes.find((c) => c.id === Number(selectedClassId));
+    const isSss = selectedClass?.school_level === 'senior_secondary';
 
     const onSubmit = (data: FormData) => {
-        router.put(`/school/students/${student.id}`, data, {
-            onError: (errs) => Object.entries(errs).forEach(([f, m]) => setError(f as keyof FormData, { message: m })),
-        });
+        const payload: Record<string, unknown> = {
+            ...data,
+            house_id: data.house_id ?? null,
+            department_id: isSss ? (data.department_id ?? null) : null,
+        };
+
+        if (photo || removePhoto) {
+            payload._method = 'PUT';
+            const fd = new FormData();
+            Object.entries(payload).forEach(([key, value]) => {
+                if (value === null || value === undefined) return;
+                if (typeof value === 'object') {
+                    Object.entries(value).forEach(([k2, v2]) => {
+                        if (v2 !== null && v2 !== undefined && v2 !== '') fd.append(`${key}[${k2}]`, String(v2));
+                    });
+                } else if (value !== '') {
+                    fd.append(key, String(value));
+                }
+            });
+            if (removePhoto && !photo) fd.append('remove_photo', '1');
+            if (photo) fd.append('photo', photo);
+            router.post(`/school/students/${student.id}`, fd, {
+                onError: (errs) => Object.entries(errs).forEach(([f, m]) => setError(f as keyof FormData, { message: m })),
+            });
+        } else {
+            router.put(`/school/students/${student.id}`, payload, {
+                onError: (errs) => Object.entries(errs).forEach(([f, m]) => setError(f as keyof FormData, { message: m })),
+            });
+        }
     };
 
     const Field = ({ name, label, placeholder, type = 'text', required = false }: {
@@ -144,7 +185,8 @@ export default function EditStudent() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <Field name="date_of_birth" label="Date of Birth" type="date" />
+                            <Field name="date_of_birth"  label="Date of Birth"  type="date" />
+                            <Field name="place_of_birth" label="Place of Birth" />
                             <Field name="blood_group" label="Blood Group" />
                             <Field name="religion"    label="Religion" />
                             <Field name="phone"       label="Phone" />
@@ -176,6 +218,25 @@ export default function EditStudent() {
                                 <Label className="text-sm font-medium">Address</Label>
                                 <Textarea rows={2} className="resize-none" {...register('address')} />
                             </div>
+                            <div className="col-span-2 space-y-1.5">
+                                <Label className="text-sm font-medium">Photo</Label>
+                                {student.photo_url && !removePhoto && !photo && (
+                                    <div className="flex items-center gap-3">
+                                        <img src={student.photo_url} alt="" className="w-12 h-12 rounded-full object-cover border" />
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setRemovePhoto(true)}>Remove</Button>
+                                    </div>
+                                )}
+                                {removePhoto && (
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => setRemovePhoto(false)}>Undo removal</Button>
+                                )}
+                                <Input
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    className="h-9 file:mr-2 file:text-xs"
+                                    onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+                                />
+                                <p className="text-xs text-slate-400">JPG/PNG/WebP, max 2MB</p>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -185,7 +246,7 @@ export default function EditStudent() {
                         <CardContent className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <Label className="text-sm font-medium">Class <span className="text-red-500">*</span></Label>
-                                <Select defaultValue={String(student.class_id)} onValueChange={(v) => { setValue('class_id', Number(v)); setValue('section_id', null); }}>
+                                <Select defaultValue={String(student.class_id)} onValueChange={(v) => { setValue('class_id', Number(v)); setValue('section_id', null); if (!classes.find((c) => c.id === Number(v))?.school_level || classes.find((c) => c.id === Number(v))?.school_level !== 'senior_secondary') setValue('department_id', undefined); }}>
                                     <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         {classes.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
@@ -202,8 +263,51 @@ export default function EditStudent() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <Field name="roll_no"         label="Roll No" />
-                            <Field name="admission_date"  label="Admission Date" type="date" />
+                            <div className="space-y-1.5">
+                                <Label className="text-sm font-medium">House</Label>
+                                <Select
+                                    key={`house-${student.house_id ?? 'none'}`}
+                                    defaultValue={student.house_id ? String(student.house_id) : '_none'}
+                                    onValueChange={(v) => setValue('house_id', v === '_none' ? undefined : Number(v))}
+                                >
+                                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="_none">None</SelectItem>
+                                        {houses.map((h) => <SelectItem key={h.id} value={String(h.id)}>{h.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-sm font-medium">Department</Label>
+                                <Select
+                                    key={`dept-${isSss}`}
+                                    defaultValue={isSss && student.department_id ? String(student.department_id) : '_none'}
+                                    onValueChange={(v) => setValue('department_id', v === '_none' ? undefined : Number(v))}
+                                    disabled={!isSss || departments.length === 0}
+                                >
+                                    <SelectTrigger className="h-9"><SelectValue placeholder={isSss ? 'Select department' : 'SSS classes only'} /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="_none">None</SelectItem>
+                                        {departments.map((d) => <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Field name="roll_no"        label="Roll No" />
+                            <Field name="admission_date" label="Admission Date" type="date" />
+                            <div className="space-y-1.5">
+                                <Label className="text-sm font-medium">Admission Type</Label>
+                                <Select
+                                    defaultValue={student.admission_type ?? 'new'}
+                                    onValueChange={(v) => setValue('admission_type', v as 'new' | 'transfer' | 'returning')}
+                                >
+                                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="new">New</SelectItem>
+                                        <SelectItem value="transfer">Transfer</SelectItem>
+                                        <SelectItem value="returning">Returning</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </CardContent>
                     </Card>
 

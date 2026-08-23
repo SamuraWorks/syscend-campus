@@ -33,6 +33,7 @@ use App\Http\Controllers\SchoolAdmin\ClassController;
 use App\Http\Controllers\SchoolAdmin\DepartmentController;
 use App\Http\Controllers\SchoolAdmin\DesignationController;
 use App\Http\Controllers\SchoolAdmin\HolidayController;
+use App\Http\Controllers\SchoolAdmin\HouseController;
 use App\Http\Controllers\SchoolAdmin\SectionController;
 use App\Http\Controllers\SchoolAdmin\ShiftController;
 use App\Http\Controllers\SchoolAdmin\StaffController;
@@ -250,6 +251,7 @@ Route::middleware('auth')->group(function () {
             Route::resource('students', StudentController::class);
             Route::post('students/bulk-import',                 [StudentController::class, 'bulkImport'])->middleware('role:super-admin|school-admin|principal')->name('students.bulk-import');
             Route::post('students/{student}/documents',        [StudentController::class, 'uploadDocument'])->name('students.documents.upload');
+            Route::get('students/documents/{document}/download', [StudentController::class, 'downloadDocument'])->name('students.documents.download');
             Route::delete('students/documents/{document}',     [StudentController::class, 'deleteDocument'])->name('students.documents.delete');
 
             // Exams — core (admin/principal only for CRUD)
@@ -596,6 +598,7 @@ Route::middleware('auth')->group(function () {
 
             Route::resource('departments',  DepartmentController::class)->except(['create', 'edit', 'show']);
             Route::post('departments/{department}/toggle-status', [DepartmentController::class, 'toggleStatus'])->name('departments.toggle-status');
+            Route::resource('houses', HouseController::class)->except(['create', 'edit', 'show']);
             Route::resource('designations', DesignationController::class)->except(['create', 'edit', 'show']);
             Route::resource('staff',        StaffController::class);
             Route::post('staff/{staff}/documents',         [StaffController::class, 'uploadDocument'])->name('staff.documents.upload');

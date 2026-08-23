@@ -9,7 +9,7 @@ import {
     PieChart, FileText, TrendingUp, Wrench, ShieldCheck, Plug,
     CreditCard, Tag, Wallet, Receipt, FileSpreadsheet, AlertTriangle, Landmark,
     Brain, Trophy, AlertCircle, Target, Eye, Sparkles, Crown, Stethoscope,
-    Fingerprint, CalendarClock, RotateCcw,
+    Fingerprint, CalendarClock, RotateCcw, Flag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/Stores/useUIStore';
@@ -207,6 +207,7 @@ const navGroups: NavGroup[] = [
             { label: 'Academic Overview', href: '/school/principal/academic', icon: BarChart3,      roles: ['principal'] },
             { label: 'Academic Structure', href: '/school-admin/academic-structure', icon: Building2, roles: ['principal'] },
             { label: 'Departments',        href: '/school/departments',              icon: Building2, roles: ['principal'] },
+            { label: 'Houses',             href: '/school/houses',                   icon: Flag,      roles: ['principal'] },
             { label: 'Teacher Assignments',    href: '/school-admin/assignments', icon: UserCog,      roles: ['principal'] },
             { label: 'Timetable',    href: '/school/principal/timetable',  icon: CalendarDays,  roles: ['principal'] },
             { label: 'Attendance',   href: '/school/principal/attendance', icon: ClipboardList, roles: ['principal'] },
@@ -284,6 +285,7 @@ const navGroups: NavGroup[] = [
         items: [
             { label: 'Academic Structure', href: '/school-admin/academic-structure', icon: Building2, roles: ['school-admin'] },
             { label: 'Departments',        href: '/school/departments',              icon: Building2, roles: ['school-admin'] },
+            { label: 'Houses',             href: '/school/houses',                   icon: Flag,      roles: ['school-admin'] },
             { label: 'Teacher Assignments',   href: '/school-admin/assignments', icon: UserCog,      roles: ['school-admin'] },
             { label: 'Student Enrollments',  href: '/school-admin/enrollments', icon: GraduationCap, roles: ['school-admin'] },
             { label: 'Timetable',            href: '/school/timetable',         icon: CalendarDays,  roles: ['school-admin'] },

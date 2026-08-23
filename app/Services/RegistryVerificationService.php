@@ -66,8 +66,11 @@ class RegistryVerificationService
     public function verifyStudent(int $schoolId, string $studentId, string $fullName, ?string $email = null): array
     {
         $student = Student::where('school_id', $schoolId)
-            ->where('student_id', $studentId)
             ->where('status', 'active')
+            ->where(function ($q) use ($studentId) {
+                $q->where('student_id', $studentId)
+                  ->orWhere('admission_no', $studentId);
+            })
             ->first();
 
         if (!$student) {

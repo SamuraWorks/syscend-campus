@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\{BelongsToSchool, HasAuditLog};
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
@@ -15,10 +16,10 @@ class Student extends Model
 
     protected $fillable = [
         'school_id', 'user_id', 'class_id', 'section_id', 'guardian_id',
-        'admission_no', 'student_id', 'roll_no', 'first_name', 'last_name',
+        'house_id', 'admission_no', 'student_id', 'roll_no', 'first_name', 'last_name',
         'gender', 'date_of_birth', 'blood_group', 'religion',
-        'nationality', 'phone', 'email', 'address', 'photo',
-        'category', 'status', 'admission_date', 'previous_school',
+        'nationality', 'place_of_birth', 'phone', 'email', 'address', 'photo',
+        'category', 'status', 'admission_date', 'admission_type', 'previous_school',
         'department_id', 'emis_number',
         'npse_index_number', 'bece_index_number', 'wassce_index_number',
         'medical_info',
@@ -30,7 +31,7 @@ class Student extends Model
         'admission_date' => 'date',
     ];
 
-    protected $appends = ['full_name', 'photo_url'];
+    protected $appends = ['full_name', 'photo_url', 'initials'];
 
     public function getFullNameAttribute(): string
     {
@@ -39,7 +40,7 @@ class Student extends Model
 
     public function getPhotoUrlAttribute(): ?string
     {
-        return $this->photo ? Storage::url($this->photo) : null;
+        return $this->photo ? Storage::disk('public')->url($this->photo) : null;
     }
 
     public function schoolClass(): BelongsTo
@@ -55,6 +56,25 @@ class Student extends Model
     public function guardian(): BelongsTo
     {
         return $this->belongsTo(Guardian::class);
+    }
+
+    public function guardians(): BelongsToMany
+    {
+        return $this->belongsToMany(Guardian::class, 'guardian_student')
+            ->withPivot('relationship', 'is_primary')
+            ->withTimestamps();
+    }
+
+    public function house(): BelongsTo
+    {
+        return $this->belongsTo(House::class);
+    }
+
+    public function getInitialsAttribute(): string
+    {
+        $parts = preg_split('/\s+/', trim($this->full_name)) ?: [];
+
+        return strtoupper(substr($parts[0] ?? '', 0, 1) . substr($parts[1] ?? substr($parts[0] ?? '', 1, 1), 0, 1));
     }
 
     public function user(): BelongsTo

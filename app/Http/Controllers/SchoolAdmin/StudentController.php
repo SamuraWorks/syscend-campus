@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\SchoolAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Department;
 use App\Models\Guardian;
+use App\Models\House;
 use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\Student;
@@ -17,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,7 +27,10 @@ class StudentController extends Controller
 {
     public function index(Request $request): Response
     {
-        $students = Student::with(['schoolClass:id,name', 'section:id,name', 'guardian:id,name,phone'])
+        $students = Student::with([
+                'schoolClass:id,name', 'section:id,name', 'guardian:id,name,phone',
+                'house:id,name,color', 'department:id,name',
+            ])
             ->when($request->search, fn ($q) => $q->where(function ($q) use ($request) {
                 $q->where('first_name', 'like', "%{$request->search}%")
                   ->orWhere('last_name',  'like', "%{$request->search}%")
@@ -67,34 +73,46 @@ class StudentController extends Controller
 
     public function create(): Response
     {
+        $schoolId = $this->getSchoolId();
+
         return Inertia::render('SchoolAdmin/Students/Create', [
-            'classes'  => SchoolClass::orderBy('numeric_name')->get(['id', 'name']),
-            'sections' => Section::orderBy('name')->get(['id', 'class_id', 'name']),
+            'classes'     => SchoolClass::orderBy('numeric_name')->get(['id', 'name', 'school_level']),
+            'sections'    => Section::orderBy('name')->get(['id', 'class_id', 'name']),
+            'houses'      => House::where('is_active', true)->orderBy('name')->get(['id', 'name', 'color']),
+            'departments' => Department::where('type', 'academic')->where('is_active', true)
+                                ->where('school_id', $schoolId)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $schoolId = $this->getSchoolId();
+
         $data = $request->validate([
             // Personal
             'first_name'      => 'required|string|max:100',
             'last_name'       => 'nullable|string|max:100',
             'gender'          => 'required|in:male,female,other',
             'date_of_birth'   => 'nullable|date',
+            'place_of_birth'  => 'nullable|string|max:150',
             'blood_group'     => 'nullable|string|max:5',
             'religion'        => 'nullable|string|max:50',
             'nationality'     => 'nullable|string|max:50',
             'phone'           => 'nullable|string|max:20',
             'email'           => 'nullable|email|max:150',
             'address'         => 'nullable|string|max:500',
+            'photo'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'category'        => 'required|in:general,disabled,quota',
             'status'          => 'required|in:active,alumni,transferred,inactive',
             'admission_date'  => 'nullable|date',
+            'admission_type'  => ['nullable', Rule::in(['new', 'transfer', 'returning'])],
             'previous_school' => 'nullable|string|max:200',
             'roll_no'         => 'nullable|string|max:50',
-            // Class
-            'class_id'        => 'required|exists:classes,id',
+            // Placement
+            'class_id'        => ['required', Rule::exists('classes', 'id')->whereNull('deleted_at')],
             'section_id'      => 'nullable|exists:sections,id',
+            'house_id'        => ['nullable', Rule::exists('houses', 'id')->where('school_id', $schoolId)],
+            'department_id'   => ['nullable', Rule::exists('departments', 'id')->where('school_id', $schoolId)],
             // Guardian
             'guardian.name'       => 'required|string|max:150',
             'guardian.relation'   => 'required|string|max:50',
@@ -103,6 +121,19 @@ class StudentController extends Controller
             'guardian.occupation' => 'nullable|string|max:100',
             'guardian.address'    => 'nullable|string|max:500',
         ]);
+
+        // Departments are only valid for senior secondary (SSS) classes
+        if (!empty($data['department_id'])) {
+            $class = SchoolClass::find($data['class_id']);
+            if (!$class || $class->school_level !== 'senior_secondary') {
+                return back()->withInput()
+                    ->with('error', 'Departments can only be assigned to Senior Secondary (SSS) students.');
+            }
+        }
+
+        if ($request->hasFile('photo')) {
+            $data['photo'] = $request->file('photo')->store("students/{$schoolId}/photos", 'public');
+        }
 
         try {
             $schoolId = $this->getSchoolId();
@@ -119,6 +150,10 @@ class StudentController extends Controller
                     collect($data)->except('guardian')->toArray(),
                     ['guardian_id' => $guardian->id, 'school_id' => $schoolId],
                 ));
+
+                $student->guardians()->syncWithoutDetaching([
+                    $guardian->id => ['relationship' => $data['guardian']['relation'], 'is_primary' => true],
+                ]);
 
                 if (!empty($data['guardian']['email']) && !$guardian->user_id) {
                     $existingUser = User::where('school_id', $schoolId)->where('email', $data['guardian']['email'])->first();
@@ -188,7 +223,10 @@ class StudentController extends Controller
 
     public function show(Student $student): Response
     {
-        $student->load(['schoolClass', 'section', 'guardian', 'documents']);
+        $student->load([
+            'schoolClass:id,name,school_level', 'section', 'guardian', 'documents',
+            'house.houseMaster:id,first_name,last_name', 'department:id,name', 'guardians',
+        ]);
 
         return Inertia::render('SchoolAdmin/Students/Show', [
             'student' => $student,
@@ -200,9 +238,12 @@ class StudentController extends Controller
         $student->load('guardian');
 
         return Inertia::render('SchoolAdmin/Students/Edit', [
-            'student'  => $student,
-            'classes'  => SchoolClass::orderBy('numeric_name')->get(['id', 'name']),
-            'sections' => Section::orderBy('name')->get(['id', 'class_id', 'name']),
+            'student'     => $student,
+            'classes'     => SchoolClass::orderBy('numeric_name')->get(['id', 'name', 'school_level']),
+            'sections'    => Section::orderBy('name')->get(['id', 'class_id', 'name']),
+            'houses'      => House::where('is_active', true)->orderBy('name')->get(['id', 'name', 'color']),
+            'departments' => Department::where('type', 'academic')->where('is_active', true)
+                                ->where('school_id', $this->getSchoolId())->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -213,19 +254,24 @@ class StudentController extends Controller
             'last_name'       => 'nullable|string|max:100',
             'gender'          => 'required|in:male,female,other',
             'date_of_birth'   => 'nullable|date',
+            'place_of_birth'  => 'nullable|string|max:150',
             'blood_group'     => 'nullable|string|max:5',
             'religion'        => 'nullable|string|max:50',
             'nationality'     => 'nullable|string|max:50',
             'phone'           => 'nullable|string|max:20',
             'email'           => 'nullable|email|max:150',
             'address'         => 'nullable|string|max:500',
+            'photo'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'category'        => 'required|in:general,disabled,quota',
             'status'          => 'required|in:active,alumni,transferred,inactive',
             'admission_date'  => 'nullable|date',
+            'admission_type'  => ['nullable', Rule::in(['new', 'transfer', 'returning'])],
             'previous_school' => 'nullable|string|max:200',
             'roll_no'         => 'nullable|string|max:50',
-            'class_id'        => 'required|exists:classes,id',
+            'class_id'        => ['required', Rule::exists('classes', 'id')->whereNull('deleted_at')],
             'section_id'      => 'nullable|exists:sections,id',
+            'house_id'        => ['nullable', Rule::exists('houses', 'id')->where('school_id', $student->school_id)],
+            'department_id'   => ['nullable', Rule::exists('departments', 'id')->where('school_id', $student->school_id)],
             'guardian.name'       => 'required|string|max:150',
             'guardian.relation'   => 'required|string|max:50',
             'guardian.phone'      => 'nullable|string|max:20',
@@ -234,12 +280,33 @@ class StudentController extends Controller
             'guardian.address'    => 'nullable|string|max:500',
         ]);
 
+        if (!empty($data['department_id'])) {
+            $class = SchoolClass::find($data['class_id']);
+            if (!$class || $class->school_level !== 'senior_secondary') {
+                return back()->withInput()
+                    ->with('error', 'Departments can only be assigned to Senior Secondary (SSS) students.');
+            }
+        }
+
+        if ($request->hasFile('photo')) {
+            if ($student->photo && Storage::disk('public')->exists($student->photo)) {
+                Storage::disk('public')->delete($student->photo);
+            }
+            $data['photo'] = $request->file('photo')->store("students/{$student->school_id}/photos", 'public');
+        } elseif ($request->boolean('remove_photo')) {
+            if ($student->photo && Storage::disk('public')->exists($student->photo)) {
+                Storage::disk('public')->delete($student->photo);
+            }
+            $data['photo'] = null;
+        }
+
         try {
             DB::transaction(function () use ($data, $student) {
                 $student->update(collect($data)->except('guardian')->toArray());
 
-                if ($student->guardian) {
-                    $student->guardian->update($data['guardian']);
+                $guardian = $student->guardian;
+                if ($guardian) {
+                    $guardian->update($data['guardian']);
                 } else {
                     $guardian = Guardian::create(array_merge(
                         $data['guardian'],
@@ -247,6 +314,10 @@ class StudentController extends Controller
                     ));
                     $student->update(['guardian_id' => $guardian->id]);
                 }
+
+                $student->guardians()->syncWithoutDetaching([
+                    $guardian->id => ['relationship' => $data['guardian']['relation'], 'is_primary' => true],
+                ]);
             });
 
             return redirect()->route('school.students.show', $student)->with('success', 'Student updated.');
@@ -286,10 +357,26 @@ class StudentController extends Controller
         return back()->with('success', 'Document uploaded.');
     }
 
+    public function downloadDocument(StudentDocument $document)
+    {
+        abort_unless($document->school_id === (int) $this->getSchoolId(), 404);
+
+        return Storage::disk('private')->download($document->file_path, $this->documentFilename($document));
+    }
+
+    private function documentFilename(StudentDocument $document): string
+    {
+        $ext = pathinfo($document->file_path, PATHINFO_EXTENSION);
+
+        return Str::slug($document->title) . ($ext ? ".{$ext}" : '');
+    }
+
     public function deleteDocument(StudentDocument $document): RedirectResponse
     {
-        Storage::disk('private')->delete($document->file_path);
-        $document->delete();
+        if (!$document->school_id || (int) $document->school_id === (int) $this->getSchoolId()) {
+            Storage::disk('private')->delete($document->file_path);
+            $document->delete();
+        }
 
         return back()->with('success', 'Document deleted.');
     }
@@ -342,6 +429,24 @@ class StudentController extends Controller
                         if ($found) $targetClass = $found;
                     }
 
+                    // Department (SSS only)
+                    $departmentId = null;
+                    $deptName = trim($data['department'] ?? $data['department_name'] ?? '');
+                    if ($deptName !== '') {
+                        if ($targetClass->school_level !== 'senior_secondary') {
+                            $errors[$idx + 2] = "Row has department '{$deptName}' but class is not Senior Secondary";
+                            $skipped++;
+                            continue;
+                        }
+                        $foundDept = Department::where('school_id', $schoolId)->where('name', 'like', "%{$deptName}%")->first();
+                        if (!$foundDept) {
+                            $errors[$idx + 2] = "Department '{$deptName}' not found";
+                            $skipped++;
+                            continue;
+                        }
+                        $departmentId = $foundDept->id;
+                    }
+
                     // Find section
                     $sectionId = $request->section_id;
                     $sectionName = trim($data['section'] ?? $data['section_name'] ?? '');
@@ -391,6 +496,7 @@ class StudentController extends Controller
                         'religion'        => trim($data['religion'] ?? ''),
                         'nationality'     => trim($data['nationality'] ?? 'Sierra Leonean'),
                         'previous_school' => trim($data['previous_school'] ?? ''),
+                        'department_id'   => $departmentId,
                     ]);
 
                     $imported++;
@@ -406,7 +512,14 @@ class StudentController extends Controller
 
             $message = "{$imported} students imported successfully.";
             if ($skipped > 0) $message .= " {$skipped} rows skipped.";
-            if (!empty($errors)) $message .= " Errors: " . json_encode(array_slice($errors, 0, 5));
+            if (!empty($errors)) {
+                $summary = implode(' | ', array_map(
+                    fn ($row, $err) => "Row {$row}: {$err}",
+                    array_slice(array_keys($errors), 0, 5, true),
+                    array_slice($errors, 0, 5, true),
+                ));
+                $message .= ' Errors: ' . $summary . (count($errors) > 5 ? ' (+' . (count($errors) - 5) . ' more)' : '');
+            }
 
             return back()->with('success', $message);
         } catch (\Throwable $e) {
