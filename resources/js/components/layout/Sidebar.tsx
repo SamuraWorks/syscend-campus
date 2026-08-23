@@ -206,7 +206,6 @@ const navGroups: NavGroup[] = [
         items: [
             { label: 'Academic Overview', href: '/school/principal/academic', icon: BarChart3,      roles: ['principal'] },
             { label: 'Academic Structure', href: '/school-admin/academic-structure', icon: Building2, roles: ['principal'] },
-            { label: 'Curriculum',            href: '/school-admin/curriculum',  icon: BookOpen,      roles: ['principal'] },
             { label: 'Teacher Assignments',    href: '/school-admin/assignments', icon: UserCog,      roles: ['principal'] },
             { label: 'Timetable',    href: '/school/principal/timetable',  icon: CalendarDays,  roles: ['principal'] },
             { label: 'Attendance',   href: '/school/principal/attendance', icon: ClipboardList, roles: ['principal'] },
@@ -283,7 +282,6 @@ const navGroups: NavGroup[] = [
         title: 'Academics',
         items: [
             { label: 'Academic Structure', href: '/school-admin/academic-structure', icon: Building2, roles: ['school-admin'] },
-            { label: 'Curriculum',           href: '/school-admin/curriculum',  icon: BookOpen,      roles: ['school-admin'] },
             { label: 'Teacher Assignments',   href: '/school-admin/assignments', icon: UserCog,      roles: ['school-admin'] },
             { label: 'Student Enrollments',  href: '/school-admin/enrollments', icon: GraduationCap, roles: ['school-admin'] },
             { label: 'Timetable',            href: '/school/timetable',         icon: CalendarDays,  roles: ['school-admin'] },

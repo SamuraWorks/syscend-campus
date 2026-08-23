@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Plus, Pencil, Trash2, GraduationCap, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, GraduationCap, Search, Filter, ChevronLeft, ChevronRight, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -51,6 +51,7 @@ export default function ClassesIndex() {
     const [search, setSearch] = useState(new URLSearchParams(window.location.search).get('search') ?? '');
     const [levelFilter, setLevelFilter] = useState(new URLSearchParams(window.location.search).get('level') ?? '');
     const [statusFilter, setStatusFilter] = useState(new URLSearchParams(window.location.search).get('status') ?? '');
+    const [deleteDialog, setDeleteDialog] = useState<SchoolClass | null>(null);
 
     const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } =
         useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { is_active: true } });
@@ -93,7 +94,19 @@ export default function ClassesIndex() {
     };
 
     const destroy = (c: SchoolClass) => {
-        if (confirm(`Delete "${c.name}"? This cannot be undone.`)) router.delete(`/school/classes/${c.id}`);
+        setDeleteDialog(c);
+    };
+
+    const confirmDelete = () => {
+        if (!deleteDialog) return;
+        router.delete(`/school/classes/${deleteDialog.id}`, {
+            onError: () => setDeleteDialog(null),
+            onSuccess: () => setDeleteDialog(null),
+        });
+    };
+
+    const toggleStatus = (c: SchoolClass) => {
+        router.post(`/school/classes/${c.id}/toggle-status`);
     };
 
     const totalStudents = useMemo(() => classes.data.reduce((sum, c) => sum + (c.students_count ?? 0), 0), [classes]);
@@ -196,6 +209,9 @@ export default function ClassesIndex() {
                                         <div className="flex items-center gap-1">
                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)}>
                                                 <Pencil className="w-3.5 h-3.5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStatus(c)}>
+                                                {c.is_active ? <ToggleRight className="w-4 h-4 text-emerald-500" /> : <ToggleLeft className="w-4 h-4 text-slate-400" />}
                                             </Button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => destroy(c)}>
                                                 <Trash2 className="w-3.5 h-3.5" />
@@ -300,6 +316,27 @@ export default function ClassesIndex() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={deleteDialog !== null} onOpenChange={(open) => { if (!open) setDeleteDialog(null); }}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Delete Class</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                        Are you sure you want to delete <strong>{deleteDialog?.name}</strong>?
+                        {(deleteDialog?.students_count ?? 0) > 0 || (deleteDialog?.sections_count ?? 0) > 0
+                            ? ' This class has dependencies and cannot be deleted. Try deactivating it instead.'
+                            : ' This action cannot be undone.'}
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" size="sm" onClick={() => setDeleteDialog(null)}>Cancel</Button>
+                        <Button size="sm" variant="destructive" onClick={confirmDelete}
+                            disabled={(deleteDialog?.students_count ?? 0) > 0 || (deleteDialog?.sections_count ?? 0) > 0}>
+                            Delete
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </AppLayout>

@@ -31,45 +31,52 @@ class ParentRegistrationController extends Controller
         if (RateLimiter::tooManyAttempts($this->throttleKey . ':' . $request->ip(), 5)) {
             $seconds = RateLimiter::availableIn($this->throttleKey . ':' . $request->ip());
             return back()->withErrors([
-                'guardian_id' => 'Too many verification attempts. Please try again in ' . $seconds . ' seconds.',
+                'email' => 'Too many verification attempts. Please try again in ' . $seconds . ' seconds.',
             ]);
         }
 
         $school = School::where('slug', $schoolSlug)->firstOrFail();
 
         $data = $request->validate([
-            'guardian_id' => 'required|string|max:50',
-            'full_name'   => 'required|string|max:255',
-            'email'       => 'nullable|email|max:255',
+            'full_name' => 'required|string|max:255',
+            'email'     => 'required|email|max:255',
         ]);
 
         RateLimiter::hit($this->throttleKey . ':' . $request->ip(), 60);
 
         $service = new RegistryVerificationService();
-        $result = $service->verifyParent($school->id, $data['guardian_id'], $data['full_name'], $data['email'] ?? null);
+        $result = $service->verifyParent($school->id, $data['full_name'], $data['email']);
 
         if (!$result['success']) {
             RateLimiter::hit($this->throttleKey . ':' . $request->ip(), 60);
-            $errors = ['guardian_id' => $result['message']];
-            if (isset($result['requires_email'])) {
-                $errors['email'] = $result['message'];
-                unset($errors['guardian_id']);
-            }
-            return back()->withErrors($errors)->onlyInput('guardian_id', 'full_name');
+            return back()
+                ->withErrors(['full_name' => $result['message']])
+                ->onlyInput('full_name', 'email');
+        }
+
+        if (!empty($result['already_registered'])) {
+            session()->forget('registration');
+            return back()->with('already_registered', [
+                'guardian_name' => $result['guardian']->name,
+                'children'      => $result['children'] ?? [],
+                'message'       => $result['message'],
+            ]);
         }
 
         $verificationToken = bin2hex(random_bytes(32));
         session([
             "registration.verify_{$verificationToken}" => [
-                'guardian_id' => $result['guardian']->id,
-                'school_id'   => $school->id,
-                'expires_at'  => now()->addMinutes(15)->timestamp,
+                'email'      => $data['email'],
+                'full_name'  => $data['full_name'],
+                'school_id'  => $school->id,
+                'expires_at' => now()->addMinutes(15)->timestamp,
             ],
             'registration.verify_token' => $verificationToken,
         ]);
 
         return back()->with('verified', [
             'guardian_name' => $result['guardian']->name,
+            'guardian_email' => $data['email'],
             'children'      => $result['children'] ?? [],
             'message'       => $result['message'],
             'verify_token'  => $verificationToken,
@@ -89,8 +96,19 @@ class ParentRegistrationController extends Controller
         }
 
         $guardian = Guardian::where('school_id', $sessionData['school_id'])
-            ->where('id', $sessionData['guardian_id'])
+            ->where('email', $sessionData['email'])
             ->first();
+
+        if (!$guardian) {
+            // Guardian was matched by name only during verification (no email on file)
+            $normalized = RegistryVerificationService::normalizeName($sessionData['full_name']);
+            $guardian = Guardian::where('school_id', $sessionData['school_id'])
+                ->where(function ($query) {
+                    $query->whereNull('email')->orWhere('email', '');
+                })
+                ->get()
+                ->first(fn (Guardian $candidate) => $normalized !== '' && RegistryVerificationService::normalizeName($candidate->name) === $normalized);
+        }
 
         if (!$guardian || $guardian->claimed_by !== null || $guardian->user_id !== null) {
             session()->forget('registration');
@@ -98,35 +116,52 @@ class ParentRegistrationController extends Controller
         }
 
         $data = $request->validate([
-            'email'                => ['required', 'email', 'unique:users,email'],
-            'password'             => ['required', 'confirmed', Password::min(8)],
+            'password'              => ['required', 'confirmed', Password::min(8)],
             'password_confirmation' => 'required',
         ]);
 
-        $user = User::create([
-            'school_id'             => $school->id,
-            'name'                  => $guardian->name,
-            'email'                 => $data['email'],
-            'phone'                 => $guardian->phone,
-            'password'              => Hash::make($data['password']),
-            'is_temporary_password' => false,
-            'must_change_password'  => false,
-            'status'                => 'active',
-            'registration_status'   => 'registered',
-        ]);
+        $email = $sessionData['email'];
+        $existingUser = User::where('email', $email)->first();
+        $createdUser = false;
 
-        $user->assignRole('parent');
+        if ($existingUser) {
+            // Multi-school parent: account already exists, just link this guardian
+            $user = $existingUser;
+            if (!$user->hasRole('parent')) {
+                $user->assignRole('parent');
+            }
+        } else {
+            $user = User::create([
+                'school_id'             => $school->id,
+                'name'                  => $guardian->name,
+                'email'                 => $email,
+                'phone'                 => $guardian->phone,
+                'password'              => Hash::make($data['password']),
+                'is_temporary_password' => false,
+                'must_change_password'  => false,
+                'status'                => 'active',
+                'registration_status'   => 'registered',
+            ]);
+            $createdUser = true;
+            $user->assignRole('parent');
+        }
 
         $service = new RegistryVerificationService();
         $claimResult = $service->claimRecordWithLock($guardian, $user->id, Guardian::class);
 
         if (!$claimResult['success']) {
-            $user->delete();
+            if ($createdUser) {
+                $user->delete();
+            }
             session()->forget('registration');
             return back()->withErrors(['message' => $claimResult['message']]);
         }
 
         $guardian->update(['user_id' => $user->id]);
+
+        Guardian::where('email', $email)
+            ->whereNull('user_id')
+            ->update(['user_id' => $user->id]);
 
         activity()
             ->causedBy($user)

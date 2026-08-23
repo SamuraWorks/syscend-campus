@@ -43,8 +43,15 @@ class DepartmentController extends Controller
 
         $departments = $query->orderBy('name')->get();
 
+        $academicDepts = Department::where('school_id', $schoolId)
+            ->academic()
+            ->active()
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+
         return Inertia::render('SchoolAdmin/Departments/Index', [
-            'departments' => $departments,
+            'departments'   => $departments,
+            'academicDepts' => $academicDepts,
         ]);
     }
 

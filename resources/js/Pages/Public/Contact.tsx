@@ -1,10 +1,10 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import SiteHeader from '@/components/landing/SiteHeader';
 import SiteFooter from '@/components/landing/SiteFooter';
-import { Mail, Phone, MapPin, CheckCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function Contact() {
-    const { flash } = usePage<{ flash?: { success?: string } }>().props;
+    const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
     const form = useForm({
         name: '',
         email: '',
@@ -15,7 +15,11 @@ export default function Contact() {
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         form.post('/contact', {
+            preserveScroll: true,
             onSuccess: () => form.reset(),
+            onError: (errors) => {
+                console.error('Contact form errors:', errors);
+            },
         });
     }
 
@@ -60,6 +64,16 @@ export default function Contact() {
                         {flash?.success && (
                             <div className="mt-4 flex items-center gap-2 text-sm text-green-700 bg-green-50 dark:bg-green-950/30 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg px-4 py-2">
                                 <CheckCircle className="w-4 h-4 shrink-0" /> {flash.success}
+                            </div>
+                        )}
+                        {flash?.error && (
+                            <div className="mt-4 flex items-center gap-2 text-sm text-red-700 bg-red-50 dark:bg-red-950/30 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg px-4 py-2">
+                                <AlertCircle className="w-4 h-4 shrink-0" /> {flash.error}
+                            </div>
+                        )}
+                        {Object.keys(form.errors).length > 0 && (
+                            <div className="mt-4 flex items-center gap-2 text-sm text-red-700 bg-red-50 dark:bg-red-950/30 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg px-4 py-2">
+                                <AlertCircle className="w-4 h-4 shrink-0" /> Please fix the errors below.
                             </div>
                         )}
 

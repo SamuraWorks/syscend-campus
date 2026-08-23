@@ -13,13 +13,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Users, Shield, CheckCircle2, ChevronLeft } from 'lucide-react';
 
 const verifySchema = z.object({
-    guardian_id: z.string().min(1, 'Parent/Guardian ID is required'),
     full_name: z.string().min(2, 'Full name is required'),
-    email: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
+    email: z.string().min(1, 'Email address is required').email('Please enter a valid email address'),
 });
 
 const completeSchema = z.object({
-    email: z.string().email('Please enter a valid email address'),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     password_confirmation: z.string(),
 }).refine((data) => data.password === data.password_confirmation, {
@@ -32,24 +30,24 @@ type CompleteFormData = z.infer<typeof completeSchema>;
 
 interface School { id: number; name: string; slug: string; code: string | null; }
 interface Child { name: string; class: string; stream: string; }
-interface VerifiedData { guardian_name: string; children: Child[]; message: string; verify_token: string; }
-interface ParentRegistrationProps { school: School; verified?: VerifiedData; flash?: { success?: string; error?: string }; }
+interface VerifiedData { guardian_name: string; guardian_email?: string; children: Child[]; message: string; verify_token: string; }
+interface AlreadyRegisteredData { guardian_name: string; children: Child[]; message: string; }
+interface ParentRegistrationProps { school: School; verified?: VerifiedData; already_registered?: AlreadyRegisteredData; flash?: { success?: string; error?: string }; }
 
-type RegState = 'initial' | 'verifying' | 'verified' | 'failed' | 'creating';
+type RegState = 'initial' | 'verifying' | 'verified' | 'already_registered' | 'failed' | 'creating';
 
-export default function ParentRegistration({ school, verified }: ParentRegistrationProps) {
+export default function ParentRegistration({ school, verified, already_registered }: ParentRegistrationProps) {
     const { flash } = usePage<ParentRegistrationProps>().props;
-    const [state, setState] = useState<RegState>(verified ? 'verified' : 'initial');
-    const [requiresEmail, setRequiresEmail] = useState(false);
+    const [state, setState] = useState<RegState>(verified ? 'verified' : already_registered ? 'already_registered' : 'initial');
 
     const verifyForm = useForm<VerifyFormData>({
         resolver: zodResolver(verifySchema),
-        defaultValues: { guardian_id: '', full_name: '', email: '' },
+        defaultValues: { full_name: '', email: '' },
     });
 
     const completeForm = useForm<CompleteFormData>({
         resolver: zodResolver(completeSchema),
-        defaultValues: { email: '', password: '', password_confirmation: '' },
+        defaultValues: { password: '', password_confirmation: '' },
     });
 
     useEffect(() => {
@@ -59,27 +57,31 @@ export default function ParentRegistration({ school, verified }: ParentRegistrat
 
     useEffect(() => {
         if (verified) { setState('verified'); toast.success(verified.message); }
-    }, [verified]);
+        if (already_registered) { setState('already_registered'); toast.info(already_registered.message); }
+    }, [verified, already_registered]);
 
     const onVerify = (data: VerifyFormData) => {
         setState('verifying');
-        setRequiresEmail(false);
         router.post(`/${school.slug}/register/parent/verify`, data, {
             onError: (errs) => {
                 setState('failed');
-                if (errs.guardian_id) verifyForm.setError('guardian_id', { message: errs.guardian_id });
+                if (errs.email) verifyForm.setError('email', { message: errs.email });
                 if (errs.full_name) verifyForm.setError('full_name', { message: errs.full_name });
-                if (errs.email) { verifyForm.setError('email', { message: errs.email }); setRequiresEmail(true); }
+                if (errs.message) toast.error(errs.message);
             },
         });
     };
 
     const onComplete = (data: CompleteFormData) => {
         setState('creating');
-        router.post(`/${school.slug}/register/parent/complete`, data, {
+        router.post(`/${school.slug}/register/parent/complete`, {
+            ...data,
+            email: verified?.guardian_email ?? '',
+        }, {
             onError: (errs) => {
                 setState('verified');
                 Object.entries(errs).forEach(([field, message]) => {
+                    if (field === 'message') { toast.error(message as string); return; }
                     completeForm.setError(field as keyof CompleteFormData, { message });
                 });
             },
@@ -105,11 +107,37 @@ export default function ParentRegistration({ school, verified }: ParentRegistrat
                         <CardDescription className="text-muted-foreground">
                             {state === 'verified' || state === 'creating'
                                 ? 'Your school record has been found. Create your account password below.'
-                                : 'Enter your Parent/Guardian ID and full name to verify your school record.'}
+                                : state === 'already_registered'
+                                    ? 'This record already has an account.'
+                                    : 'Enter your email address and full name to find your school record.'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {state === 'verified' || state === 'creating' ? (
+                        {state === 'already_registered' && already_registered ? (
+                            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                                <div className="flex items-start gap-2">
+                                    <CheckCircle2 className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Account Already Exists</p>
+                                        <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">{already_registered.message}</p>
+                                        <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">{already_registered.guardian_name}</p>
+                                        {already_registered.children.length > 0 && (
+                                            <div className="mt-2">
+                                                <p className="text-xs text-amber-600 dark:text-amber-500 font-medium">Your Children:</p>
+                                                {already_registered.children.map((child, i) => (
+                                                    <p key={i} className="text-sm text-amber-700 dark:text-amber-400">
+                                                        {child.name} — {child.class}{child.stream ? ` (${child.stream})` : ''}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <Button asChild variant="outline" className="w-full mt-4">
+                                            <Link href="/login">Sign in to your account</Link>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : state === 'verified' || state === 'creating' ? (
                             <>
                                 {verified && (
                                     <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
@@ -118,6 +146,9 @@ export default function ParentRegistration({ school, verified }: ParentRegistrat
                                             <div>
                                                 <p className="text-sm font-medium text-green-800 dark:text-green-300">Registry Match Found</p>
                                                 <p className="text-sm text-green-700 dark:text-green-400 mt-1">{verified.guardian_name}</p>
+                                                {verified.guardian_email && (
+                                                    <p className="text-xs text-green-600 dark:text-green-500">{verified.guardian_email}</p>
+                                                )}
                                                 {verified.children.length > 0 && (
                                                     <div className="mt-2">
                                                         <p className="text-xs text-green-600 dark:text-green-500 font-medium">Your Children:</p>
@@ -133,11 +164,6 @@ export default function ParentRegistration({ school, verified }: ParentRegistrat
                                     </div>
                                 )}
                                 <form onSubmit={completeForm.handleSubmit(onComplete)} className="space-y-4" noValidate>
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
-                                        <Input id="email" type="email" placeholder="you@example.com" className="h-10" {...completeForm.register('email')} />
-                                        {completeForm.formState.errors.email && <p className="text-xs text-red-500">{completeForm.formState.errors.email.message}</p>}
-                                    </div>
                                     <div className="space-y-1.5">
                                         <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                                         <Input id="password" type="password" placeholder="Minimum 8 characters" className="h-10" {...completeForm.register('password')} />
@@ -156,21 +182,18 @@ export default function ParentRegistration({ school, verified }: ParentRegistrat
                         ) : (
                             <form onSubmit={verifyForm.handleSubmit(onVerify)} className="space-y-4" noValidate>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="guardian_id" className="text-sm font-medium">Parent/Guardian ID</Label>
-                                    <Input id="guardian_id" placeholder="Enter your parent ID" className="h-10" {...verifyForm.register('guardian_id')} />
-                                    {verifyForm.formState.errors.guardian_id && <p className="text-xs text-red-500">{verifyForm.formState.errors.guardian_id.message}</p>}
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="full_name" className="text-sm font-medium">Full Name</Label>
-                                    <Input id="full_name" placeholder="As registered in your school" className="h-10" {...verifyForm.register('full_name')} />
-                                    {verifyForm.formState.errors.full_name && <p className="text-xs text-red-500">{verifyForm.formState.errors.full_name.message}</p>}
-                                </div>
-                                <div className="space-y-1.5">
                                     <Label htmlFor="email" className="text-sm font-medium">
-                                        Email Address {requiresEmail ? <span className="text-red-500">*</span> : <span className="text-muted-foreground font-normal">(if on file)</span>}
+                                        Email Address <span className="text-red-500">*</span>
                                     </Label>
                                     <Input id="email" type="email" placeholder="you@example.com" className="h-10" {...verifyForm.register('email')} />
                                     {verifyForm.formState.errors.email && <p className="text-xs text-red-500">{verifyForm.formState.errors.email.message}</p>}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="full_name" className="text-sm font-medium">
+                                        Full Name <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input id="full_name" placeholder="As registered in your school" className="h-10" {...verifyForm.register('full_name')} />
+                                    {verifyForm.formState.errors.full_name && <p className="text-xs text-red-500">{verifyForm.formState.errors.full_name.message}</p>}
                                 </div>
                                 <Button type="submit" className="w-full h-10" disabled={state === 'verifying'}>
                                     {state === 'verifying' ? 'Verifying…' : 'Verify My Details'}

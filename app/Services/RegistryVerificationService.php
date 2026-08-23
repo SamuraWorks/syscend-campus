@@ -109,48 +109,45 @@ class RegistryVerificationService
     }
 
     /**
-     * Verify a parent/guardian by guardian ID and full name within a specific school.
+     * Verify a parent/guardian by full name and email within a specific school.
+     * Email is the primary identifier; name matching is used as a fallback for
+     * guardians with no email on file.
      *
-     * @param int       $schoolId
-     * @param string    $guardianId  The guardian's record ID
-     * @param string    $fullName    Full name for verification
-     * @param string|null $email     Optional email for additional verification
-     * @return array{success: bool, guardian?: Guardian, message: string, children?: array}
+     * @param int         $schoolId
+     * @param string      $fullName  Full name for verification
+     * @param string|null $email     Required email identifier
+     * @return array{success: bool, guardian?: Guardian, message: string, children?: array, already_registered?: bool}
      */
-    public function verifyParent(int $schoolId, string $guardianId, string $fullName, ?string $email = null): array
+    public function verifyParent(int $schoolId, string $fullName, ?string $email = null): array
     {
+        if (empty($email)) {
+            return ['success' => false, 'message' => 'Email address is required for parent registration.'];
+        }
+
         $guardian = Guardian::where('school_id', $schoolId)
-            ->where('id', $guardianId)
+            ->where('email', $email)
             ->first();
 
         if (!$guardian) {
-            Log::info('Parent verification failed: no record', ['school_id' => $schoolId, 'guardian_id' => $guardianId]);
+            // Fall back to name matching for guardians with no email on file
+            $normalized = self::normalizeName($fullName);
+
+            $guardian = Guardian::where('school_id', $schoolId)
+                ->where(function ($query) {
+                    $query->whereNull('email')->orWhere('email', '');
+                })
+                ->get()
+                ->first(fn (Guardian $candidate) => $normalized !== '' && self::normalizeName($candidate->name) === $normalized);
+        }
+
+        if (!$guardian) {
+            Log::info('Parent verification failed: no record', ['school_id' => $schoolId, 'email' => $email]);
             return ['success' => false, 'message' => self::GENERIC_FAILURE];
         }
 
         if (!self::namesMatch($fullName, $guardian->name)) {
-            Log::info('Parent verification failed: name mismatch', ['school_id' => $schoolId, 'guardian_id' => $guardianId]);
+            Log::info('Parent verification failed: name mismatch', ['school_id' => $schoolId, 'email' => $email]);
             return ['success' => false, 'message' => self::GENERIC_FAILURE];
-        }
-
-        // Email matching if both present
-        if (!empty($guardian->email) && !empty($email)) {
-            if (!self::emailsMatch($guardian->email, $email)) {
-                Log::info('Parent verification failed: email mismatch', ['school_id' => $schoolId, 'guardian_id' => $guardianId]);
-                return ['success' => false, 'message' => self::GENERIC_FAILURE];
-            }
-        }
-
-        if (!empty($guardian->email) && empty($email)) {
-            return [
-                'success' => false,
-                'message' => 'Your school record has an email on file. Please provide it to verify your identity.',
-                'requires_email' => true,
-            ];
-        }
-
-        if ($guardian->claimed_by !== null || $guardian->user_id !== null) {
-            return ['success' => false, 'message' => 'This parent record has already been registered. Please contact your school administrator if you need assistance.'];
         }
 
         $children = $guardian->students()
@@ -161,6 +158,16 @@ class RegistryVerificationService
                 'class'  => $s->schoolClass->name ?? '',
                 'stream' => $s->section->name ?? '',
             ]);
+
+        if ($guardian->claimed_by !== null || $guardian->user_id !== null) {
+            return [
+                'success'            => true,
+                'guardian'           => $guardian,
+                'children'           => $children,
+                'already_registered' => true,
+                'message'            => 'This parent record already has an account. Please sign in instead.',
+            ];
+        }
 
         return [
             'success'  => true,

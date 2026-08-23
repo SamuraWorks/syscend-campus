@@ -788,6 +788,25 @@ Route::middleware('auth')->group(function () {
 
             $departmentsAcademic = $departments->where('type', 'academic')->values();
 
+            $academicYears = \App\Models\AcademicYear::query()
+                ->where('school_id', $schoolId)
+                ->orderByDesc('is_current')
+                ->orderByDesc('start_date')
+                ->get();
+
+            $currentYear = \App\Models\AcademicYear::query()
+                ->where('school_id', $schoolId)
+                ->where('is_current', true)
+                ->first();
+
+            $offerings = \App\Models\SubjectOffering::query()
+                ->where('school_id', $schoolId)
+                ->with(['schoolClass', 'section', 'department'])
+                ->withCount('enrollments')
+                ->orderBy('class_id')
+                ->orderBy('sort_order')
+                ->get();
+
             return inertia('SchoolAdmin/AcademicStructure/Index', [
                 'classes'       => $classes,
                 'departments'   => $departments,
@@ -795,6 +814,9 @@ Route::middleware('auth')->group(function () {
                 'staff'         => $staff,
                 'enabledLevels' => $enabledLevels,
                 'academicDepts' => $departmentsAcademic,
+                'academicYears' => $academicYears,
+                'currentYear'   => $currentYear,
+                'offerings'     => $offerings,
             ]);
         })->name('academic-structure');
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Building2, GraduationCap, BookOpen, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Search, Filter } from 'lucide-react';
+import { Building2, GraduationCap, BookOpen, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Search, Filter, X, AlertCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,9 +15,26 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import type { PageProps, SchoolClass, Department, Subject, PaginatedResponse } from '@/Types';
+import type { PageProps, SchoolClass, Department, Subject, AcademicYear, PaginatedResponse } from '@/Types';
 
 interface Staff { id: number; name: string; }
+
+interface SubjectOffering {
+    id: number;
+    school_id: number;
+    class_id: number;
+    academic_year_id: number;
+    section_id: number | null;
+    department_id: number | null;
+    subject_name: string;
+    subject_code: string;
+    subject_type: 'compulsory' | 'elective' | 'selective';
+    is_active: boolean;
+    enrollments_count: number;
+    school_class?: { id: number; name: string } | null;
+    section?: { id: number; name: string } | null;
+    department?: { id: number; name: string } | null;
+}
 
 interface Props extends PageProps {
     classes: (SchoolClass & { students_count: number; sections_count: number; subjects_count: number; department?: { id: number; name: string } | null })[];
@@ -26,6 +43,9 @@ interface Props extends PageProps {
     staff: Staff[];
     enabledLevels: string[];
     academicDepts: Department[];
+    academicYears: AcademicYear[];
+    currentYear: AcademicYear | null;
+    offerings: SubjectOffering[];
 }
 
 const levelLabels: Record<string, string> = {
@@ -798,10 +818,310 @@ function SubjectsTab({ subjects, classes, departments }: {
 }
 
 // ─────────────────────────────────────────────
+// CURRICULUM TAB
+// ─────────────────────────────────────────────
+const TYPE_BADGE: Record<string, string> = {
+    compulsory: 'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400',
+    elective: 'bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400',
+    selective: 'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400',
+};
+
+function CurriculumTab({ offerings, classes, academicYears, currentYear }: {
+    offerings: SubjectOffering[];
+    classes: Props['classes'];
+    academicYears: AcademicYear[];
+    currentYear: AcademicYear | null;
+}) {
+    const [selectedYearId, setSelectedYearId] = useState<number | null>(currentYear?.id ?? academicYears[0]?.id ?? null);
+    const [addFormClassId, setAddFormClassId] = useState<number | null>(null);
+    const [editing, setEditing] = useState<SubjectOffering | null>(null);
+    const [deleteDialog, setDeleteDialog] = useState<SubjectOffering | null>(null);
+    const [formError, setFormError] = useState<string | null>(null);
+    const [form, setForm] = useState({
+        subject_code: '',
+        subject_name: '',
+        subject_type: 'compulsory' as SubjectOffering['subject_type'],
+    });
+
+    const resetForm = () => {
+        setForm({ subject_code: '', subject_name: '', subject_type: 'compulsory' });
+        setFormError(null);
+    };
+
+    const yearOfferings = offerings.filter((o) => o.academic_year_id === selectedYearId);
+
+    const openEdit = (offering: SubjectOffering) => {
+        setAddFormClassId(null);
+        setEditing(offering);
+        setForm({
+            subject_code: offering.subject_code,
+            subject_name: offering.subject_name,
+            subject_type: offering.subject_type,
+        });
+        setFormError(null);
+    };
+
+    const submitAdd = (classId: number) => {
+        if (!selectedYearId) return;
+        setFormError(null);
+        router.post('/school-admin/curriculum', {
+            ...form,
+            class_id: classId,
+            academic_year_id: selectedYearId,
+        }, {
+            onSuccess: () => {
+                setAddFormClassId(null);
+                resetForm();
+            },
+            onError: (errors) => {
+                const first = Object.values(errors)[0];
+                setFormError(typeof first === 'string' ? first : 'Failed to add subject. Please check all fields.');
+            },
+        });
+    };
+
+    const submitEdit = () => {
+        if (!editing) return;
+        setFormError(null);
+        router.put(`/school-admin/curriculum/${editing.id}`, form, {
+            onSuccess: () => {
+                setEditing(null);
+                resetForm();
+            },
+            onError: (errors) => {
+                const first = Object.values(errors)[0];
+                setFormError(typeof first === 'string' ? first : 'Failed to update subject. Please check all fields.');
+            },
+        });
+    };
+
+    const confirmDelete = () => {
+        if (!deleteDialog) return;
+        router.delete(`/school-admin/curriculum/${deleteDialog.id}`, {
+            onSuccess: () => setDeleteDialog(null),
+            onError: () => setDeleteDialog(null),
+        });
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <p className="text-sm text-slate-500">{yearOfferings.length} total offerings &middot; {classes.length} classes</p>
+                <Select value={selectedYearId ? String(selectedYearId) : ''} onValueChange={(v) => setSelectedYearId(Number(v))}>
+                    <SelectTrigger className="w-full sm:w-56 h-9"><SelectValue placeholder="Academic Year" /></SelectTrigger>
+                    <SelectContent>
+                        {academicYears.map((y) => (
+                            <SelectItem key={y.id} value={String(y.id)}>{y.name}{y.is_current ? ' (Current)' : ''}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {!selectedYearId && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <p className="text-sm text-amber-700 dark:text-amber-300">No active academic year. Please set one in School Settings.</p>
+                </div>
+            )}
+
+            {classes.length === 0 ? (
+                <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                    <CardContent className="py-16 text-center">
+                        <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm text-slate-500">No classes found. Create classes in the Classes tab first.</p>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+                    {classes.map((cls) => {
+                        const clsOfferings = yearOfferings.filter((o) => o.class_id === cls.id);
+                        return (
+                            <Card key={cls.id} className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                                <CardContent className="p-4 space-y-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="font-semibold text-slate-900 dark:text-white truncate">{cls.name}</div>
+                                        <Badge variant="secondary" className="text-[10px] shrink-0">{clsOfferings.length} subject{clsOfferings.length !== 1 ? 's' : ''}</Badge>
+                                    </div>
+
+                                    {clsOfferings.length > 0 && (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="hover:bg-transparent">
+                                                    <TableHead className="h-8 text-xs px-2">Code</TableHead>
+                                                    <TableHead className="h-8 text-xs">Subject</TableHead>
+                                                    <TableHead className="h-8 text-xs">Type</TableHead>
+                                                    <TableHead className="h-8 w-16" />
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {clsOfferings.map((offering) => (
+                                                    <TableRow key={offering.id}>
+                                                        <TableCell className="py-1.5 px-2 text-xs font-medium text-slate-500">{offering.subject_code}</TableCell>
+                                                        <TableCell className="py-1.5">
+                                                            <div className="text-sm text-slate-900 dark:text-white leading-tight">{offering.subject_name}</div>
+                                                            {(offering.enrollments_count ?? 0) > 0 && (
+                                                                <span className="text-[10px] text-slate-400">{offering.enrollments_count} enrolled</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="py-1.5">
+                                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${TYPE_BADGE[offering.subject_type]}`}>
+                                                                {offering.subject_type}
+                                                            </span>
+                                                        </TableCell>
+                                                        <TableCell className="py-1.5">
+                                                            <div className="flex items-center gap-0.5">
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEdit(offering)}>
+                                                                    <Pencil className="w-3 h-3" />
+                                                                </Button>
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:text-red-600" onClick={() => setDeleteDialog(offering)}>
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                </Button>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    )}
+                                    {clsOfferings.length === 0 && (
+                                        <p className="text-xs text-slate-400 dark:text-slate-500 italic">No subjects added yet</p>
+                                    )}
+
+                                    <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
+                                        {addFormClassId === cls.id ? (
+                                            <div className="space-y-2 mt-2">
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="text-xs font-medium">Add Subject</Label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setAddFormClassId(null);
+                                                            resetForm();
+                                                        }}
+                                                        className="text-slate-400 hover:text-slate-600"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        placeholder="Code"
+                                                        value={form.subject_code}
+                                                        onChange={(e) => setForm({ ...form, subject_code: e.target.value })}
+                                                        className="h-8 text-xs"
+                                                    />
+                                                    <Input
+                                                        placeholder="Name"
+                                                        value={form.subject_name}
+                                                        onChange={(e) => setForm({ ...form, subject_name: e.target.value })}
+                                                        className="h-8 text-xs"
+                                                    />
+                                                </div>
+                                                <Select value={form.subject_type} onValueChange={(val) => setForm({ ...form, subject_type: val as SubjectOffering['subject_type'] })}>
+                                                    <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="compulsory">Compulsory</SelectItem>
+                                                        <SelectItem value="elective">Elective</SelectItem>
+                                                        <SelectItem value="selective">Selective</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                {formError && addFormClassId === cls.id && (
+                                                    <p className="text-xs text-red-500">{formError}</p>
+                                                )}
+                                                <Button
+                                                    size="sm"
+                                                    className="w-full h-7 text-xs bg-indigo-600 hover:bg-indigo-700 text-white"
+                                                    onClick={() => submitAdd(cls.id)}
+                                                    disabled={!form.subject_code.trim() || !form.subject_name.trim() || !selectedYearId}
+                                                >
+                                                    Add
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="w-full h-7 text-xs text-slate-500 hover:text-indigo-600 mt-1 inline-flex items-center gap-1"
+                                                onClick={() => {
+                                                    setEditing(null);
+                                                    resetForm();
+                                                    setAddFormClassId(cls.id);
+                                                }}
+                                            >
+                                                <Plus className="w-3 h-3" />
+                                                Add Subject
+                                            </Button>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
+            )}
+
+            <Dialog open={editing !== null} onOpenChange={(open) => { if (!open) { setEditing(null); resetForm(); } }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Edit Subject Offering</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={(e) => { e.preventDefault(); submitEdit(); }} className="space-y-4 pt-2">
+                        <div className="space-y-1.5">
+                            <Label>Subject Name <span className="text-red-500">*</span></Label>
+                            <Input value={form.subject_name} onChange={(e) => setForm({ ...form, subject_name: e.target.value })} placeholder="e.g. Mathematics" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Subject Code <span className="text-red-500">*</span></Label>
+                            <Input value={form.subject_code} onChange={(e) => setForm({ ...form, subject_code: e.target.value })} placeholder="e.g. MATH101" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Type</Label>
+                            <Select value={form.subject_type} onValueChange={(val) => setForm({ ...form, subject_type: val as SubjectOffering['subject_type'] })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="compulsory">Compulsory</SelectItem>
+                                    <SelectItem value="elective">Elective</SelectItem>
+                                    <SelectItem value="selective">Selective</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {formError && editing !== null && (
+                            <p className="text-xs text-red-500">{formError}</p>
+                        )}
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => { setEditing(null); resetForm(); }}>Cancel</Button>
+                            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white">Save Changes</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={deleteDialog !== null} onOpenChange={(open) => { if (!open) setDeleteDialog(null); }}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Delete Subject Offering</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                        Are you sure you want to delete <strong>{deleteDialog?.subject_name}</strong>?
+                        {(deleteDialog?.enrollments_count ?? 0) > 0
+                            ? ` ${deleteDialog?.enrollments_count} student(s) are enrolled and deletion will be blocked. Consider deactivating it instead.`
+                            : ' This action cannot be undone.'}
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" size="sm" onClick={() => setDeleteDialog(null)}>Cancel</Button>
+                        <Button size="sm" variant="destructive" onClick={confirmDelete}>Delete</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────
 export default function AcademicStructureIndex() {
-    const { classes, departments, subjects, staff, enabledLevels, academicDepts } = usePage<Props>().props;
+    const { classes, departments, subjects, staff, enabledLevels, academicDepts, academicYears = [], currentYear = null, offerings = [] } = usePage<Props>().props;
     const [activeTab, setActiveTab] = useState('classes');
 
     return (
@@ -810,7 +1130,7 @@ export default function AcademicStructureIndex() {
 
             <div className="mb-6">
                 <h1 className="text-xl font-bold text-slate-900 dark:text-white">Academic Structure</h1>
-                <p className="text-sm text-slate-500 mt-0.5">Manage classes, departments, and subjects for your school</p>
+                <p className="text-sm text-slate-500 mt-0.5">Manage classes, departments, subjects, and curriculum for your school</p>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -830,6 +1150,11 @@ export default function AcademicStructureIndex() {
                         Subjects
                         <Badge variant="secondary" className="ml-1 text-[10px] px-1.5">{subjects.length}</Badge>
                     </TabsTrigger>
+                    <TabsTrigger value="curriculum" className="text-sm gap-1.5">
+                        <BookOpen className="w-4 h-4" />
+                        Curriculum
+                        <Badge variant="secondary" className="ml-1 text-[10px] px-1.5">{offerings.length}</Badge>
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="classes">
@@ -842,6 +1167,10 @@ export default function AcademicStructureIndex() {
 
                 <TabsContent value="subjects">
                     <SubjectsTab subjects={subjects} classes={classes} departments={departments} />
+                </TabsContent>
+
+                <TabsContent value="curriculum">
+                    <CurriculumTab offerings={offerings} classes={classes} academicYears={academicYears} currentYear={currentYear} />
                 </TabsContent>
             </Tabs>
         </AppLayout>
