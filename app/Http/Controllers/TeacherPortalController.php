@@ -397,6 +397,7 @@ class TeacherPortalController extends Controller
             ->where('status', 'published')
             ->with(['schoolClass:id,name', 'section:id,name', 'subject:id,name'])
             ->get()
+            ->toBase()
             ->groupBy(fn ($t) => $t->class_id . '-' . $t->section_id)
             ->map(function ($slots, $key) use ($schoolId) {
                 $first      = $slots->first();
@@ -419,17 +420,19 @@ class TeacherPortalController extends Controller
             })
             ->values();
 
-        $existingKeys = $classSections->pluck('class_id')->toArray();
-        $existingSections = $classSections->pluck('section_id')->toArray();
+        $existingKeys = $classSections
+            ->map(fn ($cs) => $cs['class_id'] . '-' . $cs['section_id'])
+            ->toArray();
 
         $assignmentClasses = TeacherSubjectAssignment::where('school_id', $schoolId)
             ->where('staff_id', $teacher->id)
             ->where('is_active', true)
             ->with(['subjectOffering.schoolClass:id,name', 'subjectOffering.section:id,name', 'subjectOffering.subject:id,name'])
             ->get()
+            ->toBase()
             ->pluck('subjectOffering')
             ->filter()
-            ->filter(fn ($o) => !in_array($o->class_id, $existingKeys) || !in_array($o->section_id, $existingSections))
+            ->filter(fn ($o) => !in_array($o->class_id . '-' . ($o->section_id ?? ''), $existingKeys))
             ->groupBy(fn ($o) => $o->class_id . '-' . $o->section_id)
             ->map(function ($offerings, $key) use ($schoolId) {
                 $first = $offerings->first();
