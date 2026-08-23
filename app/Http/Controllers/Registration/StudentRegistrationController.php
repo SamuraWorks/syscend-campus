@@ -38,15 +38,30 @@ class StudentRegistrationController extends Controller
         $school = School::where('slug', $schoolSlug)->firstOrFail();
 
         $data = $request->validate([
-            'student_id' => 'required|string|max:50',
-            'full_name'  => 'required|string|max:255',
-            'email'      => 'nullable|email|max:255',
+            'student_id'  => 'required|string|max:50',
+            'full_name'   => 'nullable|string|max:255',
+            'surname'     => 'nullable|string|max:100',
+            'other_names' => 'nullable|string|max:150',
+            'email'       => 'nullable|email|max:255',
         ]);
+
+        $hasSplit   = !empty($data['surname']) && !empty($data['other_names']);
+        $hasFullName = !empty($data['full_name']);
+
+        if (!$hasFullName && !$hasSplit) {
+            return back()->withErrors(['surname' => 'Please enter your surname and other names.']);
+        }
+
+        // Build candidate name orderings — match either "Other Names Surname" or "Surname Other Names"
+        $candidates = $hasSplit ? [
+            trim($data['other_names']) . ' ' . trim($data['surname']),
+            trim($data['surname']) . ' ' . trim($data['other_names']),
+        ] : [$data['full_name']];
 
         RateLimiter::hit($this->throttleKey . ':' . $request->ip(), 60);
 
         $service = new RegistryVerificationService();
-        $result = $service->verifyStudent($school->id, $data['student_id'], $data['full_name'], $data['email'] ?? null);
+        $result = $service->verifyStudent($school->id, $data['student_id'], $candidates, $data['email'] ?? null);
 
         if (!$result['success']) {
             RateLimiter::hit($this->throttleKey . ':' . $request->ip(), 60);
@@ -55,7 +70,7 @@ class StudentRegistrationController extends Controller
                 $errors['email'] = $result['message'];
                 unset($errors['student_id']);
             }
-            return back()->withErrors($errors)->onlyInput('student_id', 'full_name');
+            return back()->withErrors($errors)->onlyInput('student_id', 'full_name', 'surname', 'other_names');
         }
 
         $verificationToken = bin2hex(random_bytes(32));

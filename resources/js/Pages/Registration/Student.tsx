@@ -13,9 +13,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { UserCheck, Shield, CheckCircle2, ChevronLeft } from 'lucide-react';
 
 const verifySchema = z.object({
-    student_id: z.string().min(1, 'Student ID is required'),
-    full_name: z.string().min(2, 'Full name is required'),
-    email: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
+    student_id:  z.string().min(1, 'Student ID is required'),
+    surname:     z.string().min(2, 'Surname is required'),
+    other_names: z.string().min(2, 'Other names are required'),
+    email:       z.string().email('Please enter a valid email address').optional().or(z.literal('')),
 });
 
 const completeSchema = z.object({
@@ -43,7 +44,7 @@ export default function StudentRegistration({ school, verified }: StudentRegistr
 
     const verifyForm = useForm<VerifyFormData>({
         resolver: zodResolver(verifySchema),
-        defaultValues: { student_id: '', full_name: '', email: '' },
+        defaultValues: { student_id: '', surname: '', other_names: '', email: '' },
     });
 
     const completeForm = useForm<CompleteFormData>({
@@ -67,7 +68,8 @@ export default function StudentRegistration({ school, verified }: StudentRegistr
             onError: (errs) => {
                 setState('failed');
                 if (errs.student_id) verifyForm.setError('student_id', { message: errs.student_id });
-                if (errs.full_name) verifyForm.setError('full_name', { message: errs.full_name });
+                if (errs.surname) verifyForm.setError('surname', { message: errs.surname });
+                if (errs.other_names) verifyForm.setError('other_names', { message: errs.other_names });
                 if (errs.email) { verifyForm.setError('email', { message: errs.email }); setRequiresEmail(true); }
             },
         });
@@ -146,14 +148,21 @@ export default function StudentRegistration({ school, verified }: StudentRegistr
                         ) : (
                             <form onSubmit={verifyForm.handleSubmit(onVerify)} className="space-y-4" noValidate>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="student_id" className="text-sm font-medium">Student ID</Label>
-                                    <Input id="student_id" placeholder="e.g. STU-2026-00125" className="h-10" {...verifyForm.register('student_id')} />
+                                    <Label htmlFor="student_id" className="text-sm font-medium">Student ID / Admission No.</Label>
+                                    <Input id="student_id" placeholder="e.g. ADM-2026-0002" className="h-10" {...verifyForm.register('student_id')} />
                                     {verifyForm.formState.errors.student_id && <p className="text-xs text-red-500">{verifyForm.formState.errors.student_id.message}</p>}
                                 </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="full_name" className="text-sm font-medium">Full Name</Label>
-                                    <Input id="full_name" placeholder="As registered in your school" className="h-10" {...verifyForm.register('full_name')} />
-                                    {verifyForm.formState.errors.full_name && <p className="text-xs text-red-500">{verifyForm.formState.errors.full_name.message}</p>}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="surname" className="text-sm font-medium">Surname</Label>
+                                        <Input id="surname" placeholder="e.g. Koroma" className="h-10" {...verifyForm.register('surname')} />
+                                        {verifyForm.formState.errors.surname && <p className="text-xs text-red-500">{verifyForm.formState.errors.surname.message}</p>}
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="other_names" className="text-sm font-medium">Other Names</Label>
+                                        <Input id="other_names" placeholder="e.g. Aminata" className="h-10" {...verifyForm.register('other_names')} />
+                                        {verifyForm.formState.errors.other_names && <p className="text-xs text-red-500">{verifyForm.formState.errors.other_names.message}</p>}
+                                    </div>
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="email" className="text-sm font-medium">

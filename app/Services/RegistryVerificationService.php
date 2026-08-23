@@ -54,16 +54,18 @@ class RegistryVerificationService
     }
 
     /**
-     * Verify a student by student_id and full name within a specific school.
+     * Verify a student by student_id and name within a specific school.
+     * Accepts a single full name or multiple candidate orderings (e.g.
+     * "Other Names Surname" and "Surname Other Names"); matches if any matches.
      * Email is used as an additional matching factor if provided.
      *
      * @param int       $schoolId
-     * @param string    $studentId   The school's student_id field
-     * @param string    $fullName    Full name for verification
+     * @param string    $studentId   The school's student_id or admission_no field
+     * @param string|array $fullName Full name for verification (string or candidate list)
      * @param string|null $email     Optional email for additional verification
      * @return array{success: bool, student?: Student, message: string}
      */
-    public function verifyStudent(int $schoolId, string $studentId, string $fullName, ?string $email = null): array
+    public function verifyStudent(int $schoolId, string $studentId, string|array $fullName, ?string $email = null): array
     {
         $student = Student::where('school_id', $schoolId)
             ->where('status', 'active')
@@ -78,7 +80,16 @@ class RegistryVerificationService
             return ['success' => false, 'message' => self::GENERIC_FAILURE];
         }
 
-        if (!self::namesMatch($fullName, $student->full_name)) {
+        $candidates = is_array($fullName) ? $fullName : [$fullName];
+        $matched = false;
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && self::namesMatch($candidate, $student->full_name)) {
+                $matched = true;
+                break;
+            }
+        }
+
+        if (!$matched) {
             Log::info('Student verification failed: name mismatch', ['school_id' => $schoolId, 'student_id' => $studentId]);
             return ['success' => false, 'message' => self::GENERIC_FAILURE];
         }
