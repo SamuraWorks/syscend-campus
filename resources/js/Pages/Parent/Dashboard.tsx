@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GraduationCap, DollarSign, Bell, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
 
 interface Guardian { id: number; name: string; phone: string; email: string | null; }
 interface ChildAttendance { total: number; present: number; absent: number; percentage: number; }
@@ -22,6 +23,8 @@ interface Announcement { id: number; title: string; body: string; pinned: boolea
 interface Props {
     linked: boolean; guardian: Guardian | null;
     children: Child[]; announcements: Announcement[];
+    childrenIndex?: { id: number; full_name: string }[];
+    selectedChild?: string | null;
 }
 
 function AttendanceBar({ pct, label }: { pct: number; label: string }) {
@@ -124,7 +127,7 @@ function ChildCard({ child }: { child: Child }) {
     );
 }
 
-export default function ParentDashboard({ linked, guardian, children, announcements }: Props) {
+export default function ParentDashboard({ linked, guardian, children, announcements, childrenIndex, selectedChild }: Props) {
     if (!linked || !guardian) {
         return (
             <AppLayout title="Parent Dashboard">
@@ -143,6 +146,11 @@ export default function ParentDashboard({ linked, guardian, children, announceme
     return (
         <AppLayout title="Parent Dashboard">
             <div className="space-y-6">
+
+                {/* Child switcher */}
+                <div className="flex justify-end">
+                    <ParentChildSwitcher childrenIndex={childrenIndex} selectedChild={selectedChild} />
+                </div>
 
                 {/* Header */}
                 <div className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 p-6 text-white flex items-center justify-between">

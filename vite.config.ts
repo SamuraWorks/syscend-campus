@@ -22,5 +22,23 @@ export default defineConfig({
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },
+        proxy: {
+            // Proxy API and Laravel routes to the backend during Vite dev
+            '/api': {
+                target: process.env.APP_URL || 'http://localhost:8000',
+                changeOrigin: true,
+                secure: false,
+            },
+            '/school': {
+                target: process.env.APP_URL || 'http://localhost:8000',
+                changeOrigin: true,
+                secure: false,
+            },
+            '/sanctum': {
+                target: process.env.APP_URL || 'http://localhost:8000',
+                changeOrigin: true,
+                secure: false,
+            },
+        },
     },
 });

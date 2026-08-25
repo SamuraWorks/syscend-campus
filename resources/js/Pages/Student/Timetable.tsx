@@ -51,7 +51,7 @@ export default function Timetable({ linked, student, timetable, today }: Props) 
                     <Card>
                         <CardContent className="py-16 text-center">
                             <CalendarDays className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-2" />
-                            <p className="text-sm text-slate-400">No timetable scheduled yet.</p>
+                            <p className="text-sm text-slate-400">No timetable has been published by your school.</p>
                         </CardContent>
                     </Card>
                 ) : (

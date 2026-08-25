@@ -378,26 +378,28 @@ class ImportController extends Controller
     private function parentTemplateInstructions(): array
     {
         return [
-            'description' => 'Fill in the Sample Data sheet with parent/guardian data. You can link parents to students by student_id_no or by student name.',
+            'description' => 'Fill in the Sample Data sheet with parent/guardian data. Each row links one parent to one student. Parents are never duplicated: rows with the same email or phone are merged into one parent record.',
             'rules' => [
-                'parent_name and relation are REQUIRED.',
-                'relation must be exactly one of: mother, father, guardian, other (lowercase).',
-                'Provide student_id_no OR both student_first_name and student_last_name to link to a student.',
-                'If the student_id_no or student name is not found, that row is skipped for linking.',
-                'If a parent with the same name already exists, they are reused (not duplicated).',
-                'email must be valid if provided.',
+                'Student ID, Parent Full Name, Relationship, Email, and Phone are REQUIRED.',
+                'Student ID accepts the student\'s Student ID or Admission Number (must already exist in this school).',
+                'Relationship must be exactly one of: father, mother, guardian, uncle, aunt, sibling, other (lowercase).',
+                'Email must be a valid email address.',
+                'Primary Contact is optional: use "email" or "phone" to indicate the preferred contact method (default: email).',
+                'If the same parent (same email or phone) appears on multiple rows, they are reused — never duplicated. All children get linked to the same parent record.',
+                'Duplicate links (same parent + same child + same relationship) are skipped with a reason.',
+                'Rows with errors do not block other rows. A row-level error report is shown after validation.',
+                'Importing parents does NOT create portal accounts. Parents register themselves via the registration page using their email and phone.',
             ],
-            'headers' => ['parent_name', 'relation', 'student_id_no', 'phone', 'email', 'occupation', 'address', 'student_first_name', 'student_last_name'],
+            'headers' => ['student_id', 'parent_full_name', 'relationship', 'email', 'phone', 'alt_phone', 'address', 'primary_contact'],
             'columns' => [
-                ['name' => 'parent_name',          'required' => true,  'valid' => 'Text',                                  'description' => 'Full name of the parent/guardian.',                                    'example' => 'Mary Kamara'],
-                ['name' => 'relation',             'required' => true,  'valid' => 'mother, father, guardian, or other',     'description' => 'Relationship to the student.',                                         'example' => 'mother'],
-                ['name' => 'student_id_no',        'required' => false, 'valid' => 'Must match existing student ID',         'description' => 'Student ID to link this parent to. Use this OR student name below.',    'example' => 'STU001'],
-                ['name' => 'phone',                'required' => false, 'valid' => 'Phone number',                          'description' => 'Parent phone number.',                                                 'example' => '+23276123456'],
-                ['name' => 'email',                'required' => false, 'valid' => 'Valid email address',                   'description' => 'Parent email address.',                                                'example' => ''],
-                ['name' => 'occupation',           'required' => false, 'valid' => 'Text',                                  'description' => 'Parent occupation.',                                                   'example' => 'Teacher'],
-                ['name' => 'address',              'required' => false, 'valid' => 'Text',                                  'description' => 'Parent address.',                                                      'example' => 'Freetown'],
-                ['name' => 'student_first_name',   'required' => false, 'valid' => 'Text (use with student_last_name)',      'description' => 'Student first name for linking (alternative to student_id_no).',        'example' => 'John'],
-                ['name' => 'student_last_name',    'required' => false, 'valid' => 'Text (use with student_first_name)',     'description' => 'Student last name for linking (alternative to student_id_no).',         'example' => 'Kamara'],
+                ['name' => 'student_id',       'required' => true,  'valid' => 'Existing Student ID or Admission Number', 'description' => 'The child this parent should be linked to.',   'example' => 'STU001'],
+                ['name' => 'parent_full_name', 'required' => true,  'valid' => 'Text',                                    'description' => 'Full name of the parent/guardian.',            'example' => 'Mary Kamara'],
+                ['name' => 'relationship',     'required' => true,  'valid' => 'father, mother, guardian, uncle, aunt, sibling, other', 'description' => 'Relationship to the student.',   'example' => 'mother'],
+                ['name' => 'email',            'required' => true,  'valid' => 'Valid email address',                     'description' => 'Parent email address. Used for identity matching and portal registration.', 'example' => 'mary@example.com'],
+                ['name' => 'phone',            'required' => true,  'valid' => 'Phone number',                            'description' => 'Parent phone number. Used for identity matching.', 'example' => '+23276123456'],
+                ['name' => 'alt_phone',        'required' => false, 'valid' => 'Phone number',                            'description' => 'Alternative phone number.',                    'example' => '+23276123457'],
+                ['name' => 'address',          'required' => false, 'valid' => 'Text',                                    'description' => 'Home address.',                                'example' => 'Freetown'],
+                ['name' => 'primary_contact',  'required' => false, 'valid' => 'email or phone',                          'description' => 'Preferred contact method. Default: email.',    'example' => 'phone'],
             ],
         ];
     }
@@ -405,10 +407,11 @@ class ImportController extends Controller
     private function parentTemplateSamples(): array
     {
         return [
-            ['Mary Kamara', 'mother', 'STU001', '+23276123456', '', 'Teacher', 'Freetown', 'John', 'Kamara'],
-            ['Ibrahim Bangura', 'father', 'STU002', '+23276123459', 'ibrahim@example.com', 'Engineer', 'Bo', 'Fatima', 'Bangura'],
-            ['Fatima Mansaray', 'guardian', '', '+23276123461', '', 'Nurse', 'Freetown', 'Aisha', 'Mansaray'],
-            ['Hassan Kamara', 'other', 'STU003', '+23276123462', '', '', 'Makeni', '', ''],
+            ['STU001', 'Mary Kamara', 'mother', 'mary.kamara@example.com', '+23276123456', '', '15 Beach Road, Freetown', 'phone'],
+            ['STU002', 'Ibrahim Bangura', 'father', 'ibrahim.bangura@example.com', '+23276123459', '+23276123460', '12 Kissy Road, Freetown', 'email'],
+            ['STU001', 'Ibrahim Bangura', 'father', 'ibrahim.bangura@example.com', '+23276123459', '', '', ''],
+            ['STU003', 'Fatima Mansaray', 'guardian', 'fatima.mansaray@example.com', '+23276123461', '', 'Bo Town, Bo', 'phone'],
+            ['STU004', 'Hassan Kamara', 'uncle', 'hassan.kamara@example.com', '+23276123462', '', 'Makeni', 'email'],
         ];
     }
 

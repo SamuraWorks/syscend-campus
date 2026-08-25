@@ -3,9 +3,10 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Download, FileText, File } from 'lucide-react';
+import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
 
-interface Document { id: number; title: string; student: string | null; file_type: string | null; file_size: number | null; file_url: string; date: string; }
-interface Props { linked: boolean; guardian: { name: string } | null; documents: Document[]; }
+interface Document { id: number; title: string; student: string | null; file_type: string | null; file_size: number | null; download_url: string; date: string; }
+interface Props { linked: boolean; guardian: { name: string } | null; documents: Document[]; childrenIndex?: { id: number; full_name: string }[]; selectedChild?: string | null; }
 
 function formatSize(bytes: number | null) {
     if (bytes === null || bytes === undefined) return '—';
@@ -24,7 +25,7 @@ function typeBadge(type: string | null) {
     return <Badge className="text-[10px] bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{type.toUpperCase()}</Badge>;
 }
 
-export default function ParentDownloads({ linked, documents }: Props) {
+export default function ParentDownloads({ linked, documents, childrenIndex, selectedChild }: Props) {
     if (!linked) {
         return (
             <AppLayout title="Downloads">
@@ -39,7 +40,10 @@ export default function ParentDownloads({ linked, documents }: Props) {
     return (
         <AppLayout title="Downloads">
             <div className="space-y-6">
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Downloads</h1>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Downloads</h1>
+                    <ParentChildSwitcher childrenIndex={childrenIndex} selectedChild={selectedChild} />
+                </div>
 
                 {documents.length === 0 ? (
                     <Card><CardContent className="py-16 text-center text-slate-400">No documents available for download.</CardContent></Card>
@@ -64,7 +68,7 @@ export default function ParentDownloads({ linked, documents }: Props) {
                                             </div>
                                         </div>
                                         <a
-                                            href={doc.file_url}
+                                            href={doc.download_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="shrink-0 w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"

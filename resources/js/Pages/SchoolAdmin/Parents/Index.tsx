@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Plus, Search, Users, Eye, Pencil, Trash2, MoreHorizontal, Upload, UploadCloud } from 'lucide-react';
+import { Plus, Search, Users, Eye, Pencil, Trash2, MoreHorizontal, Upload, UploadCloud, KeyRound, Copy, CheckCircle2 } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,9 +15,10 @@ interface Guardian {
     name: string;
     relation: string;
     phone: string | null;
+    alt_phone: string | null;
     email: string | null;
     registration_status: string;
-    students_count: number;
+    children_count: number;
     user: { id: number; name: string; email: string } | null;
     created_at: string;
 }
@@ -41,14 +42,24 @@ const statusBadge = (status: string) => {
 };
 
 export default function ParentsIndex() {
-    const { parents, filters, stats } = usePage<Props>().props;
+    const { parents, filters, stats, flash } = usePage<Props>().props;
     const [search, setSearch] = useState(filters.search ?? '');
     const [importOpen, setImportOpen] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     const confirmDelete = (p: Guardian) => {
         if (confirm(`Remove parent "${p.name}"? Their linked students will be unlinked.`)) {
             router.delete(`/school-admin/parents/${p.id}`);
         }
+    };
+
+    const copyCredentials = () => {
+        if (!flash?.temp_password) return;
+        navigator.clipboard.writeText(
+            `Login: ${window.location.origin}/login\nPassword: ${flash.temp_password}\n\nPlease change your password after first login.`
+        );
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
     const applyFilter = (params: Record<string, string>) =>
@@ -72,6 +83,44 @@ export default function ParentsIndex() {
                     </Button>
                 </div>
             </div>
+
+            {flash?.error && (
+                <div className="mb-4 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+                    {flash.error}
+                </div>
+            )}
+
+            {/* One-time parent credentials (after account creation / password reset) */}
+            {flash?.temp_password && (
+                <div className="mb-4 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                                <KeyRound className="w-5 h-5" />
+                                <h3 className="font-semibold text-sm">
+                                    {flash.parent_name ? `Parent Credentials — ${flash.parent_name}` : 'Temporary Credentials'}
+                                </h3>
+                            </div>
+                            <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
+                                Shown only once. Share it securely with the parent — they must change it at first login.
+                            </p>
+                            <div className="flex items-center gap-2 font-mono text-sm text-slate-900 dark:text-white select-all">
+                                <span className="text-xs font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">Password</span>
+                                <span>{flash.temp_password}</span>
+                            </div>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={copyCredentials} className="shrink-0 inline-flex items-center gap-1.5 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30">
+                            {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied' : 'Copy'}
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {flash?.success && !flash?.temp_password && (
+                <div className="mb-4 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300 inline-flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" /> {flash.success}
+                </div>
+            )}
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {[
@@ -145,7 +194,7 @@ export default function ParentsIndex() {
                                 </TableCell>
                                 <TableCell>
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400">
-                                        {p.students_count} {p.students_count === 1 ? 'child' : 'children'}
+                                        {p.children_count} {p.children_count === 1 ? 'child' : 'children'}
                                     </span>
                                 </TableCell>
                                 <TableCell>{statusBadge(p.registration_status)}</TableCell>

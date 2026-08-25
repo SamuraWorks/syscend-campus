@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Award, TrendingUp, User, AlertTriangle, CheckCircle } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
 import type { PageProps } from '@/Types';
+import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
 
 interface ReportCard {
     id: number; student: string | null; class: string | null;
@@ -13,7 +14,10 @@ interface ReportCard {
     status: string; promotion_status: string | null;
     attendance: { total: number | null; present: number | null; };
 }
-interface Props { linked: boolean; guardian: { name: string } | null; reportCards: ReportCard[]; }
+interface Props {
+    linked: boolean; guardian: { name: string } | null; reportCards: ReportCard[];
+    childrenIndex?: { id: number; full_name: string }[]; selectedChild?: string | null;
+}
 
 import { gradeColor } from '@/lib/gradeColor';
 
@@ -30,7 +34,7 @@ function ordinal(n: number): string {
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-export default function ParentReportCards({ linked, reportCards }: Props) {
+export default function ParentReportCards({ linked, reportCards, childrenIndex, selectedChild }: Props) {
     const { schoolConfig } = usePage<PageProps>().props;
 
     if (!linked) {
@@ -54,7 +58,10 @@ export default function ParentReportCards({ linked, reportCards }: Props) {
     return (
         <AppLayout title="Children Report Cards">
             <div className="space-y-8">
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Children Report Cards</h1>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Children Report Cards</h1>
+                    <ParentChildSwitcher childrenIndex={childrenIndex} selectedChild={selectedChild} />
+                </div>
 
                 {reportCards.length === 0 ? (
                     <Card><CardContent className="py-16 text-center text-slate-400">No report cards available yet.</CardContent></Card>

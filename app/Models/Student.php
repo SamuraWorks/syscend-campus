@@ -40,7 +40,11 @@ class Student extends Model
 
     public function getPhotoUrlAttribute(): ?string
     {
-        return $this->photo ? Storage::disk('public')->url($this->photo) : null;
+        if ($this->photo) {
+            return Storage::disk('public')->url($this->photo);
+        }
+
+        return $this->user?->avatar_url;
     }
 
     public function schoolClass(): BelongsTo
@@ -61,7 +65,7 @@ class Student extends Model
     public function guardians(): BelongsToMany
     {
         return $this->belongsToMany(Guardian::class, 'guardian_student')
-            ->withPivot('relationship', 'is_primary')
+            ->withPivot('relationship', 'is_primary', 'school_id')
             ->withTimestamps();
     }
 
@@ -111,9 +115,7 @@ class Student extends Model
 
         static::creating(function (Student $student) {
             if (empty($student->admission_no)) {
-                $year  = now()->format('Y');
-                $count = static::withoutGlobalScopes()->where('school_id', $student->school_id)->count() + 1;
-                $student->admission_no = "ADM-{$year}-" . str_pad($count, 4, '0', STR_PAD_LEFT);
+                $student->admission_no = app(\App\Services\StudentIdService::class)::generate((int) $student->school_id);
             }
         });
     }

@@ -16,7 +16,7 @@ interface Props {
             full_name: string;
             admission_no: string;
             class_id: number;
-            photo: string | null;
+            photo: string | null; photo_url: string | null;
             schoolClass?: { name: string };
             section?: { name: string };
         };
@@ -144,8 +144,8 @@ export default function PerformanceDashboard({ linked, profile }: Props) {
             <div className="space-y-6">
                 <div className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white flex items-center gap-5">
                     <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
-                        {student.photo
-                            ? <img src={student.photo} alt={student.full_name} className="w-full h-full object-cover" />
+                        {student.photo_url
+                            ? <img src={student.photo_url} alt={student.full_name} className="w-full h-full object-cover" />
                             : <User className="w-10 h-10 text-white/80" />}
                     </div>
                     <div className="flex-1 min-w-0">

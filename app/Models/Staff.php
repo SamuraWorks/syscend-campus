@@ -41,7 +41,11 @@ class Staff extends Model
 
     public function getPhotoUrlAttribute(): ?string
     {
-        return $this->photo ? Storage::url($this->photo) : null;
+        if ($this->photo) {
+            return Storage::disk('public')->url($this->photo);
+        }
+
+        return $this->user?->avatar_url;
     }
 
     public function department(): BelongsTo

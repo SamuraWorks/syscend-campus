@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2, UserPlus, Phone, Mail, MapPin, Briefcase, GraduationCap, CheckCircle2, Clock, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, UserPlus, Phone, Mail, MapPin, Briefcase, GraduationCap, CheckCircle2, Clock, ShieldCheck, KeyRound, Copy } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,12 +22,13 @@ interface Guardian {
     name: string;
     relation: string;
     phone: string | null;
+    alt_phone: string | null;
     email: string | null;
     occupation: string | null;
     address: string | null;
     registration_status: string;
-    students_count: number;
-    students: Student[];
+    children_count: number;
+    children: Student[];
     user: { id: number; name: string; email: string; status: string } | null;
     created_at: string;
 }
@@ -39,11 +41,28 @@ interface Props extends PageProps {
 export default function ShowParent() {
     const { parent, roles = [] } = usePage<Props>().props;
     const { flash } = usePage<PageProps>().props;
+    const [copied, setCopied] = useState(false);
 
     const confirmDelete = () => {
         if (confirm(`Remove parent "${parent.name}"? Linked students will be unlinked.`)) {
             router.delete(`/school-admin/parents/${parent.id}`);
         }
+    };
+
+    const resetPassword = () => {
+        if (!parent.user) return;
+        if (confirm(`Issue a new temporary password for ${parent.name} (${parent.user.email})? Their current password stops working immediately.`)) {
+            router.post(`/school-admin/parents/${parent.id}/reset-password`, {}, { preserveScroll: true });
+        }
+    };
+
+    const copyCredentials = () => {
+        if (!flash?.temp_password) return;
+        navigator.clipboard.writeText(
+            `Login: ${window.location.origin}/login\nEmail: ${parent.user?.email ?? ''}\nPassword: ${flash.temp_password}\n\nPlease change your password after first login.`
+        );
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
     return (
@@ -65,6 +84,11 @@ export default function ShowParent() {
                         </div>
                     </div>
                     <div className="flex gap-2">
+                        {parent.user && (
+                            <Button variant="outline" size="sm" onClick={resetPassword} className="inline-flex items-center gap-1.5">
+                                <KeyRound className="w-4 h-4" /> Reset Password
+                            </Button>
+                        )}
                         <Button variant="outline" size="sm" asChild className="inline-flex items-center gap-1.5">
                             <Link href={`/school-admin/parents/${parent.id}/edit`}><Pencil className="w-4 h-4" /> Edit</Link>
                         </Button>
@@ -78,6 +102,29 @@ export default function ShowParent() {
                     <div className="rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700 dark:bg-green-950/30 dark:border-green-900 dark:text-green-400">{flash.success}</div>
                 )}
 
+                {flash?.temp_password && (
+                    <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                                    <KeyRound className="w-5 h-5" />
+                                    <h3 className="font-semibold text-sm">New Temporary Password</h3>
+                                </div>
+                                <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
+                                    Shown only once. Share it securely — {parent.name} must change it at next login.
+                                </p>
+                                <div className="flex items-center gap-2 font-mono text-sm text-slate-900 dark:text-white select-all">
+                                    <span className="text-xs font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">Password</span>
+                                    <span>{flash.temp_password}</span>
+                                </div>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={copyCredentials} className="shrink-0 inline-flex items-center gap-1.5 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30">
+                                {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied' : 'Copy'}
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-2 space-y-6">
                         <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
@@ -87,6 +134,12 @@ export default function ShowParent() {
                                     <Phone className="w-4 h-4 text-slate-400 shrink-0" />
                                     <span className="text-slate-700 dark:text-slate-300">{parent.phone ?? 'No phone'}</span>
                                 </div>
+                                {parent.alt_phone && (
+                                    <div className="flex items-center gap-3 text-sm">
+                                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <span className="text-slate-500 dark:text-slate-400">{parent.alt_phone} <span className="text-xs">(alt)</span></span>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-3 text-sm">
                                     <Mail className="w-4 h-4 text-slate-400 shrink-0" />
                                     <span className="text-slate-700 dark:text-slate-300">{parent.email ?? 'No email'}</span>
@@ -105,15 +158,15 @@ export default function ShowParent() {
                         <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                             <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">
-                                    <GraduationCap className="w-4 h-4" /> Children ({parent.students.length})
+                                    <GraduationCap className="w-4 h-4" /> Children ({parent.children?.length ?? 0})
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                {parent.students.length === 0 ? (
+                                {!parent.children || parent.children.length === 0 ? (
                                     <p className="text-sm text-slate-400 py-6 text-center">No children linked</p>
                                 ) : (
                                     <div className="space-y-2">
-                                        {parent.students.map((s) => (
+                                        {parent.children.map((s) => (
                                             <Link
                                                 key={s.id}
                                                 href={`/school/students/${s.id}`}
@@ -126,6 +179,11 @@ export default function ShowParent() {
                                                     <p className="text-sm font-medium text-slate-900 dark:text-white">{s.first_name} {s.last_name}</p>
                                                     <p className="text-xs text-slate-400">{s.admission_no} · {s.school_class?.name ?? '—'}{s.section ? ` / ${s.section.name}` : ''}</p>
                                                 </div>
+                                                {(s as any).pivot?.relationship && (
+                                                    <Badge className="border-0 text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 capitalize">
+                                                        {(s as any).pivot.relationship}
+                                                    </Badge>
+                                                )}
                                                 <Badge className={`border-0 text-xs ${s.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400' : 'bg-slate-100 text-slate-600'}`}>
                                                     {s.status}
                                                 </Badge>
@@ -187,7 +245,7 @@ export default function ShowParent() {
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-slate-500">Children</span>
-                                    <span className="text-slate-900 dark:text-white">{parent.students_count}</span>
+                                    <span className="text-slate-900 dark:text-white">{parent.children_count}</span>
                                 </div>
                             </CardContent>
                         </Card>

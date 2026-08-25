@@ -20,8 +20,15 @@ class SchoolTimeSettingsController extends Controller
 
         $currentYear = AcademicYear::where('school_id', $schoolId)->where('is_current', true)->first();
 
+        // Rows stamped with the current year OR left un-stamped (NULL = all years)
+        // both count as the school's active configuration.
+        $yearScope = fn ($q) => $currentYear
+            ? $q->where(fn ($w) => $w->where('academic_year_id', $currentYear->id)->orWhereNull('academic_year_id'))
+            : $q;
+
         $settings = SchoolTimeSetting::where('school_id', $schoolId)
-            ->when($currentYear, fn ($q) => $q->where('academic_year_id', $currentYear->id))
+            ->where($yearScope)
+            ->orderByRaw('academic_year_id IS NULL')
             ->first();
 
         $eventTypes = ScheduleEventType::where('school_id', $schoolId)
@@ -29,7 +36,7 @@ class SchoolTimeSettingsController extends Controller
             ->get();
 
         $periods = SchedulePeriod::where('school_id', $schoolId)
-            ->when($currentYear, fn ($q) => $q->where('academic_year_id', $currentYear->id))
+            ->where($yearScope)
             ->with('eventType')
             ->ordered()
             ->get();
@@ -60,6 +67,13 @@ class SchoolTimeSettingsController extends Controller
         ]);
 
         try {
+            // Default the settings row to the current academic year so the
+            // year-scoped reader in index() finds it.
+            if (empty($data['academic_year_id'])) {
+                $currentYear = AcademicYear::where('school_id', $this->getSchoolId())->where('is_current', true)->first();
+                $data['academic_year_id'] = $currentYear?->id;
+            }
+
             SchoolTimeSetting::updateOrCreate(
                 [
                     'school_id'        => $this->getSchoolId(),
@@ -68,7 +82,7 @@ class SchoolTimeSettingsController extends Controller
                 array_merge($data, ['school_id' => $this->getSchoolId()])
             );
 
-            return back()->with('success', 'School time settings saved.');
+            return redirect()->route('school.settings.school-time')->with('success', 'School time settings saved.');
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', 'Failed to save: ' . $e->getMessage());
         }
@@ -98,7 +112,7 @@ class SchoolTimeSettingsController extends Controller
                 'is_active'  => true,
             ]));
 
-            return back()->with('success', 'Event type created.');
+            return redirect()->route('school.settings.school-time')->with('success', 'Event type created.');
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', 'Failed: ' . $e->getMessage());
         }
@@ -115,13 +129,13 @@ class SchoolTimeSettingsController extends Controller
         ]);
 
         $eventType->update($data);
-        return back()->with('success', 'Event type updated.');
+        return redirect()->route('school.settings.school-time')->with('success', 'Event type updated.');
     }
 
     public function destroyEventType(ScheduleEventType $eventType): RedirectResponse
     {
         $eventType->delete();
-        return back()->with('success', 'Event type deleted.');
+        return redirect()->route('school.settings.school-time')->with('success', 'Event type deleted.');
     }
 
     /**
@@ -149,15 +163,20 @@ class SchoolTimeSettingsController extends Controller
                 return back()->withErrors(['start_time' => 'This period overlaps with an existing period.']);
             }
 
+            // Stamp the period with the current academic year so year-scoped
+            // readers (timetable builder, this settings page) find it.
+            $currentYear = AcademicYear::where('school_id', $this->getSchoolId())->where('is_current', true)->first();
+
             $maxOrder = SchedulePeriod::where('school_id', $this->getSchoolId())->max('sort_order') ?? 0;
 
             $period = SchedulePeriod::create(array_merge($data, [
-                'school_id'  => $this->getSchoolId(),
-                'sort_order' => $maxOrder + 1,
-                'is_active'  => true,
+                'school_id'        => $this->getSchoolId(),
+                'academic_year_id' => $currentYear?->id,
+                'sort_order'       => $maxOrder + 1,
+                'is_active'        => true,
             ]));
 
-            return back()->with('success', "Period created ({$period->duration} minutes).");
+            return redirect()->route('school.settings.school-time')->with('success', "Period created ({$period->duration} minutes).");
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', 'Failed: ' . $e->getMessage());
         }
@@ -176,13 +195,13 @@ class SchoolTimeSettingsController extends Controller
         ]);
 
         $period->update($data);
-        return back()->with('success', 'Period updated.');
+        return redirect()->route('school.settings.school-time')->with('success', 'Period updated.');
     }
 
     public function destroyPeriod(SchedulePeriod $period): RedirectResponse
     {
         $period->delete();
-        return back()->with('success', 'Period deleted.');
+        return redirect()->route('school.settings.school-time')->with('success', 'Period deleted.');
     }
 
     /**
@@ -201,7 +220,7 @@ class SchoolTimeSettingsController extends Controller
                 ->update(['sort_order' => $index + 1]);
         }
 
-        return back()->with('success', 'Periods reordered.');
+        return redirect()->route('school.settings.school-time')->with('success', 'Periods reordered.');
     }
 
     /**
@@ -234,7 +253,7 @@ class SchoolTimeSettingsController extends Controller
                 }
             });
 
-            return back()->with('success', 'Schedule copied to new academic year.');
+            return redirect()->route('school.settings.school-time')->with('success', 'Schedule copied to new academic year.');
         } catch (\Throwable $e) {
             return back()->with('error', 'Failed to copy: ' . $e->getMessage());
         }

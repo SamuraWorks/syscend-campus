@@ -196,11 +196,13 @@ class StudentImportService
 
         $job->update(['status' => 'importing']);
 
+        $resolver = new \App\Services\ParentIdentityResolver($this->schoolId);
+
         foreach ($batches as $batch) {
-            DB::transaction(function () use ($batch, &$summary) {
+            DB::transaction(function () use ($batch, &$summary, $resolver) {
                 foreach ($batch as $row) {
                     try {
-                        $this->processRow($row, $summary);
+                        $this->processRow($row, $summary, $resolver);
                     } catch (\Throwable $e) {
                         $summary['errors'][$row['__row_number']] = $e->getMessage();
                     }
@@ -218,7 +220,7 @@ class StudentImportService
         return $summary;
     }
 
-    private function processRow(array $row, array &$summary): void
+    private function processRow(array $row, array &$summary, \App\Services\ParentIdentityResolver $resolver): void
     {
         $studentId = trim($row['student_id_no'] ?? '');
         if ($studentId === '') {
@@ -231,27 +233,54 @@ class StudentImportService
 
         $guardianId = null;
         $parentName = trim($row['parent_name'] ?? '');
-        if ($parentName !== '') {
-            $existingGuardian = Guardian::where('school_id', $this->schoolId)
-                ->whereRaw('LOWER(name) = ?', [strtolower($parentName)])
-                ->first();
+        $rawEmail = strtolower(trim($row['parent_email'] ?? ''));
+        $rawPhone = trim($row['parent_phone'] ?? '');
+        $normalizedPhone = preg_replace('/\D/', '', $rawPhone) ?? '';
 
-            if ($existingGuardian) {
-                $guardianId = $existingGuardian->id;
+        if ($parentName !== '' || $rawEmail !== '' || $rawPhone !== '') {
+            // Prefer stable identity resolution by email+phone when available
+            $existingGuardianId = null;
+            if ($rawEmail !== '' || $normalizedPhone !== '') {
+                $existingGuardianId = $resolver->resolve($rawEmail, $normalizedPhone);
+            }
+
+            if ($existingGuardianId) {
+                $guardian = Guardian::where('school_id', $this->schoolId)->findOrFail($existingGuardianId);
+                $updates = [];
+                if (empty($guardian->email) && $rawEmail !== '') $updates['email'] = $rawEmail;
+                if (empty($guardian->phone) && $normalizedPhone !== '') $updates['phone'] = $normalizedPhone;
+                if (!empty($row['parent_occupation']) && empty($guardian->occupation)) $updates['occupation'] = trim($row['parent_occupation']);
+                if (!empty($row['parent_address']) && empty($guardian->address)) $updates['address'] = trim($row['parent_address']);
+                if (!empty($updates)) $guardian->update($updates);
+
+                $guardianId = $guardian->id;
                 $summary['guardians_linked']++;
             } else {
-                $guardian = Guardian::create([
-                    'school_id'  => $this->schoolId,
-                    'user_id'    => null,
-                    'name'       => $parentName,
-                    'relation'   => 'guardian',
-                    'phone'      => trim($row['parent_phone'] ?? '') ?: null,
-                    'email'      => trim($row['parent_email'] ?? '') ?: null,
-                    'occupation' => trim($row['parent_occupation'] ?? '') ?: null,
-                    'address'    => trim($row['parent_address'] ?? '') ?: null,
-                ]);
-                $guardianId = $guardian->id;
-                $summary['guardians_created']++;
+                // Fallback: try name-based legacy matching, else create new guardian record
+                $existingGuardian = null;
+                if ($parentName !== '') {
+                    $existingGuardian = Guardian::where('school_id', $this->schoolId)
+                        ->whereRaw('LOWER(name) = ?', [strtolower($parentName)])
+                        ->first();
+                }
+
+                if ($existingGuardian) {
+                    $guardianId = $existingGuardian->id;
+                    $summary['guardians_linked']++;
+                } else {
+                    $guardian = Guardian::create([
+                        'school_id'  => $this->schoolId,
+                        'user_id'    => null,
+                        'name'       => $parentName ?: null,
+                        'relation'   => 'guardian',
+                        'phone'      => $normalizedPhone ?: null,
+                        'email'      => $rawEmail ?: null,
+                        'occupation' => trim($row['parent_occupation'] ?? '') ?: null,
+                        'address'    => trim($row['parent_address'] ?? '') ?: null,
+                    ]);
+                    $guardianId = $guardian->id;
+                    $summary['guardians_created']++;
+                }
             }
         }
 

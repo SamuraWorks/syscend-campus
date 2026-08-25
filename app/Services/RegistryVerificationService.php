@@ -123,55 +123,118 @@ class RegistryVerificationService
     }
 
     /**
-     * Verify a parent/guardian by full name and email within a specific school.
-     * Email is the primary identifier; name matching is used as a fallback for
-     * guardians with no email on file.
+     * Check if a phone number matches after digit normalization.
+     * Tolerates local vs international formatting (e.g. 076123456 vs +23276123456)
+     * by also accepting a suffix match of at least 7 digits.
+     */
+    private static function phonesMatch(?string $registryPhone, ?string $providedPhone): bool
+    {
+        if (empty($registryPhone) || empty($providedPhone)) {
+            return false;
+        }
+
+        $a = preg_replace('/\D/', '', $registryPhone) ?? '';
+        $b = preg_replace('/\D/', '', $providedPhone) ?? '';
+
+        if ($a === '' || $b === '') {
+            return false;
+        }
+
+        if ($a === $b) {
+            return true;
+        }
+
+        $variants = static function (string $n): array {
+            $trimmed = ltrim($n, '0');
+            return array_values(array_unique([$n, $trimmed !== '' ? $trimmed : $n]));
+        };
+
+        foreach ($variants($a) as $va) {
+            foreach ($variants($b) as $vb) {
+                if ($va === $vb) {
+                    return true;
+                }
+                $shorter = strlen($va) <= strlen($vb) ? $va : $vb;
+                $longer = strlen($va) <= strlen($vb) ? $vb : $va;
+                if (strlen($shorter) >= 7 && str_ends_with($longer, $shorter)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Verify a parent/guardian using their child's identity, per the school registry:
+     * the parent must supply their email, their phone, the child's Student ID
+     * (or admission number), and the child's registered surname.
+     * All supplied details must match an existing parent-student relationship.
+     * No Parent ID exists anywhere in this flow.
      *
-     * @param int         $schoolId
-     * @param string      $fullName  Full name for verification
-     * @param string|null $email     Required email identifier
      * @return array{success: bool, guardian?: Guardian, message: string, children?: array, already_registered?: bool}
      */
-    public function verifyParent(int $schoolId, string $fullName, ?string $email = null): array
+    public function verifyParent(int $schoolId, string $studentId, string $surname, string $email, ?string $phone = null): array
     {
         if (empty($email)) {
-            return ['success' => false, 'message' => 'Email address is required for parent registration.'];
+            return ['success' => false, 'message' => self::GENERIC_FAILURE];
         }
 
-        $guardian = Guardian::where('school_id', $schoolId)
-            ->where('email', $email)
+        // Step 1: locate the child inside this school only.
+        $student = Student::where('school_id', $schoolId)
+            ->where('status', 'active')
+            ->where(function ($q) use ($studentId) {
+                $q->where('student_id', $studentId)
+                  ->orWhere('admission_no', $studentId);
+            })
             ->first();
 
-        if (!$guardian) {
-            // Fall back to name matching for guardians with no email on file
-            $normalized = self::normalizeName($fullName);
-
-            $guardian = Guardian::where('school_id', $schoolId)
-                ->where(function ($query) {
-                    $query->whereNull('email')->orWhere('email', '');
-                })
-                ->get()
-                ->first(fn (Guardian $candidate) => $normalized !== '' && self::normalizeName($candidate->name) === $normalized);
-        }
-
-        if (!$guardian) {
-            Log::info('Parent verification failed: no record', ['school_id' => $schoolId, 'email' => $email]);
+        if (!$student) {
+            Log::info('Parent verification failed: child not found', ['school_id' => $schoolId]);
             return ['success' => false, 'message' => self::GENERIC_FAILURE];
         }
 
-        if (!self::namesMatch($fullName, $guardian->name)) {
-            Log::info('Parent verification failed: name mismatch', ['school_id' => $schoolId, 'email' => $email]);
+        // Step 2: the child's surname must match.
+        if (!self::namesMatch($surname, $student->last_name)) {
+            Log::info('Parent verification failed: surname mismatch', ['school_id' => $schoolId, 'student_id' => $studentId]);
             return ['success' => false, 'message' => self::GENERIC_FAILURE];
         }
 
-        $children = $guardian->students()
-            ->where('status', 'active')
-            ->get()
-            ->map(fn ($s) => [
-                'name'   => $s->full_name,
-                'class'  => $s->schoolClass->name ?? '',
-                'stream' => $s->section->name ?? '',
-            ]);
+        // Step 3: gather every guardian linked to this child (pivot first, legacy column as fallback).
+        $linkedGuardians = Guardian::where('school_id', $schoolId)
+            ->where(function ($q) use ($student) {
+                $q->whereIn('id', DB::table('guardian_student')->where('student_id', $student->id)->select('guardian_id'))
+                  ->orWhere('id', $student->guardian_id);
+            })
+            ->get();
+
+        if ($linkedGuardians->isEmpty()) {
+            Log::info('Parent verification failed: no guardian linked to child', ['school_id' => $schoolId, 'student_id' => $studentId]);
+            return ['success' => false, 'message' => self::GENERIC_FAILURE];
+        }
+
+
+        // Step 4: among the child's guardians, exactly one must match the supplied
+        // contact details. Require both email and phone to be provided by the
+        // registrant and to match an existing guardian record for this school.
+        if (empty($email) || empty($phone)) {
+            Log::info('Parent verification failed: missing contact details', ['school_id' => $schoolId]);
+            return ['success' => false, 'message' => self::GENERIC_FAILURE];
+        }
+
+        $guardian = $linkedGuardians->first(function (Guardian $g) use ($email, $phone) {
+            $emailOk = !empty($g->email) && self::emailsMatch($g->email, $email);
+            $phoneOk = !empty($g->phone) && self::phonesMatch($g->phone, $phone);
+
+            return $emailOk && $phoneOk;
+        });
+
+        if (!$guardian) {
+            Log::info('Parent verification failed: contact details do not match any linked guardian', ['school_id' => $schoolId, 'student_id' => $studentId]);
+            return ['success' => false, 'message' => self::GENERIC_FAILURE];
+        }
+
+        $children = $this->discoverChildren($guardian);
 
         if ($guardian->claimed_by !== null || $guardian->user_id !== null) {
             return [
@@ -187,8 +250,28 @@ class RegistryVerificationService
             'success'  => true,
             'guardian' => $guardian,
             'children' => $children,
-            'message'  => 'Your school record has been found. Please create your account password.',
+            'message'  => 'Your family records have been found. Please create your account password.',
         ];
+    }
+
+    /**
+     * Discover all active children belonging to a guardian across both the
+     * many-to-many pivot and the legacy guardian_id column, deduplicated.
+     */
+    public function discoverChildren(Guardian $guardian): array
+    {
+        $fromPivot = $guardian->children()->where('students.status', 'active')->get();
+        $fromLegacy = $guardian->students()->where('status', 'active')->get();
+
+        return $fromPivot->merge($fromLegacy)
+            ->unique('id')
+            ->map(fn ($s) => [
+                'name'   => $s->full_name,
+                'class'  => $s->schoolClass->name ?? '',
+                'stream' => $s->section->name ?? '',
+            ])
+            ->values()
+            ->all();
     }
 
     /**

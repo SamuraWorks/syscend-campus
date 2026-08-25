@@ -1,4 +1,5 @@
 import MinistryLayout from '@/Layouts/MinistryLayout';
+import { useRealtime } from '@/lib/useRealtime';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { School, Search, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
@@ -52,6 +53,8 @@ export default function MinistrySchools({ schools }: Props) {
         pending: schools.filter((s) => s.moe_approval_status === 'pending').length,
         accredited: schools.filter((s) => s.accreditation_status === 'accredited').length,
     };
+
+    useRealtime();
 
     return (
         <MinistryLayout title="National School Registry">

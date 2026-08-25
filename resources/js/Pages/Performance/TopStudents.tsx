@@ -7,7 +7,7 @@ interface Student {
     id: number;
     full_name: string;
     admission_no: string;
-    photo: string | null;
+    photo: string | null; photo_url: string | null;
     schoolClass?: { name: string };
     section?: { name: string };
 }
@@ -116,8 +116,8 @@ export default function TopStudents({ linked, students, groupBy }: Props) {
                                         <div className="flex items-center gap-3">
                                             <RankIcon rank={rank} />
                                             <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0">
-                                                {s.student.photo
-                                                    ? <img src={s.student.photo} alt={s.student.full_name} className="w-full h-full object-cover" />
+                                                {s.student.photo_url
+                                                    ? <img src={s.student.photo_url} alt={s.student.full_name} className="w-full h-full object-cover" />
                                                     : <User className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                                             </div>
                                             <div>

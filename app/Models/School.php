@@ -17,7 +17,7 @@ class School extends Model
         'name', 'short_name', 'slug', 'logo', 'email', 'phone',
         'address', 'city', 'state', 'country',
         'timezone', 'currency', 'currency_symbol', 'language',
-        'settings', 'status', 'is_configured', 'allowed_ips',
+        'settings', 'status', 'is_configured', 'allowed_ips', 'current_subscription_id',
 
         // MoE fields
         'district_id', 'school_type', 'ownership',
@@ -118,6 +118,30 @@ class School extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function currentSubscription(): BelongsTo
+    {
+        return $this->belongsTo(SchoolSubscription::class, 'current_subscription_id');
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(SchoolSubscription::class);
+    }
+
+    public function activeSubscription()
+    {
+        return $this->hasOne(SchoolSubscription::class)
+            ->where('status', 'active')
+            ->latest('end_date');
+    }
+
+    public function hasModule(string $slug): bool
+    {
+        $sub = $this->currentSubscription;
+        if (! $sub || ! $sub->package) return false;
+        return $sub->package->modules()->where('module_slug', $slug)->exists();
     }
 
     // ── Accessors ──────────────────────────────────────────

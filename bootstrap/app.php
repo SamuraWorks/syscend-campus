@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SessionTimeout::class,
             \App\Http\Middleware\ForcePasswordChange::class,
             \App\Http\Middleware\RestrictIpAccess::class,
+            \App\Http\Middleware\EnforceSubscriptionModules::class,
         ]);
 
         $middleware->append(\App\Http\Middleware\RoleRateLimiter::class);
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             '2fa'        => \App\Http\Middleware\Require2FA::class,
             'school.setup' => \App\Http\Middleware\EnsureSchoolIsConfigured::class,
+            'verified'   => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

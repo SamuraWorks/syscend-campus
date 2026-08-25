@@ -35,7 +35,7 @@ interface Child {
         full_name: string;
         admission_no: string;
         class_id: number;
-        photo: string | null;
+        photo: string | null; photo_url: string | null;
         schoolClass?: { name: string };
         section?: { name: string };
     };
@@ -150,8 +150,8 @@ export default function PerformanceDashboard({ linked, children: childList }: Pr
                                 }`}
                             >
                                 <div className="w-6 h-6 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center overflow-hidden shrink-0">
-                                    {c.student.photo
-                                        ? <img src={c.student.photo} alt="" className="w-6 h-6 rounded-full object-cover" />
+                                    {c.student.photo_url
+                                        ? <img src={c.student.photo_url} alt="" className="w-6 h-6 rounded-full object-cover" />
                                         : <span className="text-[10px] font-bold text-purple-600">{c.student.full_name[0]}</span>
                                     }
                                 </div>
@@ -165,8 +165,8 @@ export default function PerformanceDashboard({ linked, children: childList }: Pr
                     <>
                         <div className="flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                             <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center overflow-hidden shrink-0">
-                                {child.student.photo
-                                    ? <img src={child.student.photo} alt="" className="w-14 h-14 rounded-full object-cover" />
+                                {child.student.photo_url
+                                    ? <img src={child.student.photo_url} alt="" className="w-14 h-14 rounded-full object-cover" />
                                     : <User className="w-7 h-7 text-purple-600 dark:text-purple-400" />
                                 }
                             </div>

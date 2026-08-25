@@ -17,23 +17,23 @@ use Inertia\Inertia;
 
 class MinistryPortalController extends Controller
 {
-    /* ─────────────────────────────────────────────
-       DASHBOARD — National KPIs
-    ───────────────────────────────────────────── */
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+       DASHBOARD â€” National KPIs
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function dashboard()
     {
         $user = auth()->user();
 
         $stats = [
-            'total_schools'      => School::withoutGlobalScopes()->count(),
-            'active_schools'     => School::withoutGlobalScopes()->where('status', 'active')->count(),
+            'total_schools'      => School::withoutGlobalScopes()->whereNull('deleted_at')->count(),
+            'active_schools'     => School::withoutGlobalScopes()->whereNull('deleted_at')->where('status', 'active')->count(),
             'total_students'     => NationalStudentRegistry::count(),
             'total_teachers'     => NationalTeacherRegistry::count(),
             'total_districts'    => District::count(),
             'pending_inspections' => SchoolInspection::where('status', 'scheduled')->count(),
-            'compliant_schools'  => School::withoutGlobalScopes()->where('inspection_status', 'compliant')->count(),
-            'accredited_schools' => School::withoutGlobalScopes()->where('accreditation_status', 'accredited')->count(),
+            'compliant_schools'  => School::withoutGlobalScopes()->whereNull('deleted_at')->where('inspection_status', 'compliant')->count(),
+            'accredited_schools' => School::withoutGlobalScopes()->whereNull('deleted_at')->where('accreditation_status', 'accredited')->count(),
         ];
 
         $recentAnnouncements = MinistryAnnouncement::published()
@@ -58,9 +58,9 @@ class MinistryPortalController extends Controller
         ]);
     }
 
-    /* ─────────────────────────────────────────────
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
        SCHOOLS MANAGEMENT
-    ───────────────────────────────────────────── */
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function schools()
     {
@@ -111,9 +111,9 @@ class MinistryPortalController extends Controller
         return redirect()->back()->with('success', 'School suspended.');
     }
 
-    /* ─────────────────────────────────────────────
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
        DISTRICT MANAGEMENT
-    ───────────────────────────────────────────── */
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function districts()
     {
@@ -135,9 +135,9 @@ class MinistryPortalController extends Controller
         ]);
     }
 
-    /* ─────────────────────────────────────────────
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
        STUDENT REGISTRY
-    ───────────────────────────────────────────── */
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function students()
     {
@@ -187,9 +187,9 @@ class MinistryPortalController extends Controller
         ]);
     }
 
-    /* ─────────────────────────────────────────────
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
        TEACHER REGISTRY
-    ───────────────────────────────────────────── */
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function teachers()
     {
@@ -237,9 +237,9 @@ class MinistryPortalController extends Controller
         ]);
     }
 
-    /* ─────────────────────────────────────────────
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
        NATIONAL EXAMINATIONS
-    ───────────────────────────────────────────── */
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function examNpse()
     {
@@ -321,9 +321,9 @@ class MinistryPortalController extends Controller
         ]);
     }
 
-    /* ─────────────────────────────────────────────
-       QUALITY ASSURANCE — INSPECTIONS
-    ───────────────────────────────────────────── */
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+       QUALITY ASSURANCE â€” INSPECTIONS
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function inspections()
     {
@@ -350,7 +350,7 @@ class MinistryPortalController extends Controller
         return Inertia::render('Ministry/InspectionCompliance', [
             'compliance'            => $compliance,
             'nonCompliantSchools'   => $nonCompliantSchools,
-            'totalSchools'          => School::withoutGlobalScopes()->count(),
+            'totalSchools'          => School::withoutGlobalScopes()->whereNull('deleted_at')->count(),
         ]);
     }
 
@@ -391,15 +391,15 @@ class MinistryPortalController extends Controller
         ]);
     }
 
-    /* ─────────────────────────────────────────────
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
        REPORTS & ANALYTICS
-    ───────────────────────────────────────────── */
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function reports()
     {
         return Inertia::render('Ministry/Reports', [
             'stats' => [
-                'total_schools'     => School::withoutGlobalScopes()->count(),
+                'total_schools'     => School::withoutGlobalScopes()->whereNull('deleted_at')->count(),
                 'total_students'    => NationalStudentRegistry::count(),
                 'total_teachers'    => NationalTeacherRegistry::count(),
                 'total_districts'   => District::count(),
@@ -468,9 +468,9 @@ class MinistryPortalController extends Controller
         ]);
     }
 
-    /* ─────────────────────────────────────────────
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
        COMMUNICATION
-    ───────────────────────────────────────────── */
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function announcements()
     {
@@ -502,9 +502,9 @@ class MinistryPortalController extends Controller
         ]);
     }
 
-    /* ─────────────────────────────────────────────
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
        DOWNLOADS
-    ───────────────────────────────────────────── */
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function downloads()
     {
@@ -516,9 +516,9 @@ class MinistryPortalController extends Controller
         ]);
     }
 
-    /* ─────────────────────────────────────────────
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
        ADMINISTRATION
-    ───────────────────────────────────────────── */
+    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
     public function adminUsers()
     {

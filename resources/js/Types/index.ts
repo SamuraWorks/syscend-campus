@@ -98,6 +98,9 @@ export interface PageProps {
     flash: {
         success?: string;
         error?: string;
+        temp_password?: string;
+        show_credentials?: boolean;
+        parent_name?: string;
     };
     faviconUrl: string | null;
     errors: Record<string, string>;
@@ -111,6 +114,7 @@ export interface Guardian {
     name: string;
     relation: string;
     phone: string | null;
+    alt_phone?: string | null;
     email: string | null;
     occupation: string | null;
     address: string | null;
@@ -126,6 +130,7 @@ export interface StudentDocument {
     file_url: string;
     file_type: string | null;
     file_size: number | null;
+    visible_to_parent?: boolean;
     created_at: string;
 }
 

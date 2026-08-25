@@ -46,6 +46,8 @@ class CleanDatabaseSeeder extends Seeder
             'consolidated_reports', 'lesson_plans', 'syllabi',
             'online_classes', 'student_transfers', 'student_promotions',
             'demo_requests',
+            'subscription_payments', 'school_subscriptions', 'packages', 'package_modules',
+            'coupons',
         ];
 
         foreach ($tables as $table) {

@@ -1,4 +1,5 @@
 import MinistryLayout from '@/Layouts/MinistryLayout';
+import { useRealtime } from '@/lib/useRealtime';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -18,6 +19,7 @@ import {
     ArrowUpRight,
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import LiveBadge from '@/Components/LiveBadge';
 
 interface Props {
     user: { id: number; name: string; email: string };
@@ -45,7 +47,9 @@ interface Props {
         province: string;
         schools_count: number;
         students_count: number;
+    national_students_count: number;
         teachers_count: number;
+    national_teachers_count: number;
     }>;
     recentInspections: Array<{
         id: number;
@@ -90,13 +94,16 @@ export default function Dashboard({
     districtStats,
     recentInspections,
 }: Props) {
+    const { secondsAgo } = useRealtime();
+
     return (
         <MinistryLayout title="National Dashboard">
             <div className="space-y-6">
 
                 {/* Page Header */}
                 <div className="flex items-start justify-between">
-                    <div className="space-y-1">
+                    <div className="space-y-2">
+                        <LiveBadge secondsAgo={secondsAgo} />
                         <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                                 <Landmark className="h-5 w-5 text-primary" />
@@ -380,12 +387,12 @@ export default function Dashboard({
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
                                                         <span className="font-sans text-sm font-medium text-foreground">
-                                                            {district.students_count.toLocaleString()}
+                                                            {district.national_students_count.toLocaleString()}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
                                                         <span className="font-sans text-sm font-medium text-foreground">
-                                                            {district.teachers_count.toLocaleString()}
+                                                            {district.national_teachers_count.toLocaleString()}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -400,10 +407,10 @@ export default function Dashboard({
                                                     {districtStats.reduce((sum, d) => sum + d.schools_count, 0)}
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-sans text-sm font-semibold text-foreground">
-                                                    {districtStats.reduce((sum, d) => sum + d.students_count, 0).toLocaleString()}
+                                                    {districtStats.reduce((sum, d) => sum + d.national_students_count, 0).toLocaleString()}
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-sans text-sm font-semibold text-foreground">
-                                                    {districtStats.reduce((sum, d) => sum + d.teachers_count, 0).toLocaleString()}
+                                                    {districtStats.reduce((sum, d) => sum + d.national_teachers_count, 0).toLocaleString()}
                                                 </td>
                                             </tr>
                                         </tfoot>
@@ -424,7 +431,7 @@ export default function Dashboard({
                                         Recent Announcements
                                     </CardTitle>
                                     <Link
-                                        href="/ministry/announcements"
+                                        href="/ministry/communication/announcements"
                                         className="font-sans text-xs font-medium text-primary hover:underline"
                                     >
                                         View all

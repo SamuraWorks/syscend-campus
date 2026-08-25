@@ -58,9 +58,13 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             'flash' => [
-                'success' => fn () => session('success'),
-                'error'   => fn () => session('error'),
+                'success'         => fn () => session('success'),
+                'error'           => fn () => session('error'),
+                'temp_password'   => fn () => session('temp_password'),
+                'show_credentials'=> fn () => session('show_credentials'),
             ],
+            'verified'           => fn () => session('verified'),
+            'already_registered' => fn () => session('already_registered'),
             'faviconUrl' => fn () => once(function () {
                 $path = PlatformSetting::get('platform_favicon');
                 return $path ? asset('storage/' . $path) : null;

@@ -16,27 +16,20 @@ class TimetableController extends Controller
         $classId   = $request->class_id;
         $sectionId = $request->section_id;
 
-        // Get configured periods from DB (or fallback to hardcoded)
+        // Get configured periods from DB. Periods stamped with the current
+        // academic year OR left un-stamped (NULL = all years) both apply.
         $currentYear = AcademicYear::where('school_id', $schoolId)->where('is_current', true)->first();
         $periods = SchedulePeriod::where('school_id', $schoolId)
-            ->when($currentYear, fn ($q) => $q->where('academic_year_id', $currentYear->id))
+            ->when($currentYear, fn ($q) => $q->where(
+                fn ($w) => $w->where('academic_year_id', $currentYear->id)->orWhereNull('academic_year_id')
+            ))
             ->active()
             ->ordered()
             ->get();
 
-        // If no periods configured, generate defaults
-        if ($periods->isEmpty()) {
-            $periods = collect([
-                (object)['id' => 0, 'name' => 'Period 1', 'start_time' => '07:30', 'end_time' => '08:15', 'duration_minutes' => 45, 'is_break' => false, 'event_type' => null],
-                (object)['id' => 0, 'name' => 'Period 2', 'start_time' => '08:15', 'end_time' => '09:00', 'duration_minutes' => 45, 'is_break' => false, 'event_type' => null],
-                (object)['id' => 0, 'name' => 'Period 3', 'start_time' => '09:00', 'end_time' => '09:45', 'duration_minutes' => 45, 'is_break' => false, 'event_type' => null],
-                (object)['id' => 0, 'name' => 'Break',     'start_time' => '09:45', 'end_time' => '10:00', 'duration_minutes' => 15, 'is_break' => true,  'event_type' => null],
-                (object)['id' => 0, 'name' => 'Period 4', 'start_time' => '10:00', 'end_time' => '10:45', 'duration_minutes' => 45, 'is_break' => false, 'event_type' => null],
-                (object)['id' => 0, 'name' => 'Period 5', 'start_time' => '10:45', 'end_time' => '11:30', 'duration_minutes' => 45, 'is_break' => false, 'event_type' => null],
-                (object)['id' => 0, 'name' => 'Period 6', 'start_time' => '11:30', 'end_time' => '12:15', 'duration_minutes' => 45, 'is_break' => false, 'event_type' => null],
-                (object)['id' => 0, 'name' => 'Lunch',     'start_time' => '12:15', 'end_time' => '13:00', 'duration_minutes' => 45, 'is_break' => true,  'event_type' => null],
-            ]);
-        }
+        // If no periods configured, do NOT generate defaults here. The school must
+        // explicitly configure its schedule via School Time Settings. Showing
+        // generated defaults risks displaying fake timetable data.
 
         $timetableEntries = collect();
         if ($classId) {
@@ -66,10 +59,10 @@ class TimetableController extends Controller
             : ['monday','tuesday','wednesday','thursday','friday'];
 
         return Inertia::render('SchoolAdmin/Timetable/Index', [
-            'classes'      => SchoolClass::orderBy('numeric_name')->get(['id', 'name']),
-            'sections'     => Section::orderBy('name')->get(['id', 'class_id', 'name']),
+            'classes'      => SchoolClass::where('school_id', $schoolId)->orderBy('numeric_name')->get(['id', 'name']),
+            'sections'     => Section::where('school_id', $schoolId)->orderBy('name')->get(['id', 'class_id', 'name']),
             'subjects'     => $classId ? Subject::where('class_id', $classId)->orderBy('name')->get(['id', 'name', 'code']) : collect(),
-            'teachers'     => Staff::where('status', 'active')->orderBy('first_name')->get(['id', 'first_name', 'last_name']),
+            'teachers'     => Staff::where('school_id', $schoolId)->where('status', 'active')->orderBy('first_name')->get(['id', 'first_name', 'last_name']),
             'periods'      => $timetableEntries,
             'schedulePeriods' => $periods,
             'grid'         => $grid,
@@ -187,7 +180,9 @@ class TimetableController extends Controller
 
         $currentYear = AcademicYear::where('school_id', $schoolId)->where('is_current', true)->first();
         $schedulePeriods = SchedulePeriod::where('school_id', $schoolId)
-            ->when($currentYear, fn ($q) => $q->where('academic_year_id', $currentYear->id))
+            ->when($currentYear, fn ($q) => $q->where(
+                fn ($w) => $w->where('academic_year_id', $currentYear->id)->orWhereNull('academic_year_id')
+            ))
             ->active()
             ->ordered()
             ->get();
@@ -195,6 +190,7 @@ class TimetableController extends Controller
         $periods = collect();
         if ($teacherId) {
             $periods = Timetable::with(['schoolClass:id,name', 'section:id,name', 'subject:id,name'])
+                ->where('school_id', $schoolId)
                 ->where('teacher_id', $teacherId)
                 ->where('status', 'published')
                 ->get();
@@ -210,19 +206,14 @@ class TimetableController extends Controller
             'end'   => substr($p->end_time, 0, 5),
         ])->values()->toArray();
 
+        // If no schedule periods are configured, do not fabricate default slots.
+        // The frontend should indicate that the school has not configured periods.
         if (empty($defaultSlots)) {
-            $defaultSlots = [
-                ['start' => '07:30', 'end' => '08:15'],
-                ['start' => '08:15', 'end' => '09:00'],
-                ['start' => '09:00', 'end' => '09:45'],
-                ['start' => '10:00', 'end' => '10:45'],
-                ['start' => '10:45', 'end' => '11:30'],
-                ['start' => '11:30', 'end' => '12:15'],
-            ];
+            $defaultSlots = [];
         }
 
         return Inertia::render('SchoolAdmin/Timetable/TeacherSchedule', [
-            'teachers'      => Staff::where('status', 'active')->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'emp_id']),
+            'teachers'      => Staff::where('school_id', $schoolId)->where('status', 'active')->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'emp_id']),
             'periods'       => $periods,
             'defaultSlots'  => $defaultSlots,
             'grid'          => $grid,

@@ -30,6 +30,7 @@ export default function CreateParent({ unlinkedStudents = [] }: Props) {
         name: '',
         relation: 'mother',
         phone: '',
+        alt_phone: '',
         email: '',
         occupation: '',
         address: '',
@@ -92,13 +93,20 @@ export default function CreateParent({ unlinkedStudents = [] }: Props) {
                                             <SelectItem value="mother">Mother</SelectItem>
                                             <SelectItem value="father">Father</SelectItem>
                                             <SelectItem value="guardian">Guardian</SelectItem>
+                                            <SelectItem value="uncle">Uncle</SelectItem>
+                                            <SelectItem value="aunt">Aunt</SelectItem>
+                                            <SelectItem value="sibling">Sibling</SelectItem>
                                             <SelectItem value="other">Other</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone</label>
-                                    <Input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+232..." />
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone *</label>
+                                    <Input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+232..." required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Alternative Phone</label>
+                                    <Input value={form.alt_phone} onChange={(e) => set('alt_phone', e.target.value)} placeholder="+232..." />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>

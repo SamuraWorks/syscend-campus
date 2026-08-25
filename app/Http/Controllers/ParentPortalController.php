@@ -16,6 +16,9 @@ use Inertia\Inertia;
 
 class ParentPortalController extends Controller
 {
+    /** Child id from ?child= only when it belongs to this guardian; null means "all children". */
+    private ?int $validatedChildId = null;
+
     public function dashboard()
     {
         $user     = auth()->user();
@@ -36,7 +39,9 @@ class ParentPortalController extends Controller
         $now   = Carbon::now();
         $today = $now->toDateString();
 
-        $children = $guardian->students->map(function (Student $student) use ($now, $today) {
+        [$childIndex, $childrenModels] = $this->selectChildren($guardian);
+
+        $children = $childrenModels->map(function (Student $student) use ($now, $today) {
 
             /* Attendance this month */
             $attRows = Attendance::where('school_id', $student->school_id)
@@ -58,9 +63,8 @@ class ParentPortalController extends Controller
 
             $balance = (float) ($fee->due ?? 0) - (float) ($fee->paid ?? 0);
 
-            /* Recent marks */
-            $marks = Mark::where('school_id', $student->school_id)
-                ->where('student_id', $student->id)
+            /* Recent marks — only from approved exams */
+            $marks = $this->publishableMarkQuery($student->school_id, $student->id)
                 ->with(['exam:id,name', 'subject:id,name'])
                 ->orderByDesc('created_at')
                 ->limit(5)
@@ -132,6 +136,8 @@ class ParentPortalController extends Controller
                 'email' => $guardian->email,
             ],
             'children'     => $children,
+            'childrenIndex'=> $childIndex,
+            'selectedChild'=> $this->validatedChildId,
             'announcements'=> $announcements,
         ]);
     }
@@ -150,13 +156,68 @@ class ParentPortalController extends Controller
         return Inertia::render($page, ['linked' => false, 'guardian' => null, 'children' => []]);
     }
 
+    /**
+     * All active children of this guardian across BOTH link sources
+     * (guardian_student pivot and legacy students.guardian_id), deduplicated.
+     */
+    private function childrenUnion(Guardian $guardian)
+    {
+        return $guardian->children()
+            ->where('students.status', 'active')
+            ->with('schoolClass:id,name', 'section:id,name')
+            ->get()
+            ->merge(
+                $guardian->students()->where('status', 'active')->with('schoolClass:id,name', 'section:id,name')->get()
+            )
+            ->unique('id')
+            ->values();
+    }
+
+    /**
+     * Child-switcher support (?child=<id>): returns [childIndex, filteredChildren].
+     * An invalid or foreign child id falls back to showing all children.
+     */
+    private function selectChildren(Guardian $guardian): array
+    {
+        $children = $this->childrenUnion($guardian);
+
+        $index = $children->map(fn ($s) => ['id' => $s->id, 'full_name' => $s->full_name])->values();
+
+        $childId = request('child');
+        if ($childId !== null && $childId !== '') {
+            $selected = $children->firstWhere('id', (int) $childId);
+            if ($selected) {
+                $this->validatedChildId = (int) $childId;
+                return [$index, collect([$selected])];
+            }
+        }
+        $this->validatedChildId = null;
+
+        return [$index, $children];
+    }
+
+    /** Marks are visible to parents only once the exam's approval workflow completed. */
+    private function publishableMarkQuery(int $schoolId, int $studentId)
+    {
+        return Mark::where('marks.school_id', $schoolId)
+            ->where('marks.student_id', $studentId)
+            ->join('exams', 'exams.id', '=', 'marks.exam_id')
+            ->whereNotNull('exams.approved_at')
+            ->where(function ($q) {
+                $q->whereNull('exams.publication_date')
+                  ->orWhere('exams.publication_date', '<=', now());
+            })
+            ->select('marks.*');
+    }
+
     public function attendance()
     {
         $guardian = $this->resolveGuardian();
         if (! $guardian) return $this->notLinked('Parent/Attendance');
 
         $now      = Carbon::now();
-        $children = $guardian->students->map(function (Student $student) use ($now) {
+        [$childIndex, $childrenModels] = $this->selectChildren($guardian);
+        $children = $childrenModels->map(function (Student $student) use ($now) {
             $months = [];
             for ($m = 0; $m < 3; $m++) {
                 $month = $now->copy()->subMonths($m);
@@ -193,6 +254,8 @@ class ParentPortalController extends Controller
             'linked'   => true,
             'guardian' => ['name' => $guardian->name],
             'children' => $children,
+            'childrenIndex'=> $childIndex,
+            'selectedChild'=> $this->validatedChildId,
         ]);
     }
 
@@ -201,9 +264,10 @@ class ParentPortalController extends Controller
         $guardian = $this->resolveGuardian();
         if (! $guardian) return $this->notLinked('Parent/Results');
 
-        $children = $guardian->students->map(function (Student $student) {
-            $marks = \App\Models\Mark::where('school_id', $student->school_id)
-                ->where('student_id', $student->id)
+        [$childIndex, $childrenModels] = $this->selectChildren($guardian);
+        $children = $childrenModels->map(function (Student $student) {
+            /* Only marks from exams whose approval workflow is complete */
+            $marks = $this->publishableMarkQuery($student->school_id, $student->id)
                 ->with(['exam:id,name,type', 'subject:id,name'])
                 ->orderByDesc('created_at')
                 ->get()
@@ -228,6 +292,8 @@ class ParentPortalController extends Controller
             'linked'   => true,
             'guardian' => ['name' => $guardian->name],
             'children' => $children,
+            'childrenIndex'=> $childIndex,
+            'selectedChild'=> $this->validatedChildId,
         ]);
     }
 
@@ -236,7 +302,8 @@ class ParentPortalController extends Controller
         $guardian = $this->resolveGuardian();
         if (! $guardian) return $this->notLinked('Parent/Fees');
 
-        $children = $guardian->students->map(function (Student $student) {
+        [$childIndex, $childrenModels] = $this->selectChildren($guardian);
+        $children = $childrenModels->map(function (Student $student) {
             $summary = FeePayment::where('school_id', $student->school_id)
                 ->where('student_id', $student->id)
                 ->selectRaw('SUM(amount_due) as total_due, SUM(amount_paid) as total_paid')
@@ -270,6 +337,8 @@ class ParentPortalController extends Controller
             'linked'   => true,
             'guardian' => ['name' => $guardian->name],
             'children' => $children,
+            'childrenIndex'=> $childIndex,
+            'selectedChild'=> $this->validatedChildId,
         ]);
     }
 
@@ -304,7 +373,8 @@ class ParentPortalController extends Controller
         $guardian = $this->resolveGuardian();
         if (! $guardian) return $this->notLinked('Parent/ReportCards');
 
-        $studentIds = $guardian->students()->where('status', 'active')->pluck('id');
+        [$childIndex, $childrenModels] = $this->selectChildren($guardian);
+        $studentIds = $childrenModels->pluck('id');
 
         $reportCards = ReportCard::where('school_id', $user->school_id)
             ->whereIn('student_id', $studentIds)
@@ -333,6 +403,8 @@ class ParentPortalController extends Controller
             'linked'      => true,
             'guardian'    => ['name' => $guardian->name],
             'reportCards' => $reportCards,
+            'childrenIndex'=> $childIndex,
+            'selectedChild'=> $this->validatedChildId,
         ]);
     }
 
@@ -343,7 +415,8 @@ class ParentPortalController extends Controller
 
         $days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 
-        $children = $guardian->students->map(function (Student $student) use ($days) {
+        [$childIndex, $childrenModels] = $this->selectChildren($guardian);
+        $children = $childrenModels->map(function (Student $student) use ($days) {
             $timetable = [];
             foreach ($days as $day) {
                 $slots = \App\Models\Timetable::where('school_id', $student->school_id)
@@ -376,6 +449,8 @@ class ParentPortalController extends Controller
             'linked'   => true,
             'guardian' => ['name' => $guardian->name],
             'children' => $children,
+            'childrenIndex'=> $childIndex,
+            'selectedChild'=> $this->validatedChildId,
             'today'    => strtolower(Carbon::now()->format('l')),
         ]);
     }
@@ -385,7 +460,7 @@ class ParentPortalController extends Controller
         $guardian = $this->resolveGuardian();
         if (! $guardian) return $this->notLinked('Parent/Profile');
 
-        $children = $guardian->students->map(fn ($s) => [
+        $children = $this->childrenUnion($guardian)->map(fn ($s) => [
             'id'           => $s->id,
             'full_name'    => $s->full_name,
             'admission_no' => $s->admission_no,
@@ -437,9 +512,12 @@ class ParentPortalController extends Controller
         $guardian = $this->resolveGuardian();
         if (! $guardian) return $this->notLinked('Parent/Downloads');
 
-        $studentIds = $guardian->students()->where('status', 'active')->pluck('id');
+        [$childIndex, $childrenModels] = $this->selectChildren($guardian);
+        $studentIds = $childrenModels->pluck('id');
 
+        /* Only documents the school has explicitly shared with parents */
         $documents = \App\Models\StudentDocument::where('school_id', auth()->user()->school_id)
+            ->where('visible_to_parent', true)
             ->whereIn('student_id', $studentIds)
             ->with('student:id,first_name,last_name')
             ->orderByDesc('created_at')
@@ -450,7 +528,7 @@ class ParentPortalController extends Controller
                 'student'   => $d->student?->full_name,
                 'file_type' => $d->file_type,
                 'file_size' => $d->file_size,
-                'file_url'  => $d->file_url,
+                'download_url' => route('parent.documents.download', $d->id),
                 'date'      => $d->created_at->format('d M Y'),
             ]);
 
@@ -458,7 +536,50 @@ class ParentPortalController extends Controller
             'linked'    => true,
             'guardian'  => ['name' => $guardian->name],
             'documents' => $documents,
+            'childrenIndex'=> $childIndex,
+            'selectedChild'=> $this->validatedChildId,
         ]);
+    }
+
+    /**
+     * Secure document download: verifies the requesting parent is linked to
+     * the owning student AND that the school marked the document shareable.
+     */
+    public function downloadDocument(int $documentId)
+    {
+        $user     = auth()->user();
+        $guardian = Guardian::where('school_id', $user->school_id)->where('user_id', $user->id)->first();
+
+        if (! $guardian) abort(404);
+
+        $allowedStudentIds = $this->childrenUnion($guardian)->pluck('id')->all();
+
+        $document = \App\Models\StudentDocument::where('school_id', $user->school_id)
+            ->where('visible_to_parent', true)
+            ->whereIn('student_id', $allowedStudentIds)
+            ->find($documentId);
+
+        if (! $document) abort(404);
+
+        if (! \Illuminate\Support\Facades\Storage::disk('private')->exists($document->file_path)) {
+            abort(404);
+        }
+
+        activity()
+            ->causedBy($user)
+            ->withProperties(['school_id' => $user->school_id, 'document_id' => $document->id])
+            ->log('Parent downloaded a student document');
+
+        return \Illuminate\Support\Facades\Storage::disk('private')->download(
+            $document->file_path,
+            $this->safeDownloadName($document->title, $document->file_type)
+        );
+    }
+
+    private function safeDownloadName(string $title, string $fileType): string
+    {
+        $base = preg_replace('/[^A-Za-z0-9 _\-]/', '', $title) ?: 'document';
+        return str_contains(strtolower($fileType), 'pdf') ? "{$base}.pdf" : "{$base}.{$fileType}";
     }
 
     public function communication()

@@ -39,6 +39,8 @@ const schema = z.object({
     admission_type:  z.enum(['new', 'transfer', 'returning']).optional(),
     previous_school: z.string().optional(),
     roll_no:         z.string().optional(),
+    admission_no:    z.string().min(1, 'Student ID is required').max(50, 'Max 50 characters'),
+    student_id:      z.string().max(30, 'Max 30 characters').optional(),
     class_id:        z.coerce.number().int().positive('Select a class'),
     section_id:      z.coerce.number().int().positive().nullable().optional(),
     house_id:        z.coerce.number().int().positive().nullable().optional(),
@@ -80,6 +82,8 @@ export default function EditStudent() {
                 admission_type:  (student.admission_type ?? undefined),
                 previous_school: student.previous_school ?? '',
                 roll_no:         student.roll_no ?? '',
+                admission_no:    student.admission_no ?? '',
+                student_id:      (student as any).student_id ?? '',
                 class_id:        student.class_id,
                 section_id:      student.section_id ?? undefined,
                 house_id:        (student.house_id ?? undefined),
@@ -292,6 +296,8 @@ export default function EditStudent() {
                                     </SelectContent>
                                 </Select>
                             </div>
+                            <Field name="admission_no"   label="Student ID" required />
+                            <Field name="student_id"     label="Alt / National ID (optional)" />
                             <Field name="roll_no"        label="Roll No" />
                             <Field name="admission_date" label="Admission Date" type="date" />
                             <div className="space-y-1.5">

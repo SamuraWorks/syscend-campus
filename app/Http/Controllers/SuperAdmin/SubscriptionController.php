@@ -7,6 +7,7 @@ use App\Models\Coupon;
 use App\Models\Package;
 use App\Models\School;
 use App\Models\SchoolSubscription;
+use App\Services\SubscriptionPaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,7 +17,7 @@ class SubscriptionController extends Controller
 {
     public function index(Request $request): Response
     {
-        $subscriptions = SchoolSubscription::with(['school', 'package', 'coupon'])
+        $subscriptions = SchoolSubscription::with(['school', 'package', 'coupon', 'confirmedPayments'])
             ->when($request->school_id, fn ($q) => $q->where('school_id', $request->school_id))
             ->when($request->status,    fn ($q) => $q->where('status', $request->status))
             ->withTrashed(false)
@@ -24,12 +25,15 @@ class SubscriptionController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        // KPI
         $kpi = [
-            'total'    => SchoolSubscription::count(),
-            'active'   => SchoolSubscription::where('status', 'active')->count(),
-            'trial'    => SchoolSubscription::where('status', 'trial')->count(),
-            'expired'  => SchoolSubscription::where('status', 'expired')->count(),
+            'total'            => SchoolSubscription::count(),
+            'active'           => SchoolSubscription::where('status', 'active')->count(),
+            'trial'            => SchoolSubscription::where('status', 'trial')->count(),
+            'expired'          => SchoolSubscription::where('status', 'expired')->count(),
+            'total_revenue'    => SchoolSubscription::sum('amount_paid'),
+            'pending_balances' => SchoolSubscription::where('status', 'active')
+                ->get()
+                ->sum('balance'),
         ];
 
         return Inertia::render('SuperAdmin/Subscriptions/Index', [
@@ -43,50 +47,79 @@ class SubscriptionController extends Controller
                 ],
             ],
             'schools'  => School::select('id', 'name')->orderBy('name')->get(),
-            'packages' => Package::where('is_active', true)->select('id', 'name', 'price_monthly', 'price_yearly')->get(),
+            'packages' => Package::where('is_active', true)->select('id', 'name', 'price_per_term')->get(),
             'coupons'  => Coupon::where('is_active', true)->select('id', 'code', 'type', 'value')->get(),
             'kpi'      => $kpi,
             'filters'  => $request->only(['school_id', 'status']),
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SubscriptionPaymentService $paymentService): RedirectResponse
     {
         $data = $request->validate([
             'school_id'      => 'required|integer|exists:schools,id',
             'package_id'     => 'required|integer|exists:packages,id',
             'coupon_id'      => 'nullable|integer|exists:coupons,id',
+            'academic_year_id' => 'nullable|integer|exists:academic_years,id',
             'start_date'     => 'required|date',
             'end_date'       => 'required|date|after:start_date',
-            'status'         => 'required|in:trial,active,expired,suspended',
+            'term_number'    => 'required|integer|min:1|max:3',
+            'price_per_term' => 'required|numeric|min:0',
+            'status'         => 'required|in:trial,active,expired,suspended,pending_payment',
             'is_trial'       => 'boolean',
             'trial_ends_at'  => 'nullable|date',
-            'amount_paid'    => 'required|numeric|min:0',
+            'amount_paid'    => 'nullable|numeric|min:0',
             'payment_method' => 'nullable|string|max:50',
             'notes'          => 'nullable|string|max:500',
         ]);
 
-        SchoolSubscription::create($data);
+        $data['amount_paid'] = $data['amount_paid'] ?? 0;
+        $sub = SchoolSubscription::create($data);
+
+        if ($request->has('coupon_id') && $data['coupon_id']) {
+            Coupon::find($data['coupon_id'])->apply();
+        }
+
+        if ($request->input('initiate_payment') && $request->input('payer_phone')) {
+            $result = $paymentService->initiatePayment($sub, $request->input('payer_phone'), (float) $data['price_per_term']);
+            if ($result['success'] && isset($result['payment_url'])) {
+                return redirect($result['payment_url']);
+            }
+        }
 
         return back()->with('success', 'Subscription assigned.');
     }
 
-    public function update(Request $request, SchoolSubscription $subscription): RedirectResponse
+    public function update(Request $request, SchoolSubscription $subscription, SubscriptionPaymentService $paymentService): RedirectResponse
     {
         $data = $request->validate([
             'package_id'     => 'required|integer|exists:packages,id',
             'coupon_id'      => 'nullable|integer|exists:coupons,id',
+            'academic_year_id' => 'nullable|integer|exists:academic_years,id',
             'start_date'     => 'required|date',
             'end_date'       => 'required|date|after:start_date',
-            'status'         => 'required|in:trial,active,expired,suspended',
+            'term_number'    => 'required|integer|min:1|max:3',
+            'price_per_term' => 'required|numeric|min:0',
+            'status'         => 'required|in:trial,active,expired,suspended,pending_payment',
             'is_trial'       => 'boolean',
             'trial_ends_at'  => 'nullable|date',
-            'amount_paid'    => 'required|numeric|min:0',
+            'amount_paid'    => 'nullable|numeric|min:0',
             'payment_method' => 'nullable|string|max:50',
             'notes'          => 'nullable|string|max:500',
         ]);
 
         $subscription->update($data);
+
+        if ($request->has('coupon_id') && $data['coupon_id'] && ! $subscription->coupon_id) {
+            Coupon::find($data['coupon_id'])->apply();
+        }
+
+        if ($request->input('initiate_payment') && $request->input('payer_phone')) {
+            $result = $paymentService->initiatePayment($subscription, $request->input('payer_phone'), (float) $data['price_per_term']);
+            if ($result['success'] && isset($result['payment_url'])) {
+                return redirect($result['payment_url']);
+            }
+        }
 
         return back()->with('success', 'Subscription updated.');
     }
@@ -95,5 +128,33 @@ class SubscriptionController extends Controller
     {
         $subscription->delete();
         return back()->with('success', 'Subscription removed.');
+    }
+
+    public function recordOfflinePayment(Request $request, SchoolSubscription $subscription, SubscriptionPaymentService $paymentService): RedirectResponse
+    {
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:0.01|max:999999',
+            'method' => 'required|in:orange_money,bank_transfer,cash,mobile_money',
+            'notes'  => 'nullable|string|max:500',
+        ]);
+
+        $paymentService->recordOfflinePayment($subscription, $data['amount'], $data['method'], $data['notes'] ?? '');
+
+        return back()->with('success', 'Payment recorded and subscription updated.');
+    }
+
+    public function initiateOnlinePayment(Request $request, SchoolSubscription $subscription, SubscriptionPaymentService $paymentService): RedirectResponse
+    {
+        $request->validate([
+            'phone' => 'required|string|min:8',
+        ]);
+
+        $result = $paymentService->initiatePayment($subscription, $request->input('phone'), (float) $subscription->price_per_term);
+
+        if ($result['success'] && isset($result['payment_url'])) {
+            return redirect($result['payment_url']);
+        }
+
+        return back()->withErrors(['phone' => $result['error'] ?? 'Payment initiation failed.']);
     }
 }

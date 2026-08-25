@@ -19,6 +19,7 @@ interface Props extends PageProps {
     sections:    (Pick<Section, 'id' | 'name'> & { class_id: number })[];
     houses:      { id: number; name: string; color: string | null }[];
     departments: { id: number; name: string }[];
+    next_admission_no?: string;
 }
 
 const schema = z.object({
@@ -40,6 +41,9 @@ const schema = z.object({
     admission_type:  z.enum(['new', 'transfer', 'returning']).optional(),
     previous_school: z.string().optional(),
     roll_no:         z.string().optional(),
+    // Student identifiers
+    admission_no:    z.string().max(50, 'Max 50 characters').optional(),
+    student_id:      z.string().max(30, 'Max 30 characters').optional(),
     // Placement
     class_id:      z.coerce.number().int().positive('Select a class'),
     section_id:    z.coerce.number().int().positive().nullable().optional(),
@@ -61,7 +65,7 @@ type FormData = z.infer<typeof schema>;
 const STEPS = ['Personal Info', 'Class & Roll', 'Guardian Info'];
 
 export default function CreateStudent() {
-    const { classes, sections, houses = [], departments = [] } = usePage<Props>().props;
+    const { classes, sections, houses = [], departments = [], next_admission_no } = usePage<Props>().props;
     const [step, setStep] = useState(0);
     const [showConfirm, setShowConfirm] = useState(false);
     const [photo, setPhoto] = useState<File | null>(null);
@@ -220,8 +224,21 @@ export default function CreateStudent() {
                     {/* Step 1 — Class */}
                     {step === 1 && (
                         <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                            <CardHeader className="pb-3"><CardTitle className="text-sm">Class Assignment</CardTitle></CardHeader>
+                            <CardHeader className="pb-3"><CardTitle className="text-sm">Student ID &amp; Class Assignment</CardTitle></CardHeader>
                             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-sm font-medium">Student ID</Label>
+                                    <Input
+                                        className="h-9 font-mono"
+                                        placeholder={next_admission_no ?? 'Auto-generated'}
+                                        {...register('admission_no')}
+                                    />
+                                    <p className="text-xs text-slate-400">
+                                        Leave blank to auto-generate. Must be unique within your school.
+                                    </p>
+                                    {errors.admission_no && <p className="text-xs text-red-500">{errors.admission_no.message}</p>}
+                                </div>
+                                <Field name="student_id" label="Alt / National ID (optional)" placeholder="e.g. EMIS or national ID" />
                                 <div className="space-y-1.5">
                                     <Label className="text-sm font-medium">Class <span className="text-red-500">*</span></Label>
                                     <Select onValueChange={(v) => { setValue('class_id', Number(v)); setValue('section_id', null); setValue('department_id', undefined); }}>

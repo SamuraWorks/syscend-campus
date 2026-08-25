@@ -4,14 +4,13 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class AdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $password = Str::random(16);
+        $password = env('SEED_ADMIN_PASSWORD', 'Syscend#Admin2026');
 
         // ── Super Admin (platform owner) ──────────────────────────
         $superAdmin = User::firstOrCreate(

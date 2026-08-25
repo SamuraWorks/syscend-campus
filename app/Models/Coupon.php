@@ -27,4 +27,9 @@ class Coupon extends Model
         if ($this->max_uses > 0 && $this->used_count >= $this->max_uses) return false;
         return true;
     }
+
+    public function apply(): void
+    {
+        $this->increment('used_count');
+    }
 }

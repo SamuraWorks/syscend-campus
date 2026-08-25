@@ -13,8 +13,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Users, Shield, CheckCircle2, ChevronLeft } from 'lucide-react';
 
 const verifySchema = z.object({
-    full_name: z.string().min(2, 'Full name is required'),
+    student_id: z.string().min(1, "Child's Student ID is required"),
+    surname: z.string().min(1, "Child's surname is required"),
     email: z.string().min(1, 'Email address is required').email('Please enter a valid email address'),
+    phone: z.string().min(7, 'Phone number is required'),
 });
 
 const completeSchema = z.object({
@@ -42,7 +44,7 @@ export default function ParentRegistration({ school, verified, already_registere
 
     const verifyForm = useForm<VerifyFormData>({
         resolver: zodResolver(verifySchema),
-        defaultValues: { full_name: '', email: '' },
+        defaultValues: { student_id: '', surname: '', email: '', phone: '' },
     });
 
     const completeForm = useForm<CompleteFormData>({
@@ -66,7 +68,9 @@ export default function ParentRegistration({ school, verified, already_registere
             onError: (errs) => {
                 setState('failed');
                 if (errs.email) verifyForm.setError('email', { message: errs.email });
-                if (errs.full_name) verifyForm.setError('full_name', { message: errs.full_name });
+                if (errs.student_id) verifyForm.setError('student_id', { message: errs.student_id });
+                if (errs.surname) verifyForm.setError('surname', { message: errs.surname });
+                if (errs.phone) verifyForm.setError('phone', { message: errs.phone });
                 if (errs.message) toast.error(errs.message);
             },
         });
@@ -74,10 +78,7 @@ export default function ParentRegistration({ school, verified, already_registere
 
     const onComplete = (data: CompleteFormData) => {
         setState('creating');
-        router.post(`/${school.slug}/register/parent/complete`, {
-            ...data,
-            email: verified?.guardian_email ?? '',
-        }, {
+        router.post(`/${school.slug}/register/parent/complete`, data, {
             onError: (errs) => {
                 setState('verified');
                 Object.entries(errs).forEach(([field, message]) => {
@@ -106,10 +107,10 @@ export default function ParentRegistration({ school, verified, already_registere
                         </CardTitle>
                         <CardDescription className="text-muted-foreground">
                             {state === 'verified' || state === 'creating'
-                                ? 'Your school record has been found. Create your account password below.'
+                                ? 'Your family records have been found. Create your account password below.'
                                 : state === 'already_registered'
                                     ? 'This record already has an account.'
-                                    : 'Enter your email address and full name to find your school record.'}
+                                    : 'Confirm your child\'s details together with the email and phone number your school has on file.'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -182,18 +183,32 @@ export default function ParentRegistration({ school, verified, already_registere
                         ) : (
                             <form onSubmit={verifyForm.handleSubmit(onVerify)} className="space-y-4" noValidate>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="email" className="text-sm font-medium">
-                                        Email Address <span className="text-red-500">*</span>
+                                    <Label htmlFor="student_id" className="text-sm font-medium">
+                                        Child's Student ID <span className="text-red-500">*</span>
                                     </Label>
-                                    <Input id="email" type="email" placeholder="you@example.com" className="h-10" {...verifyForm.register('email')} />
+                                    <Input id="student_id" placeholder="As shown on the school registry" className="h-10" {...verifyForm.register('student_id')} />
+                                    {verifyForm.formState.errors.student_id && <p className="text-xs text-red-500">{verifyForm.formState.errors.student_id.message}</p>}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="surname" className="text-sm font-medium">
+                                        Child's Surname <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input id="surname" placeholder="Child's registered last name" className="h-10" {...verifyForm.register('surname')} />
+                                    {verifyForm.formState.errors.surname && <p className="text-xs text-red-500">{verifyForm.formState.errors.surname.message}</p>}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="email" className="text-sm font-medium">
+                                        Your Email Address <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input id="email" type="email" placeholder="The email your school has on file" className="h-10" {...verifyForm.register('email')} />
                                     {verifyForm.formState.errors.email && <p className="text-xs text-red-500">{verifyForm.formState.errors.email.message}</p>}
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="full_name" className="text-sm font-medium">
-                                        Full Name <span className="text-red-500">*</span>
+                                    <Label htmlFor="phone" className="text-sm font-medium">
+                                        Your Phone Number <span className="text-red-500">*</span>
                                     </Label>
-                                    <Input id="full_name" placeholder="As registered in your school" className="h-10" {...verifyForm.register('full_name')} />
-                                    {verifyForm.formState.errors.full_name && <p className="text-xs text-red-500">{verifyForm.formState.errors.full_name.message}</p>}
+                                    <Input id="phone" type="tel" placeholder="The phone number your school has on file" className="h-10" {...verifyForm.register('phone')} />
+                                    {verifyForm.formState.errors.phone && <p className="text-xs text-red-500">{verifyForm.formState.errors.phone.message}</p>}
                                 </div>
                                 <Button type="submit" className="w-full h-10" disabled={state === 'verifying'}>
                                     {state === 'verifying' ? 'Verifying…' : 'Verify My Details'}

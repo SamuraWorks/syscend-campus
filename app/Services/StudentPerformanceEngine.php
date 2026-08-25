@@ -446,7 +446,7 @@ class StudentPerformanceEngine
                     [
                         'severity' => 'info',
                         'title'    => 'Outstanding Performance',
-                        'message'  => "Student scored {$result['total_score']}% — classified as Excellent!",
+                        'message'  => "Student scored {$result['total_score']}% â€” classified as Excellent!",
                         'data'     => $result,
                     ]
                 );
@@ -474,7 +474,7 @@ class StudentPerformanceEngine
                     ],
                     [
                         'title'       => $titles[$index],
-                        'description' => "Scored {$result['total_score']}% — Top " . ($index + 1) . " in school",
+                        'description' => "Scored {$result['total_score']}% â€” Top " . ($index + 1) . " in school",
                         'category'    => 'academic',
                         'awarded_at'  => now()->toDateString(),
                     ]
@@ -488,7 +488,7 @@ class StudentPerformanceEngine
         $query = SuccessScore::where('school_id', $this->schoolId)
             ->where('academic_year_id', $this->academicYearId)
             ->when($this->termId, fn($q) => $q->where('term_id', $this->termId))
-            ->with('student:id,first_name,last_name,class_id,section_id,photo')
+            ->with(['student:id,first_name,last_name,class_id,section_id,photo,user_id', 'student.user:id,avatar'])
             ->orderBy('total_score', 'desc');
 
         return match ($groupBy) {
@@ -504,7 +504,7 @@ class StudentPerformanceEngine
             ->where('academic_year_id', $this->academicYearId)
             ->when($this->termId, fn($q) => $q->where('term_id', $this->termId))
             ->whereIn('classification', ['needs_monitoring', 'needs_support', 'critical'])
-            ->with('student:id,first_name,last_name,class_id,section_id,photo')
+            ->with(['student:id,first_name,last_name,class_id,section_id,photo,user_id', 'student.user:id,avatar'])
             ->orderBy('total_score', 'asc')
             ->take($limit)
             ->get();

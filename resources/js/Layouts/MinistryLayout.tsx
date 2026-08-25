@@ -60,7 +60,7 @@ export default function MinistryLayout({ children, title, breadcrumbs }: Ministr
             )}
 
             {/* Sidebar — Desktop */}
-            <div className={cn('hidden md:flex', !sidebarOpen && 'md:hidden')}>
+            <div className="hidden md:flex">
                 <MinistrySidebar />
             </div>
 

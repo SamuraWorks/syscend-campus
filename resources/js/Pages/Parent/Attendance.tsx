@@ -2,17 +2,18 @@ import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClipboardCheck, CalendarDays, CheckCircle, XCircle, Clock } from 'lucide-react';
+import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
 
 interface DayEntry { date: string; status: string; }
 interface MonthData { label: string; total: number; present: number; absent: number; late: number; percentage: number; calendar: DayEntry[]; }
 interface Child { id: number; full_name: string; class: string | null; section: string | null; months: MonthData[]; }
-interface Props { linked: boolean; guardian: { name: string } | null; children: Child[]; }
+interface Props { linked: boolean; guardian: { name: string } | null; children: Child[]; childrenIndex?: { id: number; full_name: string }[]; selectedChild?: string | null; }
 
 const STATUS_COLOR: Record<string, string> = {
     present: 'bg-green-500', absent: 'bg-red-500', late: 'bg-amber-400',
 };
 
-export default function ParentAttendance({ linked, children }: Props) {
+export default function ParentAttendance({ linked, children, childrenIndex, selectedChild }: Props) {
     if (!linked) {
         return (
             <AppLayout title="Children Attendance">
@@ -28,14 +29,15 @@ export default function ParentAttendance({ linked, children }: Props) {
     return (
         <AppLayout title="Children Attendance">
             <div className="space-y-8">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                     <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
                         <ClipboardCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-[180px]">
                         <h1 className="text-xl font-bold text-slate-900 dark:text-white">Children Attendance</h1>
                         <p className="text-sm text-slate-500">Last 3 months attendance overview</p>
                     </div>
+                    <ParentChildSwitcher childrenIndex={childrenIndex} selectedChild={selectedChild} />
                 </div>
 
                 {children.length === 0 ? (

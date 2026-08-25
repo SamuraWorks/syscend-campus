@@ -132,7 +132,11 @@ function SchoolHoursTab({ settings, academicYear, allYears }: Pick<Props, 'setti
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
-        form.post('/school/settings/school-time');
+        // Backend expects a comma-separated string, the UI works with an array.
+        form.transform((data) => ({
+            ...data,
+            working_days: data.working_days.join(','),
+        })).post('/school/settings/school-time');
     }
 
     return (
@@ -535,8 +539,8 @@ function PeriodsTab({ periods, eventTypes, allYears, academicYear }: Pick<Props,
 
     function handleCopySchedule() {
         if (!copyYearId || !confirm('Copy current schedule to the selected year?')) return;
-        router.post('/school/settings/school-time/copy-schedule', {
-            target_year_id: Number(copyYearId),
+        router.post('/school/settings/school-time/copy', {
+            target_academic_year_id: Number(copyYearId),
         });
     }
 

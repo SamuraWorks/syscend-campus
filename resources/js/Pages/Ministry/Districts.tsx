@@ -1,4 +1,5 @@
 import MinistryLayout from '@/Layouts/MinistryLayout';
+import { useRealtime } from '@/lib/useRealtime';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Users, School, GraduationCap, UserCog } from 'lucide-react';
@@ -10,7 +11,9 @@ interface DistrictData {
     province: string;
     schools_count: number;
     students_count: number;
+    national_students_count: number;
     teachers_count: number;
+    national_teachers_count: number;
     education_officer?: { name: string };
 }
 
@@ -29,14 +32,16 @@ export default function MinistryDistricts({ districts }: Props) {
     const stats = {
         total: districts.length,
         totalSchools: districts.reduce((sum, d) => sum + d.schools_count, 0),
-        totalStudents: districts.reduce((sum, d) => sum + d.students_count, 0),
-        totalTeachers: districts.reduce((sum, d) => sum + d.teachers_count, 0),
+        totalStudents: districts.reduce((sum, d) => sum + d.national_students_count, 0),
+        totalTeachers: districts.reduce((sum, d) => sum + d.national_teachers_count, 0),
     };
 
     const groupedByProvince = districts.reduce<Record<string, DistrictData[]>>((acc, d) => {
         (acc[d.province] ??= []).push(d);
         return acc;
     }, {});
+
+    useRealtime();
 
     return (
         <MinistryLayout title="District Management">
@@ -98,11 +103,11 @@ export default function MinistryDistricts({ districts }: Props) {
                                                 <p className="text-[10px] text-muted-foreground uppercase">Schools</p>
                                             </div>
                                             <div className="p-2 rounded bg-muted/50">
-                                                <p className="text-lg font-bold text-foreground">{district.students_count.toLocaleString()}</p>
+                                                <p className="text-lg font-bold text-foreground">{district.national_students_count.toLocaleString()}</p>
                                                 <p className="text-[10px] text-muted-foreground uppercase">Students</p>
                                             </div>
                                             <div className="p-2 rounded bg-muted/50">
-                                                <p className="text-lg font-bold text-foreground">{district.teachers_count.toLocaleString()}</p>
+                                                <p className="text-lg font-bold text-foreground">{district.national_teachers_count.toLocaleString()}</p>
                                                 <p className="text-[10px] text-muted-foreground uppercase">Teachers</p>
                                             </div>
                                         </div>

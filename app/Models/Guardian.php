@@ -13,13 +13,24 @@ class Guardian extends Model
 
     protected $fillable = [
         'school_id', 'user_id', 'name', 'relation',
-        'phone', 'email', 'occupation', 'address', 'photo',
+        'phone', 'alt_phone', 'email', 'occupation', 'address', 'photo',
         'claimed_by', 'claimed_at', 'registration_status',
     ];
+
+    protected $appends = ['photo_url'];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if ($this->photo) {
+            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->photo);
+        }
+
+        return $this->user?->avatar_url;
     }
 
     public function students(): HasMany

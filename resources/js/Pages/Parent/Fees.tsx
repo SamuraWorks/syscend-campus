@@ -2,17 +2,18 @@ import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
+import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
 
 interface Payment { month: string; due: number; paid: number; balance: number; status: string; payment_date: string | null; }
 interface Child { id: number; full_name: string; class: string | null; total_due: number; total_paid: number; balance: number; payments: Payment[]; }
-interface Props { linked: boolean; guardian: { name: string } | null; children: Child[]; }
+interface Props { linked: boolean; guardian: { name: string } | null; children: Child[]; childrenIndex?: { id: number; full_name: string }[]; selectedChild?: string | null; }
 
 const statusColor: Record<string, string> = {
     paid: 'bg-green-100 text-green-700', partial: 'bg-amber-100 text-amber-700',
     unpaid: 'bg-red-100 text-red-700',   overdue: 'bg-red-100 text-red-700',
 };
 
-export default function ParentFees({ linked, children }: Props) {
+export default function ParentFees({ linked, children, childrenIndex, selectedChild }: Props) {
     if (!linked) {
         return (
             <AppLayout title="Fee Status">
@@ -27,7 +28,10 @@ export default function ParentFees({ linked, children }: Props) {
     return (
         <AppLayout title="Fee Status">
             <div className="space-y-8">
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Children Fee Status</h1>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Children Fee Status</h1>
+                    <ParentChildSwitcher childrenIndex={childrenIndex} selectedChild={selectedChild} />
+                </div>
                 {children.map(child => (
                     <div key={child.id}>
                         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">{child.full_name} — {child.class}</p>

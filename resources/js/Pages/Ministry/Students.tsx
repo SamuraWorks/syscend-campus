@@ -1,4 +1,5 @@
 import MinistryLayout from '@/Layouts/MinistryLayout';
+import { useRealtime } from '@/lib/useRealtime';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GraduationCap, Search, Users } from 'lucide-react';
@@ -49,6 +50,8 @@ export default function MinistryStudents({ students }: Props) {
         male: students.filter((s) => s.gender === 'male').length,
         female: students.filter((s) => s.gender === 'female').length,
     };
+
+    useRealtime();
 
     return (
         <MinistryLayout title="National Student Registry">

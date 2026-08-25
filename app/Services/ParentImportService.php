@@ -4,23 +4,28 @@ namespace App\Services;
 
 use App\Models\{Guardian, ImportJob, Student};
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\{DB, Str};
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ParentImportService
 {
-    private const VALID_RELATIONS = ['mother', 'father', 'guardian', 'other'];
+    private const VALID_RELATIONS = ['father', 'mother', 'guardian', 'uncle', 'aunt', 'sibling', 'other'];
 
-    private const ALLOWED_COLUMNS = [
-        'parent_name',
-        'relation',
-        'student_id_no',
-        'phone',
-        'email',
-        'occupation',
-        'address',
-        'student_first_name',
-        'student_last_name',
+    /**
+     * Canonical column => accepted aliases (legacy headers included).
+     * Canonical names match the official template headers:
+     * Student ID*, Parent Full Name*, Relationship*, Email*, Phone*, Alt Phone, Address, Primary Contact
+     */
+    private const COLUMN_ALIASES = [
+        'student_id'       => ['student_id', 'studentid', 'student_id_no', 'admission_no', 'admissionnumber'],
+        'parent_full_name' => ['parent_full_name', 'parentname', 'parent_name'],
+        'relationship'     => ['relationship', 'relation'],
+        'email'            => ['email', 'parent_email'],
+        'phone'            => ['phone', 'parent_phone', 'phonenumber'],
+        'alt_phone'        => ['alt_phone', 'alternate_phone', 'altphonenumber'],
+        'address'          => ['address'],
+        'primary_contact'  => ['primary_contact'],
     ];
 
     private int $schoolId;
@@ -46,7 +51,16 @@ class ParentImportService
             throw new \RuntimeException('Import file contains no data rows.');
         }
 
-        $headers = array_map(fn($h) => Str::slug(trim($h), '_'), array_values($rows[1]));
+        $rawHeaders = array_map(fn($h) => Str::slug(trim((string) $h), '_'), array_values($rows[1]));
+
+        $headers = array_map(function ($h) {
+            foreach (self::COLUMN_ALIASES as $canonical => $aliases) {
+                if (in_array($h, $aliases, true)) {
+                    return $canonical;
+                }
+            }
+            return $h;
+        }, $rawHeaders);
 
         $dataRows = [];
         foreach ($rows as $rowIndex => $row) {
@@ -58,8 +72,7 @@ class ParentImportService
         }
 
         $job->update([
-            'total_rows'  => count($dataRows),
-            'file_name'   => $job->file_name,
+            'total_rows' => count($dataRows),
         ]);
 
         return $dataRows;
@@ -71,22 +84,10 @@ class ParentImportService
         $valid = [];
         $errors = [];
 
-        $existingStudentIds = Student::where('school_id', $this->schoolId)
-            ->pluck('student_id', 'student_id')
-            ->toArray();
+        $studentsByIdentifier = $this->buildStudentLookup();
+        $existingPairs = $this->buildExistingLinkSet();
 
-        $existingGuardiansByName = Guardian::where('school_id', $this->schoolId)
-            ->get()
-            ->keyBy(fn($g) => strtolower(trim($g->name)));
-
-        $existingLinks = Guardian::where('school_id', $this->schoolId)
-            ->has('students')
-            ->with('students:id,guardian_id,student_id')
-            ->get()
-            ->pluck('students')
-            ->flatten()
-            ->pluck('student_id', 'guardian_id')
-            ->toArray();
+        $resolver = new ParentIdentityResolver($this->schoolId);
 
         $seenLinks = [];
 
@@ -94,25 +95,52 @@ class ParentImportService
             $rowNum = $row['__row_number'];
             $rowErrors = [];
 
-            $parentName = trim($row['parent_name'] ?? '');
+            $parentName = trim((string) ($row['parent_full_name'] ?? ''));
             if ($parentName === '') {
-                $rowErrors[] = 'parent_name is required.';
+                $rowErrors[] = 'Parent Full Name is required.';
             }
 
-            $relation = strtolower(trim($row['relation'] ?? ''));
-            if ($relation === '' || !in_array($relation, self::VALID_RELATIONS, true)) {
-                $rowErrors[] = 'relation must be one of: mother, father, guardian, other.';
+            $relation = strtolower(trim((string) ($row['relationship'] ?? '')));
+            if ($relation === '') {
+                $rowErrors[] = 'Relationship is required.';
+            } elseif (!in_array($relation, self::VALID_RELATIONS, true)) {
+                $rowErrors[] = 'Relationship must be one of: ' . implode(', ', self::VALID_RELATIONS) . '.';
             }
 
-            $studentIdNo = trim($row['student_id_no'] ?? '');
-            $studentFirstName = trim($row['student_first_name'] ?? '');
-            $studentLastName = trim($row['student_last_name'] ?? '');
-            $hasStudentIdentifier = $studentIdNo !== '' || ($studentFirstName !== '' && $studentLastName !== '');
+            $rawEmail = strtolower(trim((string) ($row['email'] ?? '')));
+            if ($rawEmail === '') {
+                $rowErrors[] = 'Email is required.';
+            } elseif (!filter_var($rawEmail, FILTER_VALIDATE_EMAIL)) {
+                $rowErrors[] = "Email '{$rawEmail}' is not a valid email address.";
+            }
 
-            if ($studentIdNo !== '') {
-                if (!isset($existingStudentIds[$studentIdNo])) {
-                    $rowErrors[] = "Student ID '{$studentIdNo}' not found in this school.";
-                }
+            $rawPhone = trim((string) ($row['phone'] ?? ''));
+            $phone = $this->normalizePhone($rawPhone);
+            if ($phone === '') {
+                $rowErrors[] = 'Phone is required.';
+            } elseif (strlen($phone) < 7) {
+                $rowErrors[] = "Phone '{$rawPhone}' does not look like a valid phone number.";
+            }
+
+            $altPhoneRaw = trim((string) ($row['alt_phone'] ?? ''));
+            $altPhone = $this->normalizePhone($altPhoneRaw);
+            if ($altPhoneRaw !== '' && $altPhone === '') {
+                $rowErrors[] = "Alt Phone '{$altPhoneRaw}' does not look like a valid phone number.";
+            }
+            if ($altPhone !== '' && $altPhone === $phone) {
+                $rowErrors[] = 'Alt Phone must be different from Phone.';
+            }
+
+            $primaryContactRaw = strtolower(trim((string) ($row['primary_contact'] ?? '')));
+            if ($primaryContactRaw !== '' && !in_array($primaryContactRaw, ['email', 'phone'], true)) {
+                $rowErrors[] = 'Primary Contact must be either "email" or "phone".';
+            }
+
+            $studentIdentifier = trim((string) ($row['student_id'] ?? ''));
+            if ($studentIdentifier === '') {
+                $rowErrors[] = 'Student ID is required.';
+            } elseif (!isset($studentsByIdentifier[$studentIdentifier])) {
+                $rowErrors[] = "Student ID '{$studentIdentifier}' not found in this school.";
             }
 
             if (!empty($rowErrors)) {
@@ -120,40 +148,44 @@ class ParentImportService
                 continue;
             }
 
-            $email = trim($row['email'] ?? '');
-            if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors[$rowNum] = ['email is not a valid email address.'];
+            /** @var Student $student */
+            $student = $studentsByIdentifier[$studentIdentifier];
+
+            $linkKey = $student->id . '|' . $rawEmail . '|' . $phone . '|' . $relation;
+            if (isset($seenLinks[$linkKey])) {
+                $errors[$rowNum] = ["Duplicate row: this parent is already linked to student {$studentIdentifier} as {$relation} earlier in this file."];
+                continue;
+            }
+            $seenLinks[$linkKey] = true;
+
+            $existingGuardianId = $resolver->resolve($rawEmail, $phone);
+
+            if ($existingGuardianId && isset($existingPairs[$student->id . '|' . $existingGuardianId . '|' . $relation])) {
+                $errors[$rowNum] = ["Skipped: {$parentName} is already linked to student {$studentIdentifier} as {$relation}."];
                 continue;
             }
 
-            if ($studentIdNo !== '' && isset($existingStudentIds[$studentIdNo])) {
-                $linkKey = strtolower($parentName) . '|' . $studentIdNo;
-                if (in_array($linkKey, $seenLinks, true)) {
-                    $errors[$rowNum] = ["Duplicate parent+student link skipped (parent: {$parentName}, student: {$studentIdNo})."];
-                    continue;
-                }
-                $seenLinks[] = $linkKey;
-            }
-
-            $existingGuardian = $existingGuardiansByName[strtolower($parentName)] ?? null;
-
-            $valid[] = array_merge(
-                collect($row)->only(self::ALLOWED_COLUMNS)->toArray(),
-                [
-                    '__row_number'       => $rowNum,
-                    '__relation'         => $relation,
-                    '__has_student'      => $hasStudentIdentifier,
-                    '__existing_guardian' => $existingGuardian,
-                ]
-            );
+            $valid[] = [
+                'student_id'       => $studentIdentifier,
+                'parent_full_name' => $parentName,
+                'relationship'     => $relation,
+                'email'            => $rawEmail,
+                'phone'            => $rawPhone,
+                'alt_phone'        => $altPhoneRaw,
+                'address'          => trim((string) ($row['address'] ?? '')),
+                'primary_contact'  => $primaryContactRaw !== '' ? $primaryContactRaw : 'email',
+                '__row_number'     => $rowNum,
+                '__student_pk'     => $student->id,
+                '__existing_guardian_id' => $existingGuardianId,
+            ];
         }
 
         $job->update([
-            'valid_rows'       => count($valid),
-            'error_rows'       => count($errors),
-            'validation_errors'=> $errors,
-            'validated_at'     => now(),
-            'status'           => 'validated',
+            'valid_rows'        => count($valid),
+            'error_rows'        => count($errors),
+            'validation_errors' => $errors,
+            'validated_at'      => now(),
+            'status'            => 'validated',
         ]);
 
         return [
@@ -167,8 +199,16 @@ class ParentImportService
     {
         $validation = $this->validateRows($job);
 
+        $preview = collect($validation['valid'])
+            ->take(50)
+            ->map(fn($row) => collect($row)
+                ->reject(fn($value, $key) => str_starts_with((string) $key, '__'))
+                ->all())
+            ->values()
+            ->all();
+
         return [
-            'preview'       => array_slice($validation['valid'], 0, 50),
+            'preview'       => $preview,
             'total_rows'    => $validation['total'],
             'valid_rows'    => count($validation['valid']),
             'error_rows'    => count($validation['errors']),
@@ -185,23 +225,23 @@ class ParentImportService
         $batches = array_chunk($validRows, $batchSize);
 
         $summary = [
-            'parents_created'    => 0,
-            'parents_reused'     => 0,
-            'students_linked'    => 0,
-            'students_not_found' => 0,
-            'skipped_duplicates' => 0,
-            'errors'             => [],
+            'parents_created'       => 0,
+            'parents_reused'        => 0,
+            'links_created'         => 0,
+            'skipped_existing_links'=> 0,
+            'errors'                => [],
         ];
 
         $job->update(['status' => 'importing']);
 
-        $guardianCache = [];
+        $resolver = null;
 
         foreach ($batches as $batch) {
-            DB::transaction(function () use ($batch, &$summary, &$guardianCache) {
+            DB::transaction(function () use ($batch, &$summary, &$resolver) {
                 foreach ($batch as $row) {
                     try {
-                        $this->processRow($row, $summary, $guardianCache);
+                        $resolver ??= new ParentIdentityResolver($this->schoolId);
+                        $this->processRow($row, $summary, $resolver);
                     } catch (\Throwable $e) {
                         $summary['errors'][$row['__row_number']] = $e->getMessage();
                     }
@@ -209,80 +249,131 @@ class ParentImportService
             });
         }
 
+        $linkedTotal = $summary['links_created'];
+
         $job->update([
-            'status'          => 'completed',
-            'imported_rows'   => $summary['parents_created'] + $summary['parents_reused'],
-            'import_summary'  => $summary,
-            'imported_at'     => now(),
+            'status'         => 'completed',
+            'imported_rows'  => $summary['parents_created'] + $summary['parents_reused'],
+            'import_summary' => $summary,
+            'imported_at'    => now(),
         ]);
+
+        activity()
+            ->useLog('imports')
+            ->withProperties([
+                'import_job_id'     => $job->id,
+                'parents_created'   => $summary['parents_created'],
+                'parents_reused'    => $summary['parents_reused'],
+                'links_created'     => $summary['links_created'],
+            ])
+            ->log("Parent/guardian import completed: {$summary['parents_created']} created, {$summary['parents_reused']} reused, {$linkedTotal} child links created.");
 
         return $summary;
     }
 
-    private function processRow(array $row, array &$summary, array &$guardianCache): void
+    private function processRow(array $row, array &$summary, ParentIdentityResolver $resolver): void
     {
-        $parentName = trim($row['parent_name']);
-        $relation = $row['__relation'];
-        $phone = trim($row['phone'] ?? '') ?: null;
-        $email = trim($row['email'] ?? '') ?: null;
-        $occupation = trim($row['occupation'] ?? '') ?: null;
-        $address = trim($row['address'] ?? '') ?: null;
+        $email = $row['email'];
+        $phone = $this->normalizePhone($row['phone']);
+        $altPhone = $this->normalizePhone($row['alt_phone']);
 
-        $guardianKey = strtolower($parentName);
+        $existingId = $resolver->resolve($email, $phone);
 
-        $existingGuardian = $row['__existing_guardian'] ?? null;
+        if ($existingId) {
+            /** @var Guardian $guardian */
+            $guardian = Guardian::where('school_id', $this->schoolId)->findOrFail($existingId);
 
-        if ($existingGuardian) {
-            $guardian = $existingGuardian;
-            $summary['parents_reused']++;
-        } elseif (isset($guardianCache[$guardianKey])) {
-            $guardian = $guardianCache[$guardianKey];
+            $updates = [];
+            if (empty($guardian->email)) $updates['email'] = $email;
+            if (empty($guardian->phone)) $updates['phone'] = $phone;
+            if ($altPhone !== '' && empty($guardian->alt_phone)) $updates['alt_phone'] = $altPhone;
+            if (!empty($row['address']) && empty($guardian->address)) $updates['address'] = $row['address'];
+
+            if (!empty($updates)) {
+                $guardian->update($updates);
+            }
+
             $summary['parents_reused']++;
         } else {
             $guardian = Guardian::create([
                 'school_id'  => $this->schoolId,
                 'user_id'    => null,
-                'name'       => $parentName,
-                'relation'   => $relation,
-                'phone'      => $phone,
+                'name'       => $row['parent_full_name'],
+                'relation'   => $row['relationship'],
+                'phone'      => $phone ?: null,
+                'alt_phone'  => $altPhone ?: null,
                 'email'      => $email,
-                'occupation' => $occupation,
-                'address'    => $address,
+                'occupation' => null,
+                'address'    => !empty($row['address']) ? $row['address'] : null,
             ]);
 
-            $guardianCache[$guardianKey] = $guardian;
+            $resolver->remember($guardian);
             $summary['parents_created']++;
         }
 
-        $studentIdNo = trim($row['student_id_no'] ?? '');
-        $studentFirstName = trim($row['student_first_name'] ?? '');
-        $studentLastName = trim($row['student_last_name'] ?? '');
+        $student = Student::where('school_id', $this->schoolId)->findOrFail($row['__student_pk']);
 
-        $student = null;
+        $isFirstLink = !DB::table('guardian_student')
+            ->where('student_id', $student->id)
+            ->exists();
 
-        if ($studentIdNo !== '') {
-            $student = Student::where('school_id', $this->schoolId)
-                ->where('student_id', $studentIdNo)
-                ->first();
-        }
+        $inserted = DB::table('guardian_student')->insertOrIgnore([
+            'guardian_id'    => $guardian->id,
+            'student_id'     => $student->id,
+            'school_id'      => $this->schoolId,
+            'relationship'   => $row['relationship'],
+            'is_primary'     => $isFirstLink,
+            'created_at'     => now(),
+            'updated_at'     => now(),
+        ]);
 
-        if (!$student && $studentFirstName !== '' && $studentLastName !== '') {
-            $student = Student::where('school_id', $this->schoolId)
-                ->whereRaw('LOWER(first_name) = ?', [strtolower($studentFirstName)])
-                ->whereRaw('LOWER(last_name) = ?', [strtolower($studentLastName)])
-                ->first();
-        }
-
-        if ($student) {
-            $currentGuardianId = $student->guardian_id;
-            if ($currentGuardianId && $currentGuardianId !== $guardian->id) {
-                $summary['students_not_found']++;
-            } else {
-                $student->update(['guardian_id' => $guardian->id]);
-                $summary['students_linked']++;
-            }
+        if ($inserted > 0) {
+            $summary['links_created']++;
         } else {
-            $summary['students_not_found']++;
+            $summary['skipped_existing_links']++;
         }
+
+        if (empty($student->guardian_id)) {
+            $student->update(['guardian_id' => $guardian->id]);
+        }
+    }
+
+    private function buildStudentLookup(): array
+    {
+        $lookup = [];
+
+        Student::where('school_id', $this->schoolId)
+            ->select('id', 'student_id', 'admission_no')
+            ->get()
+            ->each(function (Student $s) use (&$lookup) {
+                if (!empty($s->student_id)) {
+                    $lookup[$s->student_id] = $s;
+                }
+                if (!empty($s->admission_no)) {
+                    $lookup[$s->admission_no] = $s;
+                }
+            });
+
+        return $lookup;
+    }
+
+    private function buildExistingLinkSet(): array
+    {
+        $guardianIds = Guardian::where('school_id', $this->schoolId)->pluck('id');
+
+        return DB::table('guardian_student')
+            ->whereIn('guardian_id', $guardianIds)
+            ->get(['student_id', 'guardian_id', 'relationship'])
+            ->keyBy(fn($r) => "{$r->student_id}|{$r->guardian_id}|{$r->relationship}")
+            ->map(fn($r) => true)
+            ->all();
+    }
+
+    private function normalizePhone(string $value): string
+    {
+        $digits = preg_replace('/[^0-9+]/', '', trim($value)) ?? '';
+        if ($digits === '') return '';
+        $stripped = str_replace('+', '', $digits);
+        return ctype_digit($stripped) ? $stripped : '';
     }
 }

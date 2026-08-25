@@ -11,7 +11,7 @@ class Package extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'name', 'slug', 'description', 'price_monthly', 'price_yearly',
+        'name', 'slug', 'description', 'price_monthly', 'price_yearly', 'price_per_term',
         'max_students', 'max_staff', 'storage_gb', 'is_active', 'features',
     ];
 
@@ -20,6 +20,7 @@ class Package extends Model
         'is_active'     => 'boolean',
         'price_monthly' => 'decimal:2',
         'price_yearly'  => 'decimal:2',
+        'price_per_term' => 'decimal:2',
     ];
 
     public function modules(): HasMany

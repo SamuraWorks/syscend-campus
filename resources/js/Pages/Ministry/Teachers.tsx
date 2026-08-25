@@ -1,4 +1,5 @@
 import MinistryLayout from '@/Layouts/MinistryLayout';
+import { useRealtime } from '@/lib/useRealtime';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserCog, Search } from 'lucide-react';
@@ -48,6 +49,8 @@ export default function MinistryTeachers({ teachers }: Props) {
         pending: teachers.filter((t) => t.licensing_status === 'pending').length,
         active: teachers.filter((t) => t.employment_status === 'active').length,
     };
+
+    useRealtime();
 
     return (
         <MinistryLayout title="National Teacher Registry">

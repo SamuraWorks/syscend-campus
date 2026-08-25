@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 interface StudentEntry {
-    student: { id: number; full_name: string; class_id: number; schoolClass?: { name: string }; photo: string | null; };
+    student: { id: number; full_name: string; class_id: number; schoolClass?: { name: string }; photo: string | null; photo_url: string | null; };
     score: number;
     classification: string;
 }
@@ -172,8 +172,8 @@ export default function PerformanceDashboard({ linked, summary, subjectStudents,
                                                     {i + 1}
                                                 </span>
                                                 <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center shrink-0 overflow-hidden">
-                                                    {entry.student.photo
-                                                        ? <img src={entry.student.photo} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                                    {entry.student.photo_url
+                                                        ? <img src={entry.student.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                                                         : <span className="text-xs font-bold text-indigo-600">{entry.student.full_name[0]}</span>
                                                     }
                                                 </div>

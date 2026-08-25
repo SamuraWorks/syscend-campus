@@ -1,8 +1,12 @@
 <?php
 
-use App\Models\Student;
+use App\Models\School;
+use App\Models\SubscriptionPayment;
+use App\Services\SubscriptionPaymentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
@@ -13,8 +17,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             return response()->json(['data' => []]);
         }
 
-        $students = Student::query()
-            ->where('school_id', $request->user()->school_id)
+        $students = School::find($request->user()->school_id)
+            ?->students()
             ->where(function ($q) use ($query) {
                 $q->where('first_name', 'like', "%{$query}%")
                   ->orWhere('last_name', 'like', "%{$query}%")
@@ -24,16 +28,76 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             ->limit(20)
             ->get();
 
-        return response()->json(['data' => $students]);
+        return response()->json(['data' => $students ?? []]);
     });
 
-    Route::post('/payments/webhook/orange-money', function (Request $request) {
-        \Log::info('Orange Money webhook received', [
-            'transaction_id' => $request->input('data?.transactionId') ?? 'unknown',
-            'status' => $request->input('data?.status') ?? 'unknown',
+});
+
+// ── Public webhook routes (no auth, called by Orange Money) ──
+
+Route::prefix('v1')->group(function () {
+
+    Route::post('/webhooks/orange-money-subscription', function (Request $request) {
+        Log::info('Orange Money subscription webhook received', [
+            'payload' => $request->all(),
             'timestamp' => now()->toIso8601String(),
         ]);
+
+        $orderId  = $request->input('data.order_id') ?? $request->input('order_id');
+        $status   = $request->input('data.status') ?? $request->input('status') ?? '';
+        $txnId    = $request->input('data.transactionId') ?? $request->input('transaction_id') ?? '';
+
+        if (! $orderId) {
+            Log::warning('Orange Money webhook: missing order_id');
+            return response()->json(['status' => 'error', 'message' => 'Missing order_id'], 400);
+        }
+
+        $payment = SubscriptionPayment::where('transaction_ref', $orderId)->first();
+        if (! $payment) {
+            Log::warning('Orange Money webhook: payment not found', ['order_id' => $orderId]);
+            return response()->json(['status' => 'error', 'message' => 'Payment not found'], 404);
+        }
+
+        if ($status === 'SUCCESS' || $status === 'CONFIRMED' || $status === 'successful' || $status === 'confirmed') {
+            $payment->update([
+                'status'        => 'confirmed',
+                'confirmed_at'  => now(),
+                'transaction_ref' => $orderId . '-confirmed-' . $txnId,
+            ]);
+            $sub = $payment->subscription;
+            if ($sub && $sub->is_fully_paid && $sub->status !== 'active') {
+                $sub->update(['status' => 'active']);
+                $sub->school->update(['current_subscription_id' => $sub->id]);
+                Log::info("Subscription {$sub->id} activated via webhook for school {$sub->school_id}");
+            }
+        } else {
+            $payment->update(['status' => 'failed', 'notes' => "Webhook status: {$status} | txn: {$txnId}"]);
+            Log::info("Orange Money webhook: payment {$payment->id} set to failed (status={$status})");
+        }
+
         return response()->json(['status' => 'received']);
+    });
+
+    Route::get('/payments/orange-money-subscription/callback', function (Request $request) {
+        $ref    = $request->query('ref');
+        $status = $request->query('status', 'pending');
+
+        if ($ref && in_array($status, ['SUCCESS', 'CONFIRMED'])) {
+            SubscriptionPayment::where('transaction_ref', $ref)
+                ->where('status', 'pending')
+                ->update(['status' => 'confirmed', 'confirmed_at' => now()]);
+
+            $payment = SubscriptionPayment::where('transaction_ref', $ref)->first();
+            if ($payment) {
+                $sub = $payment->subscription;
+                if ($sub && $sub->is_fully_paid && $sub->status !== 'active') {
+                    $sub->update(['status' => 'active']);
+                    $sub->school->update(['current_subscription_id' => $sub->id]);
+                }
+            }
+        }
+
+        return redirect('/super-admin/subscriptions?payment=' . urlencode($status));
     });
 
 });

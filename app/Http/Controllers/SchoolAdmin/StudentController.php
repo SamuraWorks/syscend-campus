@@ -12,6 +12,7 @@ use App\Models\Student;
 use App\Models\StudentDocument;
 use App\Models\User;
 use App\Services\NotificationDispatchService;
+use App\Services\StudentIdService;
 use App\Services\UserCreationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,11 +77,12 @@ class StudentController extends Controller
         $schoolId = $this->getSchoolId();
 
         return Inertia::render('SchoolAdmin/Students/Create', [
-            'classes'     => SchoolClass::orderBy('numeric_name')->get(['id', 'name', 'school_level']),
-            'sections'    => Section::orderBy('name')->get(['id', 'class_id', 'name']),
-            'houses'      => House::where('is_active', true)->orderBy('name')->get(['id', 'name', 'color']),
-            'departments' => Department::where('type', 'academic')->where('is_active', true)
-                                ->where('school_id', $schoolId)->orderBy('name')->get(['id', 'name']),
+            'classes'          => SchoolClass::where('school_id', $schoolId)->orderBy('numeric_name')->get(['id', 'name', 'school_level']),
+            'sections'         => Section::where('school_id', $schoolId)->orderBy('name')->get(['id', 'class_id', 'name']),
+            'houses'           => House::where('is_active', true)->where('school_id', $schoolId)->orderBy('name')->get(['id', 'name', 'color']),
+            'departments'      => Department::where('type', 'academic')->where('is_active', true)
+                                    ->where('school_id', $schoolId)->orderBy('name')->get(['id', 'name']),
+            'next_admission_no'=> StudentIdService::nextPreview($schoolId),
         ]);
     }
 
@@ -108,9 +110,23 @@ class StudentController extends Controller
             'admission_type'  => ['nullable', Rule::in(['new', 'transfer', 'returning'])],
             'previous_school' => 'nullable|string|max:200',
             'roll_no'         => 'nullable|string|max:50',
-            // Placement
-            'class_id'        => ['required', Rule::exists('classes', 'id')->whereNull('deleted_at')],
-            'section_id'      => 'nullable|exists:sections,id',
+            // Student identifiers — admission_no is THE Student ID.
+            // Blank = auto-generate via the school's configured format.
+            'admission_no'    => [
+                'nullable', 'string', 'max:50',
+                Rule::unique('students', 'admission_no')
+                    ->where('school_id', $schoolId)
+                    ->whereNull('deleted_at'),
+            ],
+            'student_id'      => [
+                'nullable', 'string', 'max:30',
+                Rule::unique('students', 'student_id')
+                    ->where('school_id', $schoolId)
+                    ->whereNull('deleted_at'),
+            ],
+            // Placement — class/section MUST belong to the current school
+            'class_id'        => ['required', Rule::exists('classes', 'id')->where('school_id', $schoolId)->whereNull('deleted_at')],
+            'section_id'      => ['nullable', Rule::exists('sections', 'id')->where('school_id', $schoolId)],
             'house_id'        => ['nullable', Rule::exists('houses', 'id')->where('school_id', $schoolId)],
             'department_id'   => ['nullable', Rule::exists('departments', 'id')->where('school_id', $schoolId)],
             // Guardian
@@ -121,6 +137,22 @@ class StudentController extends Controller
             'guardian.occupation' => 'nullable|string|max:100',
             'guardian.address'    => 'nullable|string|max:500',
         ]);
+
+        // Blank identifiers mean "auto-generate" — normalise before create.
+        foreach (['admission_no', 'student_id'] as $idField) {
+            if (isset($data[$idField]) && trim((string) $data[$idField]) === '') {
+                $data[$idField] = null;
+            }
+        }
+
+        // A section, when provided, must belong to the selected class.
+        if (!empty($data['section_id'])) {
+            $sectionClassId = Section::where('school_id', $schoolId)->where('id', $data['section_id'])->value('class_id');
+            if (!$sectionClassId || (int) $sectionClassId !== (int) $data['class_id']) {
+                return back()->withInput()
+                    ->with('error', 'The selected section does not belong to the selected class.');
+            }
+        }
 
         // Departments are only valid for senior secondary (SSS) classes
         if (!empty($data['department_id'])) {
@@ -152,7 +184,7 @@ class StudentController extends Controller
                 ));
 
                 $student->guardians()->syncWithoutDetaching([
-                    $guardian->id => ['relationship' => $data['guardian']['relation'], 'is_primary' => true],
+                    $guardian->id => ['relationship' => $data['guardian']['relation'], 'is_primary' => true, 'school_id' => $schoolId],
                 ]);
 
                 if (!empty($data['guardian']['email']) && !$guardian->user_id) {
@@ -239,16 +271,18 @@ class StudentController extends Controller
 
         return Inertia::render('SchoolAdmin/Students/Edit', [
             'student'     => $student,
-            'classes'     => SchoolClass::orderBy('numeric_name')->get(['id', 'name', 'school_level']),
-            'sections'    => Section::orderBy('name')->get(['id', 'class_id', 'name']),
-            'houses'      => House::where('is_active', true)->orderBy('name')->get(['id', 'name', 'color']),
+            'classes'     => SchoolClass::where('school_id', $student->school_id)->orderBy('numeric_name')->get(['id', 'name', 'school_level']),
+            'sections'    => Section::where('school_id', $student->school_id)->orderBy('name')->get(['id', 'class_id', 'name']),
+            'houses'      => House::where('is_active', true)->where('school_id', $student->school_id)->orderBy('name')->get(['id', 'name', 'color']),
             'departments' => Department::where('type', 'academic')->where('is_active', true)
-                                ->where('school_id', $this->getSchoolId())->orderBy('name')->get(['id', 'name']),
+                                ->where('school_id', $student->school_id)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function update(Request $request, Student $student): RedirectResponse
     {
+        $schoolId = (int) $student->school_id;
+
         $data = $request->validate([
             'first_name'      => 'required|string|max:100',
             'last_name'       => 'nullable|string|max:100',
@@ -268,8 +302,24 @@ class StudentController extends Controller
             'admission_type'  => ['nullable', Rule::in(['new', 'transfer', 'returning'])],
             'previous_school' => 'nullable|string|max:200',
             'roll_no'         => 'nullable|string|max:50',
-            'class_id'        => ['required', Rule::exists('classes', 'id')->whereNull('deleted_at')],
-            'section_id'      => 'nullable|exists:sections,id',
+            // Student ID is editable but must stay unique within the school
+            'admission_no'    => [
+                'required', 'string', 'max:50',
+                Rule::unique('students', 'admission_no')
+                    ->where('school_id', $student->school_id)
+                    ->whereNull('deleted_at')
+                    ->ignore($student->id),
+            ],
+            'student_id'      => [
+                'nullable', 'string', 'max:30',
+                Rule::unique('students', 'student_id')
+                    ->where('school_id', $student->school_id)
+                    ->whereNull('deleted_at')
+                    ->ignore($student->id),
+            ],
+            // Placement — class/section MUST belong to the student's school
+            'class_id'        => ['required', Rule::exists('classes', 'id')->where('school_id', $student->school_id)->whereNull('deleted_at')],
+            'section_id'      => ['nullable', Rule::exists('sections', 'id')->where('school_id', $student->school_id)],
             'house_id'        => ['nullable', Rule::exists('houses', 'id')->where('school_id', $student->school_id)],
             'department_id'   => ['nullable', Rule::exists('departments', 'id')->where('school_id', $student->school_id)],
             'guardian.name'       => 'required|string|max:150',
@@ -279,6 +329,20 @@ class StudentController extends Controller
             'guardian.occupation' => 'nullable|string|max:100',
             'guardian.address'    => 'nullable|string|max:500',
         ]);
+
+        foreach (['student_id'] as $idField) {
+            if (isset($data[$idField]) && trim((string) $data[$idField]) === '') {
+                $data[$idField] = null;
+            }
+        }
+
+        if (!empty($data['section_id'])) {
+            $sectionClassId = Section::where('school_id', $schoolId)->where('id', $data['section_id'])->value('class_id');
+            if (!$sectionClassId || (int) $sectionClassId !== (int) $data['class_id']) {
+                return back()->withInput()
+                    ->with('error', 'The selected section does not belong to the selected class.');
+            }
+        }
 
         if (!empty($data['department_id'])) {
             $class = SchoolClass::find($data['class_id']);
@@ -316,7 +380,7 @@ class StudentController extends Controller
                 }
 
                 $student->guardians()->syncWithoutDetaching([
-                    $guardian->id => ['relationship' => $data['guardian']['relation'], 'is_primary' => true],
+                    $guardian->id => ['relationship' => $data['guardian']['relation'], 'is_primary' => true, 'school_id' => $schoolId],
                 ]);
             });
 
@@ -341,6 +405,7 @@ class StudentController extends Controller
         $request->validate([
             'title' => 'required|string|max:150',
             'file'  => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'visible_to_parent' => 'sometimes|boolean',
         ]);
 
         $path = $request->file('file')->store("students/{$student->id}/documents", 'private');
@@ -352,9 +417,24 @@ class StudentController extends Controller
             'file_path'  => $path,
             'file_type'  => $request->file('file')->getMimeType(),
             'file_size'  => $request->file('file')->getSize(),
+            'visible_to_parent' => (bool) $request->boolean('visible_to_parent'),
         ]);
 
         return back()->with('success', 'Document uploaded.');
+    }
+
+    public function toggleDocumentVisibility(StudentDocument $document): RedirectResponse
+    {
+        abort_unless((int) $document->school_id === (int) $this->getSchoolId(), 404);
+
+        $document->update(['visible_to_parent' => !$document->visible_to_parent]);
+
+        activity()
+            ->performedOn($document)
+            ->withProperties(['visible_to_parent' => $document->visible_to_parent, 'school_id' => $document->school_id])
+            ->log('Document parent visibility toggled');
+
+        return back()->with('success', $document->visible_to_parent ? 'Document is now visible to parents.' : 'Document hidden from parents.');
     }
 
     public function downloadDocument(StudentDocument $document)

@@ -3,10 +3,11 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Clock } from 'lucide-react';
+import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
 
 interface Slot { subject: string | null; start_time: string; end_time: string; room: string | null; }
 interface Child { id: number; full_name: string; class: string | null; section: string | null; timetable: Record<string, Slot[]>; }
-interface Props { linked: boolean; guardian: { name: string } | null; children: Child[]; today: string; }
+interface Props { linked: boolean; guardian: { name: string } | null; children: Child[]; today: string; childrenIndex?: { id: number; full_name: string }[]; selectedChild?: string | null; }
 
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 const COLORS = ['bg-indigo-50 border-indigo-200 text-indigo-700','bg-violet-50 border-violet-200 text-violet-700',
@@ -14,7 +15,7 @@ const COLORS = ['bg-indigo-50 border-indigo-200 text-indigo-700','bg-violet-50 b
     'bg-amber-50 border-amber-200 text-amber-700','bg-rose-50 border-rose-200 text-rose-700',
     'bg-teal-50 border-teal-200 text-teal-700','bg-pink-50 border-pink-200 text-pink-700'];
 
-export default function ParentTimetable({ linked, children, today }: Props) {
+export default function ParentTimetable({ linked, children, today, childrenIndex, selectedChild }: Props) {
     if (!linked) {
         return (
             <AppLayout title="Children Timetable">
@@ -29,7 +30,10 @@ export default function ParentTimetable({ linked, children, today }: Props) {
     return (
         <AppLayout title="Children Timetable">
             <div className="space-y-8">
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Children Timetable</h1>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Children Timetable</h1>
+                    <ParentChildSwitcher childrenIndex={childrenIndex} selectedChild={selectedChild} />
+                </div>
 
                 {children.map(child => {
                     const activeDays = DAYS.filter(d => child.timetable[d]?.length > 0);
@@ -41,7 +45,7 @@ export default function ParentTimetable({ linked, children, today }: Props) {
                             </p>
 
                             {activeDays.length === 0 ? (
-                                <Card><CardContent className="py-12 text-center text-slate-400">No timetable scheduled.</CardContent></Card>
+                                <Card><CardContent className="py-12 text-center text-slate-400">No timetable has been published by your school.</CardContent></Card>
                             ) : (
                                 <div className="space-y-4">
                                     {activeDays.map(day => (

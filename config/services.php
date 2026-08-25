@@ -77,6 +77,11 @@ return [
         'return_url'   => env('ORANGE_MONEY_RETURN_URL', ''),
         'cancel_url'   => env('ORANGE_MONEY_CANCEL_URL', ''),
         'webhook_url'  => env('ORANGE_MONEY_WEBHOOK_URL', ''),
+
+        // Platform-level credentials for subscription billing
+        'platform_merchant_key' => env('ORANGE_MONEY_PLATFORM_MERCHANT_KEY', ''),
+        'platform_api_user'     => env('ORANGE_MONEY_PLATFORM_API_USER', ''),
+        'platform_api_key'      => env('ORANGE_MONEY_PLATFORM_API_KEY', ''),
     ],
 
     'afrimoney' => [

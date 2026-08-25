@@ -50,6 +50,7 @@ const navGroups: NavGroup[] = [
         title: 'Subscriptions & Billing',
         items: [
             { label: 'Packages',       href: '/super-admin/packages',       icon: Package,     roles: ['super-admin'] },
+            { label: 'Pricing',        href: '/super-admin/pricing',        icon: CreditCard,  roles: ['super-admin'] },
             { label: 'Subscriptions',  href: '/super-admin/subscriptions',  icon: CreditCard,  roles: ['super-admin'] },
             { label: 'Coupons',        href: '/super-admin/coupons',        icon: Tag,         roles: ['super-admin'] },
             { label: 'Module Manager', href: '/super-admin/module-manager', icon: Layers,      roles: ['super-admin'] },

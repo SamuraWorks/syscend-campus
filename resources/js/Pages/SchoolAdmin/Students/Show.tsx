@@ -24,6 +24,7 @@ const statusColors: Record<string, string> = {
 const docSchema = z.object({
     title: z.string().min(1, 'Title required'),
     file:  z.instanceof(FileList).refine((f) => f.length > 0, 'File required'),
+    visible_to_parent: z.boolean().optional(),
 });
 type DocForm = z.infer<typeof docSchema>;
 
@@ -32,16 +33,19 @@ export default function ShowStudent() {
     const [tab, setTab]       = useState<'personal' | 'guardian' | 'documents'>('personal');
     const [docOpen, setDocOpen] = useState(false);
 
-    const { register, handleSubmit, reset, formState: { errors, isSubmitting } } =
-        useForm<DocForm>({ resolver: zodResolver(docSchema) });
+    const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } =
+        useForm<DocForm>({ resolver: zodResolver(docSchema), defaultValues: { visible_to_parent: false } });
+
+    const visibleToParent = watch('visible_to_parent');
 
     const uploadDoc = (data: DocForm) => {
         const form = new FormData();
         form.append('title', data.title);
         form.append('file',  data.file[0]);
+        form.append('visible_to_parent', data.visible_to_parent ? '1' : '0');
         router.post(`/school/students/${student.id}/documents`, form, {
             forceFormData: true,
-            onSuccess: () => { setDocOpen(false); reset(); },
+            onSuccess: () => { setDocOpen(false); reset({ visible_to_parent: false }); },
         });
     };
 
@@ -234,6 +238,14 @@ export default function ShowStudent() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => router.put(`/school/students/documents/${doc.id}/visibility`)}
+                                                className={`text-[10px] px-2 py-1 rounded-full font-medium ${doc.visible_to_parent ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}
+                                                title={doc.visible_to_parent ? 'Visible to parents — click to hide' : 'Hidden from parents — click to share'}
+                                            >
+                                                {doc.visible_to_parent ? 'Parent-visible' : 'Private'}
+                                            </button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-500 hover:text-indigo-600" asChild>
                                                 <a href={`/school/students/documents/${doc.id}/download`} download>
                                                     <Download className="w-3.5 h-3.5" />
@@ -268,6 +280,15 @@ export default function ShowStudent() {
                             {errors.file && <p className="text-xs text-red-500">{errors.file.message as string}</p>}
                             <p className="text-xs text-slate-400">PDF, JPG, PNG · max 5 MB</p>
                         </div>
+                        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                            <input
+                                type="checkbox"
+                                className="rounded border-slate-300 dark:border-slate-600"
+                                checked={visibleToParent ?? false}
+                                onChange={(e) => setValue('visible_to_parent', e.target.checked)}
+                            />
+                            Visible to parents in the portal
+                        </label>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setDocOpen(false)}>Cancel</Button>
                             <Button type="submit" disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700 text-white">Upload</Button>

@@ -38,20 +38,28 @@ class ParentRegistrationController extends Controller
         $school = School::where('slug', $schoolSlug)->firstOrFail();
 
         $data = $request->validate([
-            'full_name' => 'required|string|max:255',
-            'email'     => 'required|email|max:255',
+            'student_id' => 'required|string|max:100',
+            'surname'    => 'required|string|max:255',
+            'email'      => 'required|email|max:255',
+            'phone'      => 'required|string|max:32',
         ]);
 
         RateLimiter::hit($this->throttleKey . ':' . $request->ip(), 60);
 
         $service = new RegistryVerificationService();
-        $result = $service->verifyParent($school->id, $data['full_name'], $data['email']);
+        $result = $service->verifyParent(
+            $school->id,
+            $data['student_id'],
+            $data['surname'],
+            $data['email'],
+            $data['phone'],
+        );
 
         if (!$result['success']) {
             RateLimiter::hit($this->throttleKey . ':' . $request->ip(), 60);
             return back()
-                ->withErrors(['full_name' => $result['message']])
-                ->onlyInput('full_name', 'email');
+                ->withErrors(['student_id' => $result['message']])
+                ->onlyInput('student_id', 'email');
         }
 
         if (!empty($result['already_registered'])) {
@@ -66,10 +74,9 @@ class ParentRegistrationController extends Controller
         $verificationToken = bin2hex(random_bytes(32));
         session([
             "registration.verify_{$verificationToken}" => [
-                'email'      => $data['email'],
-                'full_name'  => $data['full_name'],
-                'school_id'  => $school->id,
-                'expires_at' => now()->addMinutes(15)->timestamp,
+                'guardian_id' => $result['guardian']->id,
+                'school_id'   => $school->id,
+                'expires_at'  => now()->addMinutes(15)->timestamp,
             ],
             'registration.verify_token' => $verificationToken,
         ]);
@@ -96,19 +103,7 @@ class ParentRegistrationController extends Controller
         }
 
         $guardian = Guardian::where('school_id', $sessionData['school_id'])
-            ->where('email', $sessionData['email'])
-            ->first();
-
-        if (!$guardian) {
-            // Guardian was matched by name only during verification (no email on file)
-            $normalized = RegistryVerificationService::normalizeName($sessionData['full_name']);
-            $guardian = Guardian::where('school_id', $sessionData['school_id'])
-                ->where(function ($query) {
-                    $query->whereNull('email')->orWhere('email', '');
-                })
-                ->get()
-                ->first(fn (Guardian $candidate) => $normalized !== '' && RegistryVerificationService::normalizeName($candidate->name) === $normalized);
-        }
+            ->find($sessionData['guardian_id'] ?? null);
 
         if (!$guardian || $guardian->claimed_by !== null || $guardian->user_id !== null) {
             session()->forget('registration');
@@ -120,7 +115,12 @@ class ParentRegistrationController extends Controller
             'password_confirmation' => 'required',
         ]);
 
-        $email = $sessionData['email'];
+        $email = strtolower(trim((string) $guardian->email));
+        if ($email === '') {
+            session()->forget('registration');
+            return back()->withErrors(['message' => 'This record has no email on file. Please contact your school administrator.']);
+        }
+
         $existingUser = User::where('email', $email)->first();
         $createdUser = false;
 
@@ -173,6 +173,15 @@ class ParentRegistrationController extends Controller
 
         Auth::login($user);
         $user->update(['last_login_at' => now()]);
+
+        /* §13: parents must verify their email. Send link now; failure must not block registration. */
+        if (!$user->hasVerifiedEmail()) {
+            try {
+                $user->sendEmailVerificationNotification();
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Parent verification email failed: ' . $e->getMessage(), ['user_id' => $user->id]);
+            }
+        }
 
         return redirect()->intended(route('dashboard'));
     }

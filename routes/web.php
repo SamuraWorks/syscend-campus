@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\SchoolAdmin\AttendanceController;
 use App\Http\Controllers\SchoolAdmin\ExamController;
@@ -183,6 +184,13 @@ Route::get('/request-demo/thank-you', [DemoRequestController::class, 'thankYou']
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
+    // Email verification (parent self-registration accounts)
+    Route::get('/email/verify', [EmailVerificationController::class, 'notice'])->name('verification.notice');
+    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:6,1')->name('verification.send');
+
     // Profile
     Route::get('/profile',                   [ProfileController::class, 'show'])->name('profile');
     Route::put('/profile',                   [ProfileController::class, 'update'])->name('profile.update');
@@ -252,6 +260,7 @@ Route::middleware('auth')->group(function () {
             Route::post('students/bulk-import',                 [StudentController::class, 'bulkImport'])->middleware('role:super-admin|school-admin|principal')->name('students.bulk-import');
             Route::post('students/{student}/documents',        [StudentController::class, 'uploadDocument'])->name('students.documents.upload');
             Route::get('students/documents/{document}/download', [StudentController::class, 'downloadDocument'])->name('students.documents.download');
+            Route::put('students/documents/{document}/visibility', [StudentController::class, 'toggleDocumentVisibility'])->name('students.documents.visibility');
             Route::delete('students/documents/{document}',     [StudentController::class, 'deleteDocument'])->name('students.documents.delete');
 
             // Exams — core (admin/principal only for CRUD)
@@ -734,6 +743,15 @@ Route::middleware('auth')->group(function () {
             Route::post('/execute/{job}', [ImportController::class, 'execute'])->name('execute');
         });
 
+        // Curriculum lives here (not under /school) because the frontend
+        // pages target /school-admin/curriculum for every operation.
+        Route::prefix('curriculum')->name('curriculum.')->group(function () {
+            Route::get('/class/{classId}', [CurriculumController::class, 'show'])->name('show');
+            Route::post('/', [CurriculumController::class, 'store'])->name('store');
+            Route::put('/{offering}', [CurriculumController::class, 'update'])->name('update');
+            Route::delete('/{offering}', [CurriculumController::class, 'destroy'])->name('destroy');
+        });
+
         // ── Parent Management ──
         Route::prefix('parents')->name('parents.')->group(function () {
             Route::get('/', [ParentController::class, 'index'])->name('index');
@@ -742,6 +760,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{parent}', [ParentController::class, 'show'])->name('show');
             Route::get('/{parent}/edit', [ParentController::class, 'edit'])->name('edit');
             Route::put('/{parent}', [ParentController::class, 'update'])->name('update');
+            Route::post('/{parent}/reset-password', [ParentController::class, 'resetPassword'])->name('reset-password');
             Route::delete('/{parent}', [ParentController::class, 'destroy'])->name('destroy');
         });
 
@@ -801,12 +820,6 @@ Route::middleware('auth')->group(function () {
             ]);
         })->name('academic-structure');
 
-        Route::prefix('curriculum')->name('curriculum.')->group(function () {
-            Route::post('/', [CurriculumController::class, 'store'])->name('store');
-            Route::put('/{offering}', [CurriculumController::class, 'update'])->name('update');
-            Route::delete('/{offering}', [CurriculumController::class, 'destroy'])->name('destroy');
-        });
-
         Route::prefix('enrollments')->name('enrollments.')->group(function () {
             Route::get('/', [EnrollmentController::class, 'index'])->name('index');
             Route::get('/create', [EnrollmentController::class, 'create'])->name('create');
@@ -851,7 +864,7 @@ Route::middleware('auth')->group(function () {
         Route::get('achievements',        [StudentPerformanceController::class, 'achievements'])->name('achievements');
     });
 
-    Route::middleware('role:parent')->prefix('school/parent')->name('parent.')->group(function () {
+    Route::middleware('role:parent')->prefix('school/parent')->name('parent.')->middleware('verified')->group(function () {
         Route::get('dashboard',       [ParentPortalController::class, 'dashboard'])->name('dashboard');
         Route::get('attendance',      [ParentPortalController::class, 'attendance'])->name('attendance');
         Route::get('results',         [ParentPortalController::class, 'results'])->name('results');
@@ -862,6 +875,7 @@ Route::middleware('auth')->group(function () {
         Route::get('profile',         [ParentPortalController::class, 'profile'])->name('profile');
         Route::get('school-info',     [ParentPortalController::class, 'schoolInfo'])->name('school-info');
         Route::get('downloads',       [ParentPortalController::class, 'downloads'])->name('downloads');
+        Route::get('documents/{documentId}/download', [ParentPortalController::class, 'downloadDocument'])->name('documents.download')->whereNumber('documentId');
         Route::get('communication',   [ParentPortalController::class, 'communication'])->name('communication');
         // Performance Intelligence
         Route::get('performance',     [ParentPerformanceController::class, 'dashboard'])->name('performance');
@@ -1077,6 +1091,17 @@ Route::middleware('auth')->group(function () {
             Route::post('subscriptions',                       [SubscriptionController::class, 'store'])->name('subscriptions.store');
             Route::put('subscriptions/{subscription}',         [SubscriptionController::class, 'update'])->name('subscriptions.update');
             Route::delete('subscriptions/{subscription}',      [SubscriptionController::class, 'destroy'])->name('subscriptions.destroy');
+            Route::post('subscriptions/{subscription}/offline-payment', [SubscriptionController::class, 'recordOfflinePayment'])->name('subscriptions.offline-payment');
+            Route::post('subscriptions/{subscription}/online-payment',  [SubscriptionController::class, 'initiateOnlinePayment'])->name('subscriptions.online-payment');
+
+            // Pricing
+            Route::get('pricing', fn () => Inertia::render('SuperAdmin/Pricing/Index', [
+                'packages' => \App\Models\Package::where('is_active', true)
+                    ->with('modules')
+                    ->select('id', 'name', 'description', 'price_per_term', 'price_monthly', 'price_yearly', 'max_students', 'max_staff', 'storage_gb', 'features')
+                    ->orderBy('price_per_term')
+                    ->get(),
+            ]))->name('pricing.index');
 
             // Coupons
             Route::get('coupons',              [CouponController::class, 'index'])->name('coupons.index');

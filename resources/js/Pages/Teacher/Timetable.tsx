@@ -41,7 +41,7 @@ export default function Timetable({ linked, teacher, timetable, today }: Props) 
 
                 {activeDays.length === 0 ? (
                     <Card>
-                        <CardContent className="py-16 text-center text-slate-400">No timetable scheduled yet.</CardContent>
+                        <CardContent className="py-16 text-center text-slate-400">No timetable has been published by your school.</CardContent>
                     </Card>
                 ) : (
                     <div className="space-y-4">

@@ -1,4 +1,5 @@
 import MinistryLayout from '@/Layouts/MinistryLayout';
+import { useRealtime } from '@/lib/useRealtime';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, UserCheck, UserX } from 'lucide-react';
@@ -26,6 +27,8 @@ export default function DistrictOfficers({ officers }: Props) {
         total: officers.length,
         active: officers.filter((o) => o.status === 'active').length,
     };
+
+    useRealtime();
 
     return (
         <MinistryLayout title="District Officers">

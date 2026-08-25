@@ -1,4 +1,5 @@
 import MinistryLayout from '@/Layouts/MinistryLayout';
+import { useRealtime } from '@/lib/useRealtime';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ClipboardCheck, CheckCircle, XCircle, Clock, School } from 'lucide-react';
@@ -50,6 +51,8 @@ export default function SchoolApprovals({ pendingSchools }: Props) {
             onFinish: () => setProcessing(null),
         });
     };
+
+    useRealtime();
 
     return (
         <MinistryLayout title="Pending School Approvals">

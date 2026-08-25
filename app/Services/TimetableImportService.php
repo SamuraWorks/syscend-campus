@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\{AcademicYear, SchoolClass, Section, Staff, Subject, Timetable};
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\{Collection, DB, Str};
+use Illuminate\Support\Facades\{Storage, DB};
+use Illuminate\Support\{Collection, Str};
 
 class TimetableImportService
 {
@@ -26,9 +26,9 @@ class TimetableImportService
     public function parseFile($job): void
     {
         $filePath = Storage::disk('private')->path($job->file_path);
-        $rows = $this->readCsv($filePath);
+        $rows = $this->readRows($filePath);
 
-        $header = array_map(fn ($h) => Str::slug(Str::lower(trim($h)), '_'), $rows[0] ?? []);
+        $header = array_map(fn ($h) => Str::slug(Str::lower(trim((string) $h)), '_'), $rows[0] ?? []);
         $dataRows = array_slice($rows, 1);
 
         $validRows = [];
@@ -71,20 +71,21 @@ class TimetableImportService
     public function executeImport($job): array
     {
         $filePath = Storage::disk('private')->path($job->file_path);
-        $rows = $this->readCsv($filePath);
-        $header = array_map(fn ($h) => Str::slug(Str::lower(trim($h)), '_'), $rows[0] ?? []);
+        $rows = $this->readRows($filePath);
+        $header = array_map(fn ($h) => Str::slug(Str::lower(trim((string) $h)), '_'), $rows[0] ?? []);
         $dataRows = array_slice($rows, 1);
 
         $imported = 0;
-        $skipped = 0;
+        $skipReasons = [];
 
-        DB::transaction(function () use ($dataRows, $header, &$imported, &$skipped) {
-            foreach ($dataRows as $row) {
+        DB::transaction(function () use ($dataRows, $header, &$imported, &$skipReasons) {
+            foreach ($dataRows as $idx => $row) {
                 $record = array_combine($header, $row);
-                if ($this->importRow($record)) {
+                $reason = $this->importRow($record);
+                if ($reason === null) {
                     $imported++;
                 } else {
-                    $skipped++;
+                    $skipReasons[$idx + 2] = $reason;
                 }
             }
         });
@@ -93,24 +94,31 @@ class TimetableImportService
             'imported_rows' => $imported,
             'status'        => 'completed',
             'imported_at'   => now(),
-            'import_summary' => ['imported' => $imported, 'skipped' => $skipped],
+            'import_summary' => [
+                'imported'       => $imported,
+                'skipped'        => count($skipReasons),
+                'skipped_details' => array_slice($skipReasons, 0, 50, true),
+            ],
         ]);
 
-        return ['imported' => $imported, 'skipped' => $skipped];
+        return ['imported' => $imported, 'skipped' => count($skipReasons)];
     }
 
-    private function importRow(array $record): bool
+    /**
+     * @return string|null null = row imported, string = reason it was skipped
+     */
+    private function importRow(array $record): ?string
     {
         $class = SchoolClass::where('school_id', $this->schoolId)
             ->whereRaw('LOWER(name) = ?', [Str::lower($record['class_name'] ?? '')])
             ->first();
-        if (! $class) return false;
+        if (! $class) return "Class '{$record['class_name']}' not found in your school";
 
         $subject = Subject::where('school_id', $this->schoolId)
             ->whereRaw('LOWER(name) = ?', [Str::lower($record['subject_name'] ?? '')])
             ->where('class_id', $class->id)
             ->first();
-        if (! $subject) return false;
+        if (! $subject) return "Subject '{$record['subject_name']}' is not offered to class '{$record['class_name']}'";
 
         $section = null;
         if (! empty($record['section_name'])) {
@@ -118,6 +126,7 @@ class TimetableImportService
                 ->where('class_id', $class->id)
                 ->whereRaw('LOWER(name) = ?', [Str::lower($record['section_name'])])
                 ->first();
+            if (! $section) return "Section '{$record['section_name']}' not found for class '{$record['class_name']}'";
         }
 
         $teacher = null;
@@ -129,10 +138,11 @@ class TimetableImportService
                 ->whereRaw('LOWER(first_name) = ?', [Str::lower($firstName)])
                 ->whereRaw('LOWER(last_name) = ?', [Str::lower($lastName)])
                 ->first();
+            if (! $teacher) return "Teacher '{$record['teacher_name']}' not found in your school (use First Last exactly as in Staff)";
         }
 
         $day = Str::lower(trim($record['day'] ?? ''));
-        if (! in_array($day, self::VALID_DAYS)) return false;
+        if (! in_array($day, self::VALID_DAYS)) return "Invalid day '{$record['day']}'";
 
         $academicYear = null;
         if (! empty($record['academic_year'])) {
@@ -141,11 +151,11 @@ class TimetableImportService
                 ->first();
         }
 
-        $startTime = $record['start_time'] ?? null;
-        $endTime = $record['end_time'] ?? null;
-        if (! $startTime || ! $endTime) return false;
+        $startTime = $this->normalizeTime($record['start_time'] ?? null);
+        $endTime   = $this->normalizeTime($record['end_time'] ?? null);
+        if (! $startTime || ! $endTime) return 'Missing or unparseable start/end time';
 
-        // Teacher conflict check during import
+        // Teacher conflict check during import — reported, never silent.
         if ($teacher) {
             $hasConflict = Timetable::where('school_id', $this->schoolId)
                 ->where('teacher_id', $teacher->id)
@@ -154,7 +164,9 @@ class TimetableImportService
                 ->where('end_time', '>', $startTime)
                 ->exists();
 
-            if ($hasConflict) return false;
+            if ($hasConflict) {
+                return "Teacher {$record['teacher_name']} is already booked {$day} {$startTime}-{$endTime}";
+            }
         }
 
         Timetable::updateOrCreate(
@@ -175,7 +187,7 @@ class TimetableImportService
             ]
         );
 
-        return true;
+        return null;
     }
 
     private function validateRow(array $record, int $rowNum): array
@@ -193,13 +205,96 @@ class TimetableImportService
             $errors[] = "Invalid day: {$record['day']}. Use: monday-sunday";
         }
 
-        if (! empty($record['start_time']) && ! empty($record['end_time'])) {
-            if ($record['start_time'] >= $record['end_time']) {
-                $errors[] = 'End time must be after start time';
-            }
+        $start = $this->normalizeTime($record['start_time'] ?? null);
+        $end   = $this->normalizeTime($record['end_time'] ?? null);
+
+        if (! empty($record['start_time']) && ! $start) {
+            $errors[] = "Start time '{$record['start_time']}' is not a recognizable time";
+        }
+        if (! empty($record['end_time']) && ! $end) {
+            $errors[] = "End time '{$record['end_time']}' is not a recognizable time";
+        }
+
+        if ($start && $end && $start >= $end) {
+            $errors[] = 'End time must be after start time';
         }
 
         return $errors;
+    }
+
+    /**
+     * Read the uploaded spreadsheet into header+data row arrays.
+     * Supports CSV and real Excel files (the official template is XLSX).
+     */
+    private function readRows(string $path): array
+    {
+        $ext = Str::lower(pathinfo($path, PATHINFO_EXTENSION));
+
+        if (in_array($ext, ['xlsx', 'xlsm', 'xls'])) {
+            return $this->readSpreadsheet($path);
+        }
+
+        return $this->readCsv($path);
+    }
+
+    private function readSpreadsheet(string $path): array
+    {
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // formatData=false keeps raw values; we normalise times ourselves.
+        $rows = $sheet->toArray(null, true, false, false);
+        $spreadsheet->disconnectWorksheets();
+
+        return array_map(fn ($row) => array_map(fn ($cell) => $this->cellToString($cell), $row), $rows);
+    }
+
+    /** Normalise spreadsheet cells to plain strings (times become H:i). */
+    private function cellToString(mixed $cell): string
+    {
+        if ($cell === null) return '';
+        if ($cell instanceof \DateTimeInterface) {
+            return $cell->format('H:i');
+        }
+        if (is_float($cell) || is_int($cell)) {
+            // Excel stores times as fractions of a day (0.5 = 12:00)
+            if ($cell > 0 && $cell < 1 && fmod((float) $cell, 1) > 0) {
+                $minutes = (int) round($cell * 24 * 60);
+                return sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
+            }
+            // Avoid scientific notation for long numbers like index numbers
+            return (string) $cell;
+        }
+        return trim((string) $cell);
+    }
+
+    /** Normalise any supported representation to HH:MM. */
+    private function normalizeTime(mixed $value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') return null;
+
+        $asText = $this->cellToString($value);
+
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $asText, $m)) {
+            $h = (int) $m[1];
+            $min = (int) $m[2];
+            if ($h > 23 || $min > 59) return null;
+            return sprintf('%02d:%02d', $h, $min);
+        }
+
+        // Excel fraction of day
+        if (is_numeric($asText) && (float) $asText > 0 && (float) $asText < 1) {
+            $minutes = (int) round(((float) $asText) * 24 * 60);
+            return sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
+        }
+
+        // e.g. "8.15 AM" / "8:15 AM"
+        if (preg_match('/^(\d{1,2})[.:](\d{2})\s*(AM|PM)$/i', $asText, $m)) {
+            $h = (int) $m[1] % 12 + (Str::lower($m[3]) === 'pm' ? 12 : 0);
+            return sprintf('%02d:%02d', $h, (int) $m[2]);
+        }
+
+        return null;
     }
 
     private function readCsv(string $path): array

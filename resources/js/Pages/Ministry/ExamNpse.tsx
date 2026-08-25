@@ -41,7 +41,7 @@ export default function ExamNpse({ candidates, summary }: Props) {
         const entry = schoolMap.get(c.school_id)!;
         entry.total++;
         entry.scores.push(c.total_score);
-        if (c.overall_result === 'passed') entry.passed++;
+        if (c.overall_result === 'pass') entry.passed++;
     }
 
     const topSchools = Array.from(schoolMap.values())

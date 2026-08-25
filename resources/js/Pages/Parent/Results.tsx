@@ -2,14 +2,15 @@ import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3 } from 'lucide-react';
+import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
 
 interface MarkRow { exam: string | null; type: string | null; subject: string | null; marks: number | null; total: number | null; grade: string | null; absent: boolean; }
 interface Child { id: number; full_name: string; class: string | null; marks: MarkRow[]; }
-interface Props { linked: boolean; guardian: { name: string } | null; children: Child[]; }
+interface Props { linked: boolean; guardian: { name: string } | null; children: Child[]; childrenIndex?: { id: number; full_name: string }[]; selectedChild?: string | null; }
 
 import { gradeColor } from '@/lib/gradeColor';
 
-export default function ParentResults({ linked, children }: Props) {
+export default function ParentResults({ linked, children, childrenIndex, selectedChild }: Props) {
     if (!linked) {
         return (
             <AppLayout title="Children Results">
@@ -24,7 +25,10 @@ export default function ParentResults({ linked, children }: Props) {
     return (
         <AppLayout title="Children Results">
             <div className="space-y-8">
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Children Results</h1>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Children Results</h1>
+                    <ParentChildSwitcher childrenIndex={childrenIndex} selectedChild={selectedChild} />
+                </div>
                 {children.map(child => (
                     <div key={child.id}>
                         <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">{child.full_name} — {child.class}</p>

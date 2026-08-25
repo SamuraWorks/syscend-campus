@@ -3,7 +3,7 @@ import {
     LayoutDashboard, School, ClipboardCheck, MapPin, Users,
     FileText, ShieldCheck, ClipboardList, Star, PieChart,
     TrendingUp, Megaphone, Mail, Bell, KeyRound, Settings,
-    ChevronLeft, ChevronRight,
+    ChevronLeft, ChevronRight, GraduationCap, UserCog, Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/Stores/useUIStore';
@@ -14,6 +14,7 @@ interface NavItem {
     href: string;
     icon: React.ElementType;
     exact?: boolean;
+    roles?: string[];
 }
 
 interface NavGroup {
@@ -33,6 +34,20 @@ const navGroups: NavGroup[] = [
         items: [
             { label: 'School Registry', href: '/ministry/schools', icon: School },
             { label: 'Pending Approvals', href: '/ministry/schools/approvals', icon: ClipboardCheck },
+        ],
+    },
+    {
+        title: 'Student Registry',
+        items: [
+            { label: 'National Students', href: '/ministry/students', icon: Users },
+            { label: 'Enrollment Analytics', href: '/ministry/students/analytics', icon: TrendingUp },
+        ],
+    },
+    {
+        title: 'Teacher Registry',
+        items: [
+            { label: 'National Teachers', href: '/ministry/teachers', icon: UserCog },
+            { label: 'Licensing', href: '/ministry/teachers/licensing', icon: GraduationCap },
         ],
     },
     {
@@ -74,15 +89,16 @@ const navGroups: NavGroup[] = [
             { label: 'Announcements', href: '/ministry/communication/announcements', icon: Megaphone },
             { label: 'Circulars', href: '/ministry/communication/circulars', icon: Mail },
             { label: 'Emergency Alerts', href: '/ministry/communication/alerts', icon: Bell },
+            { label: 'Documents', href: '/ministry/downloads', icon: Download },
         ],
     },
     {
         title: 'Administration',
         items: [
-            { label: 'Ministry Users', href: '/ministry/admin/users', icon: Users },
-            { label: 'Roles & Permissions', href: '/ministry/admin/roles', icon: KeyRound },
-            { label: 'Audit Log', href: '/ministry/admin/audit', icon: ShieldCheck },
-            { label: 'Settings', href: '/ministry/admin/settings', icon: Settings },
+            { label: 'Ministry Users', href: '/ministry/admin/users', icon: Users, roles: ['ministry-admin'] },
+            { label: 'Roles & Permissions', href: '/ministry/admin/roles', icon: KeyRound, roles: ['ministry-admin'] },
+            { label: 'Audit Log', href: '/ministry/admin/audit', icon: ShieldCheck, roles: ['ministry-admin'] },
+            { label: 'Settings', href: '/ministry/admin/settings', icon: Settings, roles: ['ministry-admin'] },
         ],
     },
 ];
@@ -126,6 +142,15 @@ function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
 
 export default function MinistrySidebar() {
     const { sidebarCollapsed, toggleCollapsed } = useUIStore();
+    const { auth } = usePage<any>().props;
+    const activeRole: string | null = auth?.user?.activeRole ?? null;
+
+    const visibleGroups = navGroups
+        .map((group) => ({
+            ...group,
+            items: group.items.filter((item) => !item.roles || (activeRole && item.roles.includes(activeRole))),
+        }))
+        .filter((group) => group.items.length > 0);
 
     return (
         <TooltipProvider delayDuration={0}>
@@ -149,7 +174,7 @@ export default function MinistrySidebar() {
 
                 {/* Nav */}
                 <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
-                    {navGroups.map((group) => (
+                    {visibleGroups.map((group) => (
                         <div key={group.title}>
                             {!sidebarCollapsed && (
                                 <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">

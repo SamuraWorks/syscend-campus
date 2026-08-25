@@ -7,7 +7,7 @@ interface Student {
     id: number;
     full_name: string;
     admission_no: string;
-    photo: string | null;
+    photo: string | null; photo_url: string | null;
     schoolClass?: { name: string };
     section?: { name: string };
 }
@@ -96,8 +96,8 @@ export default function MostImproved({ linked, students }: Props) {
                                                 : <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">#{i + 1}</span>}
                                         </div>
                                         <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0">
-                                            {s.student.photo
-                                                ? <img src={s.student.photo} alt={s.student.full_name} className="w-full h-full object-cover" />
+                                            {s.student.photo_url
+                                                ? <img src={s.student.photo_url} alt={s.student.full_name} className="w-full h-full object-cover" />
                                                 : <User className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                                         </div>
                                         <div>

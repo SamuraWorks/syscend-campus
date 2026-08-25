@@ -16,7 +16,7 @@ interface Props {
             full_name: string;
             admission_no: string;
             class_id: number;
-            photo: string | null;
+            photo: string | null; photo_url: string | null;
             schoolClass?: { name: string };
             section?: { name: string };
         };
@@ -148,8 +148,8 @@ export default function ChildPerformanceDetail({ linked, profile }: Props) {
 
                 <div className="flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                     <div className="w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center overflow-hidden shrink-0">
-                        {student.photo
-                            ? <img src={student.photo} alt="" className="w-14 h-14 rounded-full object-cover" />
+                        {student.photo_url
+                            ? <img src={student.photo_url} alt="" className="w-14 h-14 rounded-full object-cover" />
                             : <User className="w-7 h-7 text-purple-600 dark:text-purple-400" />
                         }
                     </div>
