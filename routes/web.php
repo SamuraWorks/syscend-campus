@@ -97,6 +97,8 @@ use App\Services\RoleRegistry;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+Route::get('/up', fn () => response()->json(['status' => 'ok']));
+
 /*
 |--------------------------------------------------------------------------
 | Guest routes
