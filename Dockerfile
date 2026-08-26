@@ -1,9 +1,7 @@
 FROM php:8.4-cli
 
-ARG CACHEBUST=1
-
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libpng-dev libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev libpq-dev \
+    git curl unzip libpng-dev libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev libpq-dev libzip-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd zip \
     && pecl install redis && docker-php-ext-enable redis \
