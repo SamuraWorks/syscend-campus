@@ -139,7 +139,7 @@ export default function Exams({ linked, exams, classPerformance, nationalExamCan
                     </Card>
                 )}
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     {['all', 'upcoming', 'ongoing', 'completed'].map(s => (
                         <button key={s} onClick={() => setFilter(s)} className={cn('px-3 py-1.5 text-xs font-medium rounded-lg transition-colors', filter === s ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700')}>
                             {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -150,7 +150,7 @@ export default function Exams({ linked, exams, classPerformance, nationalExamCan
                 {exams.length === 0 ? (
                     <Card><CardContent className="py-16 text-center"><FileText className="w-10 h-10 mx-auto mb-3 text-slate-300" /><p className="text-sm text-slate-400">No exams scheduled.</p></CardContent></Card>
                 ) : (
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="text-xs uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">

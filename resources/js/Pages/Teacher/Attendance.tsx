@@ -109,7 +109,7 @@ export default function Attendance({ linked, teacher, classes, sections, recentA
                     </CardContent>
                 </Card>
 
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden">
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-slate-50 dark:bg-slate-900">

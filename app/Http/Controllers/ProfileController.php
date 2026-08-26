@@ -135,6 +135,6 @@ class ProfileController extends Controller
             'last_password_change_at' => now(),
         ]);
 
-        return back()->with('success', 'Password changed successfully. You can now access the full dashboard.');
+        return redirect()->route('dashboard')->with('success', 'Password changed successfully. You can now access the full dashboard.');
     }
 }

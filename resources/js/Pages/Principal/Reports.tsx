@@ -66,6 +66,7 @@ export default function Reports({ linked, academicReport, attendanceReport, fina
                                     </h2>
                                 </div>
                                 <CardContent className="p-0">
+                                    <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <tbody>
                                             {data.map((item, i) => (
@@ -76,6 +77,7 @@ export default function Reports({ linked, academicReport, attendanceReport, fina
                                             ))}
                                         </tbody>
                                     </table>
+                                    </div>
                                 </CardContent>
                             </Card>
                         );

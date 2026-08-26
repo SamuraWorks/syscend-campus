@@ -73,7 +73,7 @@ export default function AcademicProgress({ linked, student, reportCards, marksBy
                     <Card><CardContent className="py-16 text-center text-slate-400">No academic progress data available yet.</CardContent></Card>
                 ) : (
                     <>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <Card>
                                 <CardContent className="p-4 text-center">
                                     <p className="text-xs text-slate-500 mb-1">Total Terms</p>
@@ -179,6 +179,7 @@ function TermMarksSection({ termLabel, marks }: { termLabel: string; marks: Term
             </button>
             {open && (
                 <CardContent className="pt-0 pb-4">
+                    <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="text-left text-xs text-slate-500 border-b dark:border-slate-700">
@@ -199,6 +200,7 @@ function TermMarksSection({ termLabel, marks }: { termLabel: string; marks: Term
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 </CardContent>
             )}
         </Card>

@@ -62,6 +62,7 @@ export default function Results({ linked, student, exams }: Props) {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
+                                    <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="text-left text-xs text-slate-500 border-b dark:border-slate-700">
@@ -83,6 +84,7 @@ export default function Results({ linked, student, exams }: Props) {
                                             ))}
                                         </tbody>
                                     </table>
+                                    </div>
                                 </CardContent>
                             </Card>
                         ))}

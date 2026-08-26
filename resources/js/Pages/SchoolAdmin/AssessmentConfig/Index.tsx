@@ -266,7 +266,7 @@ export default function AssessmentConfigIndex({ configs, components, years, filt
                                 </Select>
                             </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             <div className="space-y-1.5">
                                 <Label>Max Marks</Label>
                                 <Input type="number" value={componentForm.data.max_marks} onChange={e => componentForm.setData('max_marks', e.target.value)} min="1" />

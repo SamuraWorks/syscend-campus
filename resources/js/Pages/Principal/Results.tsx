@@ -132,6 +132,7 @@ export default function Results({ linked, results, topPerformers, subjectCompari
                             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Subject Performance</h2>
                         </div>
                         <CardContent className="p-0">
+                            <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="text-xs uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">
@@ -158,6 +159,7 @@ export default function Results({ linked, results, topPerformers, subjectCompari
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         </CardContent>
                     </Card>
                 )}

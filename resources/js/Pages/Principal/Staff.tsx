@@ -110,7 +110,7 @@ export default function Staff({ linked, principal, staff, staffByDepartment, pen
                 {filtered.length === 0 ? (
                     <Card><CardContent className="py-16 text-center"><StaffIcon className="w-10 h-10 mx-auto mb-3 text-slate-300" /><p className="text-sm text-slate-400">No staff found.</p></CardContent></Card>
                 ) : (
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="text-xs uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">

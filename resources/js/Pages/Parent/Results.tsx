@@ -37,6 +37,7 @@ export default function ParentResults({ linked, children, childrenIndex, selecte
                                 {child.marks.length === 0 ? (
                                     <p className="py-8 text-center text-slate-400 text-sm">No results yet.</p>
                                 ) : (
+                                    <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="text-xs text-slate-500 border-b dark:border-slate-700 text-left">
@@ -60,6 +61,7 @@ export default function ParentResults({ linked, children, childrenIndex, selecte
                                             ))}
                                         </tbody>
                                     </table>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

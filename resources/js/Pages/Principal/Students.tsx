@@ -124,7 +124,7 @@ export default function Students({ linked, students, totalStudents, genderBreakd
                                 <h2 className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">
                                     {groupLabel} ({groupStudents.length})
                                 </h2>
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="text-xs uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">

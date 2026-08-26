@@ -82,7 +82,7 @@ export default function ParentAttendance({ linked, children, childrenIndex, sele
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-3">
-                                            <div className="grid grid-cols-3 gap-2 text-center">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center">
                                                 <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-2">
                                                     <CheckCircle className="w-3.5 h-3.5 text-green-500 mx-auto mb-0.5" />
                                                     <p className="text-xs font-bold text-green-700 dark:text-green-400">{m.present}</p>

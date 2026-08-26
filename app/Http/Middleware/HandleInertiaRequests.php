@@ -42,11 +42,12 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => fn () => function () use ($request) {
+                'user' => function () use ($request) {
                     $user = $request->user();
                     if (! $user) return null;
 
-                    $roles = $user->getRoleNames();
+                    $roleNames = $user->getRoleNames();
+                    $permissions = $user->getAllPermissions()->pluck('name')->toArray();
 
                     return [
                         'id'         => $user->id,
@@ -55,10 +56,10 @@ class HandleInertiaRequests extends Middleware
                         'phone'      => $user->phone ?? null,
                         'avatar'     => $user->avatar ?? null,
                         'avatar_url' => $user->avatar_url,
-                        'role'       => $this->resolvePrimaryRoleFromCollection($roles),
-                        'roles'      => $roles->toArray(),
-                        'activeRole' => $this->resolveActiveRoleFromCollection($roles, $user),
-                        'permissions'=> $user->getAllPermissions()->pluck('name')->toArray(),
+                        'role'       => $this->resolvePrimaryRoleFromCollection($roleNames),
+                        'roles'      => $roleNames->toArray(),
+                        'activeRole' => $this->resolveActiveRoleFromCollection($roleNames, $user),
+                        'permissions'=> $permissions,
                         'school_id'  => $user->school_id ?? null,
                         'status'     => $user->status ?? null,
                     ];

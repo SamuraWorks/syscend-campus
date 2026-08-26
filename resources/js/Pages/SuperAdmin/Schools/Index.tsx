@@ -71,7 +71,7 @@ export default function SchoolsIndex() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {[
                     { label: 'Total Schools',    value: stats.total,     color: 'text-slate-700 dark:text-slate-200' },
                     { label: 'Active',           value: stats.active,    color: 'text-emerald-600 dark:text-emerald-400' },
@@ -85,7 +85,7 @@ export default function SchoolsIndex() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto">
                 <div className="flex items-center gap-3 p-4 border-b border-slate-200 dark:border-slate-800">
                     <form onSubmit={handleSearch} className="flex items-center gap-2 flex-1 max-w-sm">
                         <div className="relative flex-1">

@@ -64,7 +64,7 @@ export default function PricingIndex({ packages }: Props) {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center text-xs">
                                     <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded">
                                         <Users className="w-4 h-4 mx-auto text-slate-400 mb-1" />
                                         <p className="font-medium">{pkg.max_students.toLocaleString()}</p>

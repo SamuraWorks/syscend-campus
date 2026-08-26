@@ -156,7 +156,7 @@ export default function DepartmentPerformance({ linked, performance }: Props) {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center">
                                         <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                                             <p className="text-xs text-slate-500 dark:text-slate-400">Students</p>
                                             <p className="text-sm font-bold text-slate-900 dark:text-white">{dept.student_count}</p>

@@ -211,7 +211,7 @@ export default function RequestDemo() {
                                         <CardContent className="space-y-5">
                                             <div>
                                                 <Label>Preferred Contact Method *</Label>
-                                                <div className="grid grid-cols-3 gap-3 mt-2">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                                                     {[{ v: 'phone', l: 'Phone Call', i: Phone }, { v: 'whatsapp', l: 'WhatsApp', i: MessageSquare }, { v: 'email', l: 'Email', i: Mail }].map(({ v, l, i: Icon }) => (
                                                         <button key={v} type="button" onClick={() => form.setData('preferred_contact_method', v)}
                                                             className={cn('flex flex-col items-center gap-2 rounded-lg border p-4 text-sm transition-colors',

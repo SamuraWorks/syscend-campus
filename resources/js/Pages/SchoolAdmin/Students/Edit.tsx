@@ -175,7 +175,7 @@ export default function EditStudent() {
                     {/* Personal */}
                     <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                         <CardHeader className="pb-3"><CardTitle className="text-sm">Personal Information</CardTitle></CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-4">
+                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Field name="first_name" label="First Name" required />
                             <Field name="last_name"  label="Last Name" />
                             <div className="space-y-1.5">
@@ -247,7 +247,7 @@ export default function EditStudent() {
                     {/* Class */}
                     <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                         <CardHeader className="pb-3"><CardTitle className="text-sm">Class Assignment</CardTitle></CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-4">
+                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <Label className="text-sm font-medium">Class <span className="text-red-500">*</span></Label>
                                 <Select defaultValue={String(student.class_id)} onValueChange={(v) => { setValue('class_id', Number(v)); setValue('section_id', null); if (!classes.find((c) => c.id === Number(v))?.school_level || classes.find((c) => c.id === Number(v))?.school_level !== 'senior_secondary') setValue('department_id', undefined); }}>
@@ -320,7 +320,7 @@ export default function EditStudent() {
                     {/* Guardian */}
                     <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                         <CardHeader className="pb-3"><CardTitle className="text-sm">Guardian Information</CardTitle></CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-4">
+                        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Field name="guardian.name"  label="Guardian Name" required />
                             <div className="space-y-1.5">
                                 <Label className="text-sm font-medium">Relation</Label>

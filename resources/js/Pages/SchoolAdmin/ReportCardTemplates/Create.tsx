@@ -207,7 +207,7 @@ export default function CreateReportCardTemplate({ existingTemplates }: Props) {
                             <CardTitle>Previously Uploaded Templates</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+                            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200 dark:border-slate-800">

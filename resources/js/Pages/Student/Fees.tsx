@@ -83,6 +83,7 @@ export default function Fees({ linked, student, summary, payments }: Props) {
                                 <p className="text-sm text-slate-400">No payments recorded.</p>
                             </div>
                         ) : (
+                            <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="text-xs text-slate-500 border-b dark:border-slate-700">
@@ -111,6 +112,7 @@ export default function Fees({ linked, student, summary, payments }: Props) {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </CardContent>
                 </Card>

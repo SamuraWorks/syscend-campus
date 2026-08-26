@@ -99,7 +99,7 @@ export default function BulkImportPreview({ job, preview }: Props) {
                 {flash?.error && <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:border-red-900 dark:text-red-400">{flash.error}</div>}
 
                 {/* Summary Banner */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <Card className="border-slate-200 dark:border-slate-800">
                         <CardContent className="p-4 text-center">
                             <p className="text-2xl font-bold text-green-600 dark:text-green-400">{job.valid_rows}</p>

@@ -102,7 +102,7 @@ export default function NationalExamsIndex({ exams, examTypes, gradeScale, acade
                     </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {statCards.map((s) => (
                         <Card key={s.label} className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                             <CardContent className="flex items-center gap-3 p-4">

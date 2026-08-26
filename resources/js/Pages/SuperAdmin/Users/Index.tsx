@@ -349,7 +349,7 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
                         <DialogTitle>{editUser ? 'Edit User' : 'Add User'}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={submitForm} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <Label>Name *</Label>
                                 <Input value={form.data.name} onChange={e => form.setData('name', e.target.value)} />
@@ -361,7 +361,7 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
                                 {form.errors.email && <p className="text-xs text-red-500 mt-1">{form.errors.email}</p>}
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <Label>Phone</Label>
                                 <Input value={form.data.phone} onChange={e => form.setData('phone', e.target.value)} placeholder="+1234567890" />
@@ -374,7 +374,7 @@ export default function UsersIndex({ users, schools, roles, filters }: Props) {
                                 {form.errors.password && <p className="text-xs text-red-500 mt-1">{form.errors.password}</p>}
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <Label>Role *</Label>
                                 <Select value={form.data.role} onValueChange={v => {

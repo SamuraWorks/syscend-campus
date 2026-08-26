@@ -69,7 +69,7 @@ export default function SierraLeoneSettings({ school, settings, levels, departme
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleEduSubmit} className="space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <Label>Country Code</Label>
                                     <Input value={eduForm.data.country_code} onChange={e => eduForm.setData('country_code', e.target.value)} />
@@ -109,7 +109,7 @@ export default function SierraLeoneSettings({ school, settings, levels, departme
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <Label>Grading System</Label>
                                     <Select value={eduForm.data.grading_system} onValueChange={v => eduForm.setData('grading_system', v)}>
@@ -127,7 +127,7 @@ export default function SierraLeoneSettings({ school, settings, levels, departme
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <Label>CA Weight (%)</Label>
                                     <Input type="number" min="0" max="100" value={eduForm.data.ca_weight} onChange={e => eduForm.setData('ca_weight', e.target.value)} />
@@ -165,7 +165,7 @@ export default function SierraLeoneSettings({ school, settings, levels, departme
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleLevelSubmit} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {levels.map(level => (
                                     <label key={level} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted">
                                         <Checkbox
@@ -190,7 +190,7 @@ export default function SierraLeoneSettings({ school, settings, levels, departme
                             <CardDescription>Departments configured for your school</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                 {departments.map(d => (
                                     <div key={d.id} className="p-2 border rounded text-sm">
                                         {d.name} ({d.code})

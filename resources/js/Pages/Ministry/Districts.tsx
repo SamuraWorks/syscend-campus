@@ -97,7 +97,7 @@ export default function MinistryDistricts({ districts }: Props) {
                                         </div>
                                     </CardHeader>
                                     <CardContent className="pt-0">
-                                        <div className="grid grid-cols-3 gap-2 text-center mt-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center mt-2">
                                             <div className="p-2 rounded bg-muted/50">
                                                 <p className="text-lg font-bold text-foreground">{district.schools_count}</p>
                                                 <p className="text-[10px] text-muted-foreground uppercase">Schools</p>

@@ -20,7 +20,7 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             school: null,
             permissions: [],
-            theme: 'system',
+            theme: 'light',
             setUser: (user) => set({ user }),
             setSchool: (school) => set({ school }),
             setPermissions: (permissions) => set({ permissions }),
