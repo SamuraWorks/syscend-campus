@@ -42,20 +42,27 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => fn () => $request->user() ? [
-                    'id'         => $request->user()->id,
-                    'name'       => $request->user()->name,
-                    'email'      => $request->user()->email,
-                    'phone'      => $request->user()->phone ?? null,
-                    'avatar'     => $request->user()->avatar ?? null,
-                    'avatar_url' => $request->user()->avatar_url,
-                    'role'       => $this->resolvePrimaryRole($request->user()),
-                    'roles'      => $request->user()->getRoleNames()->toArray(),
-                    'activeRole' => $this->resolveActiveRole($request->user()),
-                    'permissions'=> $request->user()->getAllPermissions()->pluck('name')->toArray(),
-                    'school_id'  => $request->user()->school_id ?? null,
-                    'status'     => $request->user()->status ?? null,
-                ] : null,
+                'user' => fn () => function () use ($request) {
+                    $user = $request->user();
+                    if (! $user) return null;
+
+                    $roles = $user->getRoleNames();
+
+                    return [
+                        'id'         => $user->id,
+                        'name'       => $user->name,
+                        'email'      => $user->email,
+                        'phone'      => $user->phone ?? null,
+                        'avatar'     => $user->avatar ?? null,
+                        'avatar_url' => $user->avatar_url,
+                        'role'       => $this->resolvePrimaryRoleFromCollection($roles),
+                        'roles'      => $roles->toArray(),
+                        'activeRole' => $this->resolveActiveRoleFromCollection($roles, $user),
+                        'permissions'=> $user->getAllPermissions()->pluck('name')->toArray(),
+                        'school_id'  => $user->school_id ?? null,
+                        'status'     => $user->status ?? null,
+                    ];
+                },
             ],
             'flash' => [
                 'success'         => fn () => session('success'),
@@ -70,13 +77,11 @@ class HandleInertiaRequests extends Middleware
                 return $path ? asset('storage/' . $path) : null;
             }),
             'schoolBranding' => fn () => once(function () use ($request) {
-                // Authenticated user — resolve from their school
                 $user = $request->user();
                 if ($user && $user->school_id) {
                     $school = School::find($user->school_id);
                     return $school ? $school->branding : null;
                 }
-                // Guest user on a school-slug route — resolve from URL
                 $slug = $request->route('schoolSlug');
                 if ($slug) {
                     $school = School::where('slug', $slug)->where('status', 'active')->first();
@@ -88,12 +93,13 @@ class HandleInertiaRequests extends Middleware
                 $user = $request->user();
                 if (!$user || !$user->school_id) return null;
                 $schoolId = $user->school_id;
+                $school = School::find($schoolId);
                 $settings = SchoolSetting::allFor($schoolId);
                 return [
-                    'primary_color'     => School::find($schoolId)?->primary_color,
-                    'secondary_color'   => School::find($schoolId)?->secondary_color,
-                    'currency'          => $settings['currency'] ?? School::find($schoolId)?->currency,
-                    'currency_symbol'   => School::find($schoolId)?->currency_symbol,
+                    'primary_color'     => $school?->primary_color,
+                    'secondary_color'   => $school?->secondary_color,
+                    'currency'          => $settings['currency'] ?? $school?->currency,
+                    'currency_symbol'   => $school?->currency_symbol,
                     'language'          => $settings['language'] ?? 'en',
                     'terms_per_year'    => (int) ($settings['terms_per_year'] ?? 3),
                     'ca_weight'         => (float) ($settings['ca_weight'] ?? 40),
@@ -105,8 +111,8 @@ class HandleInertiaRequests extends Middleware
                     'enable_jss'        => ($settings['enable_jss'] ?? '1') === '1',
                     'enable_sss'        => ($settings['enable_sss'] ?? '1') === '1',
                     'section_format'    => $settings['section_format'] ?? 'letter',
-                    'school_level'      => School::find($schoolId)?->school_level,
-                    'school_type'       => School::find($schoolId)?->school_type,
+                    'school_level'      => $school?->school_level,
+                    'school_type'       => $school?->school_type,
                     // Result display settings
                     'result_show_position'            => $settings['result_show_position'] ?? 'overall',
                     'result_position_type'            => $settings['result_position_type'] ?? 'rank',
@@ -120,38 +126,19 @@ class HandleInertiaRequests extends Middleware
         ];
     }
 
-    /**
-     * Determine the active role — either the session-stored one or fallback to primary.
-     */
-    private function resolveActiveRole($user): ?string
+    private function resolveActiveRoleFromCollection($roles, $user): ?string
     {
         $active = session('active_role');
-        $roles = $user->getRoleNames();
-
         if ($active && $roles->contains($active)) {
             return $active;
         }
-
-        return $this->resolvePrimaryRole($user);
+        return $this->resolvePrimaryRoleFromCollection($roles);
     }
 
-    /**
-     * Determine the single authoritative primary role for the user.
-     *
-     * Priority order matches the dashboard routing logic:
-     *  super-admin > ministry-admin > district-officer > school-admin > ...
-     *
-     * This is the role used by the sidebar to determine which nav items to show.
-     */
-    private function resolvePrimaryRole($user): ?string
+    private function resolvePrimaryRoleFromCollection($roles): ?string
     {
-        $roles = $user->getRoleNames();
+        if ($roles->isEmpty()) return null;
 
-        if ($roles->isEmpty()) {
-            return null;
-        }
-
-        // Priority-ordered list of all roles
         $priority = [
             RoleRegistry::SUPER_ADMIN,
             RoleRegistry::MINISTRY_ADMIN,
@@ -176,7 +163,6 @@ class HandleInertiaRequests extends Middleware
             }
         }
 
-        // Fallback: first role alphabetically
         return $roles->sort()->first();
     }
 }

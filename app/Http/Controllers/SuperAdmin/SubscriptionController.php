@@ -32,8 +32,7 @@ class SubscriptionController extends Controller
             'expired'          => SchoolSubscription::where('status', 'expired')->count(),
             'total_revenue'    => SchoolSubscription::sum('amount_paid'),
             'pending_balances' => SchoolSubscription::where('status', 'active')
-                ->get()
-                ->sum('balance'),
+                ->sum(\Illuminate\Support\Facades\DB::raw("GREATEST(0, price_per_term - COALESCE((SELECT SUM(sp.amount) FROM subscription_payments sp WHERE sp.subscription_id = school_subscriptions.id AND sp.status = 'confirmed'), 0))")),
         ];
 
         return Inertia::render('SuperAdmin/Subscriptions/Index', [

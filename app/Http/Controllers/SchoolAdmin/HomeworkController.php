@@ -64,9 +64,9 @@ class HomeworkController extends Controller
                 ->get();
 
             foreach ($students as $student) {
-                if ($student->guardian?->user_id) {
+                if ($student->guardian?->user) {
                     NotificationDispatchService::notifyUser(
-                        \App\Models\User::find($student->guardian->user_id),
+                        $student->guardian->user,
                         'Homework Assigned',
                         "New homework '{$data['title']}' in " . ($subject?->name ?? 'class') . " due on " . \Carbon\Carbon::parse($data['due_date'])->format('d M Y') . '.',
                         '/school/parent/homework'

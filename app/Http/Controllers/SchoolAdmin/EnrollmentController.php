@@ -197,16 +197,16 @@ class EnrollmentController extends Controller
         $this->validateEnrollmentConstraints($offerings, $validated['academic_year_id']);
 
         DB::transaction(function () use ($validated, $schoolId, $offerings) {
+            $compulsory = SubjectOffering::query()
+                ->where('school_id', $schoolId)
+                ->where('class_id', $offerings->first()->class_id)
+                ->where('academic_year_id', $validated['academic_year_id'])
+                ->compulsory()
+                ->pluck('id');
+
+            $allIds = $offerings->pluck('id')->merge($compulsory)->unique();
+
             foreach ($validated['student_ids'] as $studentId) {
-                $compulsory = SubjectOffering::query()
-                    ->where('school_id', $schoolId)
-                    ->where('class_id', $offerings->first()->class_id)
-                    ->where('academic_year_id', $validated['academic_year_id'])
-                    ->compulsory()
-                    ->pluck('id');
-
-                $allIds = $offerings->pluck('id')->merge($compulsory)->unique();
-
                 foreach ($allIds as $offeringId) {
                     StudentSubjectEnrollment::updateOrCreate(
                         [
