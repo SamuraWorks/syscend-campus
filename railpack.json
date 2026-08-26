@@ -1,20 +1,9 @@
 {
-    "$schema": "https://schema.railpack.com",
     "provider": "php",
-    "buildAptPackages": [
-        "libpng-dev",
-        "libjpeg-dev",
-        "libfreetype6-dev",
-        "libgd-dev",
-        "libpq-dev"
-    ],
-    "steps": {
-        "build": {
-            "commands": [
-                "npm run build",
-                "mkdir -p storage/framework/{sessions,views,cache,testing} storage/logs bootstrap/cache",
-                "chmod -R a+rw storage"
-            ]
+    "phases": {
+        "setup": {
+            "aptPackages": ["libpng-dev", "libjpeg-dev", "libfreetype6-dev", "libgd-dev", "libpq-dev", "unzip", "zip", "git"],
+            "phpExtensions": ["gd", "pdo_pgsql", "mbstring", "bcmath", "exif", "pcntl", "redis", "opcache", "ctype", "curl", "dom", "fileinfo", "filter", "hash", "openssl", "pcre", "pdo", "session", "tokenizer", "xml"]
         }
     }
 }
