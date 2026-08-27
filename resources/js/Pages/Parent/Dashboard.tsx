@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GraduationCap, DollarSign, Bell, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
-import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
+import ParentChildSwitcher from '@/components/ParentChildSwitcher';
 
 interface Guardian { id: number; name: string; phone: string; email: string | null; }
 interface ChildAttendance { total: number; present: number; absent: number; percentage: number; }

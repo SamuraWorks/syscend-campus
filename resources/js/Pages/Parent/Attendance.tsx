@@ -2,7 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClipboardCheck, CalendarDays, CheckCircle, XCircle, Clock } from 'lucide-react';
-import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
+import ParentChildSwitcher from '@/components/ParentChildSwitcher';
 
 interface DayEntry { date: string; status: string; }
 interface MonthData { label: string; total: number; present: number; absent: number; late: number; percentage: number; calendar: DayEntry[]; }

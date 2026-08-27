@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Download, FileText, File } from 'lucide-react';
-import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
+import ParentChildSwitcher from '@/components/ParentChildSwitcher';
 
 interface Document { id: number; title: string; student: string | null; file_type: string | null; file_size: number | null; download_url: string; date: string; }
 interface Props { linked: boolean; guardian: { name: string } | null; documents: Document[]; childrenIndex?: { id: number; full_name: string }[]; selectedChild?: string | null; }

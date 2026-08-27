@@ -19,7 +19,7 @@ import {
     ArrowUpRight,
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
-import LiveBadge from '@/Components/LiveBadge';
+import LiveBadge from '@/components/LiveBadge';
 
 interface Props {
     user: { id: number; name: string; email: string };

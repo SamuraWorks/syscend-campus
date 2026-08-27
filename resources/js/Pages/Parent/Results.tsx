@@ -2,7 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3 } from 'lucide-react';
-import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
+import ParentChildSwitcher from '@/components/ParentChildSwitcher';
 
 interface MarkRow { exam: string | null; type: string | null; subject: string | null; marks: number | null; total: number | null; grade: string | null; absent: boolean; }
 interface Child { id: number; full_name: string; class: string | null; marks: MarkRow[]; }

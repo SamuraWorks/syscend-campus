@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Clock } from 'lucide-react';
-import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
+import ParentChildSwitcher from '@/components/ParentChildSwitcher';
 
 interface Slot { subject: string | null; start_time: string; end_time: string; room: string | null; }
 interface Child { id: number; full_name: string; class: string | null; section: string | null; timetable: Record<string, Slot[]>; }

@@ -2,7 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
-import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
+import ParentChildSwitcher from '@/components/ParentChildSwitcher';
 
 interface Payment { month: string; due: number; paid: number; balance: number; status: string; payment_date: string | null; }
 interface Child { id: number; full_name: string; class: string | null; total_due: number; total_paid: number; balance: number; payments: Payment[]; }

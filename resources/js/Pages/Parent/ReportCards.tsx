@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Award, TrendingUp, User, AlertTriangle, CheckCircle } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
 import type { PageProps } from '@/Types';
-import ParentChildSwitcher from '@/Components/ParentChildSwitcher';
+import ParentChildSwitcher from '@/components/ParentChildSwitcher';
 
 interface ReportCard {
     id: number; student: string | null; class: string | null;
