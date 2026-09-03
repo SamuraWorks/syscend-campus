@@ -25,11 +25,15 @@ export default function Hero() {
             </div>
 
             <div className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-6 pb-16 pt-28 text-center lg:px-10">
-                <span className="mb-6 inline-flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10 sm:h-32 sm:w-32 lg:h-36 lg:w-36">
+                <span className="relative mb-6 inline-flex h-28 w-28 items-center justify-center sm:h-32 sm:w-32 lg:h-36 lg:w-36">
+                    <span
+                        aria-hidden="true"
+                        className="absolute inset-0 bg-white drop-shadow-2xl [mask-image:url('/images/logo.png')] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]"
+                    />
                     <img
                         src="/images/logo.png"
                         alt="Syscend Campus"
-                        className="h-full w-full object-contain [filter:none]"
+                        className="relative h-full w-full object-contain [filter:none]"
                     />
                 </span>
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-background/35 bg-background/15 px-3 py-1 text-xs font-medium text-background backdrop-blur-sm">

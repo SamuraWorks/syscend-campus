@@ -13,11 +13,15 @@ export default function Logo({
 
     return (
         <span className={cn('inline-flex items-center gap-2', className)}>
-            <span className="inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-md bg-white p-1.5 shadow-sm ring-1 ring-black/10">
+            <span className="relative inline-flex h-12 w-12 shrink-0 items-center justify-center">
+                <span
+                    aria-hidden="true"
+                    className="absolute inset-0 bg-white drop-shadow-md [mask-image:url('/images/logo.png')] [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]"
+                />
                 <img
                     src="/images/logo.png"
                     alt="Syscend Campus"
-                    className="h-full w-full object-contain [filter:none]"
+                    className="relative h-full w-full object-contain [filter:none]"
                     draggable={false}
                 />
             </span>
