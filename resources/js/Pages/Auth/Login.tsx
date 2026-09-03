@@ -69,11 +69,13 @@ export default function Login() {
             <div className="w-full max-w-md">
                 {/* Logo / Branding — tap to go home */}
                 <Link href="/" className="block text-center mb-8">
-                    <img
-                        src={schoolBranding?.logo_url || "/images/logo.png"}
-                        alt={schoolBranding?.name || "Syscend Campus"}
-                        className="inline-block w-16 h-16 object-contain mb-4 [filter:none]"
-                    />
+                    <span className="inline-flex w-16 h-16 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-md ring-1 ring-black/10 mb-4">
+                        <img
+                            src={schoolBranding?.logo_url || "/images/logo.png"}
+                            alt={schoolBranding?.name || "Syscend Campus"}
+                            className="inline-block w-full h-full object-contain [filter:none]"
+                        />
+                    </span>
                     <h1 className="text-2xl font-bold text-foreground tracking-tight">
                         {schoolBranding?.name || "Syscend Campus"}
                     </h1>

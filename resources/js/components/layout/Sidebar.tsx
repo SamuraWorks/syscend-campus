@@ -745,10 +745,10 @@ export default function Sidebar() {
             >
                 {/* Logo */}
                 <div className={cn('flex items-center h-16 px-4 border-b border-border', collapsed && 'justify-center px-2')}>
-                    <div className="flex items-center justify-center w-9 h-9 overflow-hidden shrink-0">
+                    <div className="flex items-center justify-center w-9 h-9 overflow-hidden shrink-0 rounded-md bg-white p-0.5 ring-1 ring-black/10">
                         {branding?.logo_url
-                            ? <img src={branding.logo_url} alt={branding.name ?? 'School'} className="size-9 object-contain [filter:none]" />
-                            : <img src="/images/logo.png" alt="Syscend Campus" className="size-9 object-contain [filter:none]" />}
+                            ? <img src={branding.logo_url} alt={branding.name ?? 'School'} className="size-full object-contain [filter:none]" />
+                            : <img src="/images/logo.png" alt="Syscend Campus" className="size-full object-contain [filter:none]" />}
                     </div>
                     {!collapsed && (
                         <span className="ml-2.5 font-bold text-foreground text-base tracking-tight truncate">

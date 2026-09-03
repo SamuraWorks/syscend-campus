@@ -72,11 +72,13 @@ export default function RegistrationLanding({ school }: Props) {
 
             <div className="w-full max-w-lg">
                 <Link href="/login" className="block text-center mb-8">
-                    <img
-                        src="/images/logo.png"
-                        alt="Syscend Campus"
-                        className="inline-block w-16 h-16 object-contain mb-4 [filter:none]"
-                    />
+                    <span className="inline-flex w-16 h-16 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-md ring-1 ring-black/10 mb-4">
+                        <img
+                            src="/images/logo.png"
+                            alt="Syscend Campus"
+                            className="inline-block w-full h-full object-contain [filter:none]"
+                        />
+                    </span>
                     <h1 className="text-2xl font-bold text-foreground tracking-tight">
                         Create Your Syscend Campus Account
                     </h1>

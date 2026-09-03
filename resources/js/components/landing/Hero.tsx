@@ -25,11 +25,13 @@ export default function Hero() {
             </div>
 
             <div className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-6 pb-16 pt-28 text-center lg:px-10">
-                <img
-                    src="/images/logo.png"
-                    alt="Syscend Campus"
-                    className="h-20 w-auto object-contain mb-6 [filter:none] sm:h-24 lg:h-28"
-                />
+                <span className="mb-6 inline-flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10 sm:h-32 sm:w-32 lg:h-36 lg:w-36">
+                    <img
+                        src="/images/logo.png"
+                        alt="Syscend Campus"
+                        className="h-full w-full object-contain [filter:none]"
+                    />
+                </span>
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-background/35 bg-background/15 px-3 py-1 text-xs font-medium text-background backdrop-blur-sm">
                     <ShieldCheck className="size-3.5" aria-hidden="true" />
                     Secure, cloud-ready school management
