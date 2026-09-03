@@ -16,7 +16,8 @@ export default function Logo({
             <img
                 src="/images/logo.png"
                 alt="Syscend Campus"
-                className="h-12 w-auto rounded-md object-contain"
+                className="h-12 w-auto object-contain [filter:none]"
+                draggable={false}
             />
             {showWordmark && (
                 <span

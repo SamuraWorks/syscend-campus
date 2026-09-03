@@ -164,8 +164,8 @@ export default function MinistrySidebar() {
             >
                 {/* Logo */}
                 <div className={cn('flex items-center h-16 px-4 border-b border-border', sidebarCollapsed && 'justify-center px-2')}>
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg overflow-hidden shrink-0">
-                        <img src="/images/logo.png" alt="Syscend Campus" className="size-9 object-cover" />
+                    <div className="flex items-center justify-center w-9 h-9 overflow-hidden shrink-0">
+                        <img src="/images/logo.png" alt="Syscend Campus" className="size-9 object-contain [filter:none]" />
                     </div>
                     {!sidebarCollapsed && (
                         <span className="ml-2.5 font-bold text-foreground text-base tracking-tight">Syscend Campus</span>

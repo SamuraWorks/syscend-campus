@@ -72,7 +72,7 @@ export default function Login() {
                     <img
                         src={schoolBranding?.logo_url || "/images/logo.png"}
                         alt={schoolBranding?.name || "Syscend Campus"}
-                        className="inline-block w-16 h-16 rounded-2xl object-cover mb-4 shadow-lg"
+                        className="inline-block w-16 h-16 object-contain mb-4 [filter:none]"
                     />
                     <h1 className="text-2xl font-bold text-foreground tracking-tight">
                         {schoolBranding?.name || "Syscend Campus"}

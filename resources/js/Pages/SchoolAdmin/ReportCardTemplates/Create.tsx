@@ -109,7 +109,7 @@ export default function CreateReportCardTemplate({ existingTemplates }: Props) {
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        post(route('report-card-templates.store'), {
+        post('/school/report-card-templates', {
             forceFormData: true,
             onSuccess: () => toast.success('Template uploaded!'),
         });
@@ -119,7 +119,7 @@ export default function CreateReportCardTemplate({ existingTemplates }: Props) {
         <AppLayout title="Upload Report Card Template">
             <div className="max-w-3xl mx-auto space-y-6">
                 <div className="flex items-center gap-3">
-                    <Link href={route('report-card-templates.index')}>
+                    <Link href="/school/report-card-templates">
                         <Button variant="ghost" size="sm">
                             <ArrowLeft className="w-4 h-4 mr-1" /> Back
                         </Button>

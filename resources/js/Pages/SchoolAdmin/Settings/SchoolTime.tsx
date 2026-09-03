@@ -136,7 +136,8 @@ function SchoolHoursTab({ settings, academicYear, allYears }: Pick<Props, 'setti
         form.transform((data) => ({
             ...data,
             working_days: data.working_days.join(','),
-        })).post('/school/settings/school-time');
+        }));
+        form.post('/school/settings/school-time');
     }
 
     return (

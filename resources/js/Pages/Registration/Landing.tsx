@@ -75,7 +75,7 @@ export default function RegistrationLanding({ school }: Props) {
                     <img
                         src="/images/logo.png"
                         alt="Syscend Campus"
-                        className="inline-block w-16 h-16 rounded-2xl object-cover mb-4 shadow-lg"
+                        className="inline-block w-16 h-16 object-contain mb-4 [filter:none]"
                     />
                     <h1 className="text-2xl font-bold text-foreground tracking-tight">
                         Create Your Syscend Campus Account

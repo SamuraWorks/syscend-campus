@@ -39,14 +39,14 @@ export default function SierraLeoneSettings({ school, settings, levels, departme
 
     const handleEduSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        eduForm.post(route('school-admin.settings.sierra-leone.education'), {
+        eduForm.post('/school/settings/sierra-leone/education', {
             onSuccess: () => toast.success('Education system settings saved.'),
         });
     };
 
     const handleLevelSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        levelForm.post(route('school-admin.settings.sierra-leone.levels'), {
+        levelForm.post('/school/settings/sierra-leone/levels', {
             onSuccess: () => toast.success('School levels updated.'),
         });
     };
@@ -59,7 +59,7 @@ export default function SierraLeoneSettings({ school, settings, levels, departme
     };
 
     return (
-        <AppLayout header={<h1 className="text-2xl font-bold">Sierra Leone Education Settings</h1>}>
+        <AppLayout title="Sierra Leone Settings">
             <Head title="Sierra Leone Settings" />
             <div className="max-w-4xl mx-auto py-6 px-4 space-y-6">
                 <Card>

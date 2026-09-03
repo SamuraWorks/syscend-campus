@@ -17,11 +17,11 @@ export default function AcademicTermsIndex({ terms, academicYears, filters }: Pa
 
     const handleFilter = (value: string) => {
         setYearFilter(value);
-        router.get(route('school.academic-terms.index'), value ? { academic_year_id: value } : {}, { preserveState: true });
+        router.get('/school/academic-terms', value ? { academic_year_id: value } : {}, { preserveState: true });
     };
 
     return (
-        <AppLayout header={<h1 className="text-2xl font-bold">Academic Terms</h1>}>
+        <AppLayout title="Academic Terms">
             <Head title="Academic Terms" />
             <div className="max-w-6xl mx-auto py-6 px-4 space-y-6">
                 <Card>

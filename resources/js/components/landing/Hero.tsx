@@ -28,7 +28,7 @@ export default function Hero() {
                 <img
                     src="/images/logo.png"
                     alt="Syscend Campus"
-                    className="h-20 w-auto rounded-2xl object-contain mb-6 shadow-2xl sm:h-24 lg:h-28"
+                    className="h-20 w-auto object-contain mb-6 [filter:none] sm:h-24 lg:h-28"
                 />
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-background/35 bg-background/15 px-3 py-1 text-xs font-medium text-background backdrop-blur-sm">
                     <ShieldCheck className="size-3.5" aria-hidden="true" />

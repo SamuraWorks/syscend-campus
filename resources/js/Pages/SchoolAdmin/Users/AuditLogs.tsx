@@ -11,11 +11,11 @@ interface PageProps { user: User; logs: { data: AuditLog[]; meta: { total: numbe
 
 export default function AuditLogs({ user, logs }: PageProps) {
     return (
-        <AppLayout header={<h1 className="text-2xl font-bold">Audit Logs</h1>}>
+        <AppLayout title="Audit Logs">
             <Head title={`Audit Logs - ${user.name}`} />
             <div className="max-w-6xl mx-auto py-6 px-4 space-y-6">
                 <div className="flex items-center gap-3">
-                    <Link href={route('school.settings.admins')} className="text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /></Link>
+                    <Link href="/school/settings/admins" className="text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /></Link>
                     <h2 className="text-lg font-semibold">Audit Log for {user.name}</h2>
                 </div>
                 <Card>

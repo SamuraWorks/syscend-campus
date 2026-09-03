@@ -90,7 +90,7 @@ export default function StaffRegistration({ school, verified }: StaffRegistratio
             <Head title={`Staff Registration — ${school.name}`} />
             <div className="w-full max-w-md">
                 <Link href={`/${school.slug}/register`} className="block text-center mb-8">
-                    <img src="/images/logo.png" alt="Syscend Campus" className="inline-block w-16 h-16 rounded-2xl object-cover mb-4 shadow-lg" />
+                    <img src="/images/logo.png" alt="Syscend Campus" className="inline-block w-16 h-16 object-contain mb-4 [filter:none]" />
                     <h1 className="text-2xl font-bold text-foreground tracking-tight">Staff Registration</h1>
                     <p className="text-sm text-muted-foreground mt-1">{school.name}</p>
                 </Link>

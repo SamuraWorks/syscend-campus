@@ -13,7 +13,7 @@ export default function DemoReset() {
         e.preventDefault();
         if (!confirmed) return;
         setData('confirm', true);
-        setTimeout(() => post(route('super-admin.demo-reset.execute')), 0);
+        setTimeout(() => post('/super-admin/demo-reset'), 0);
     };
 
     return (

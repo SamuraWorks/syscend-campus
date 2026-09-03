@@ -2,7 +2,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { GraduationCap, DollarSign, Bell, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
+import { GraduationCap, DollarSign, Bell, TrendingUp, CheckCircle, AlertTriangle, Users } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import ParentChildSwitcher from '@/components/ParentChildSwitcher';
 

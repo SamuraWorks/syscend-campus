@@ -10,7 +10,7 @@ export default function TwoFactorVerify() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('super-admin.two-factor.verify'));
+        post('/super-admin/2fa/verify');
     };
 
     return (
